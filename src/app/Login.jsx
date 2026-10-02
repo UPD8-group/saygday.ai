@@ -34,12 +34,11 @@ export default function Login() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) { setError('Enter your email address, like you@yourbusiness.com.au'); return }
     setBusy(true); setError(''); setNotice(''); setAuthError('')
     try {
-      const { error: failure } = await withDeadline(() => client.auth.signInWithOtp({ email: address, options: { shouldCreateUser: true, emailRedirectTo: `${location.origin}/login` } }), { timeoutMs: 20000 })
-      if (failure) throw failure
+      await withDeadline(signal => requestCode(address, signal), { timeoutMs: 20000 })
       setSentTo(address); setCode(''); setResendAt(Date.now() + 60000); setNow(Date.now())
       setNotice(again ? 'A new code is on its way. Use the newest email.' : '')
     } catch (failure) {
-      setError(friendlyAuthError(failure))
+      setError(failure?.friendly || friendlyAuthError(failure))
       if (failure?.status === 429) { setResendAt(Date.now() + 60000); setNow(Date.now()) }
     } finally { setBusy(false) }
   }
@@ -94,6 +93,19 @@ export default function Login() {
       </section>
     </div>
   </Shell>
+}
+
+// SayGday emails the code itself (netlify/functions/sign-in.mts), from the
+// SayGday address. Supabase only makes the code and checks it.
+async function requestCode(email, signal) {
+  const response = await fetch('/api/sign-in', {
+    method: 'POST', cache: 'no-store', signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (response.ok) return
+  const body = await response.json().catch(() => null)
+  throw Object.assign(new Error(body?.error || 'Sign-in code not sent'), { status: response.status, code: body?.code, friendly: body?.error })
 }
 
 function Shell({ children }) {

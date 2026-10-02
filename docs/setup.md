@@ -8,19 +8,12 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 
 1. **Run the migration.** SQL editor → paste
    `supabase/migrations/20261002100000_saygday.sql` → Run.
-2. **Sign-in settings.** Authentication → URL Configuration:
-   - Site URL: `https://saygday.ai` (or the Netlify address until the domain moves)
-   - Redirect URLs: add `https://saygday.ai/login` and `https://*.netlify.app/login`
-3. **The sign-in email.** Authentication → Emails → Templates. Paste
-   `supabase/templates/sign-in.html` into **both** "Magic Link" and
-   "Confirm signup". Subject for both: `{{ .Token }} is your SayGday sign-in code`.
-   A new address gets "Confirm signup", a returning one gets "Magic Link", so
-   both must show the code.
-4. **Send email from your own address.** Authentication → Emails → SMTP
-   settings: turn on custom SMTP with your Resend details (host
-   `smtp.resend.com`, port 465, user `resend`, password: a Resend API key,
-   sender `hello@saygday.ai`). Without this, Supabase sends only a few sign-in
-   emails an hour.
+2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
+   (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
+   emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email
+   templates, SMTP settings and Site URL aren't used, so they can stay as they
+   are. The sending domain (`saygday.ai`) must show as **Verified** in Resend →
+   Domains, or no sign-in code can be sent.
 
 ## 2. The website (Netlify)
 
@@ -35,7 +28,7 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 | `VITE_SAYGDAY_SUPABASE_URL` | `https://eatczhzhhygfxjafnyct.supabase.co` | no |
 | `VITE_SAYGDAY_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_IKV3HjbxWW9aE1oE3Z4_hQ_uv_PAzzb` | no (it's public by design) |
 | `ANTHROPIC_API_KEY` | your Anthropic key (the same one the old site uses) | **yes** |
-| `RESEND_API_KEY` | your Resend key | **yes** |
+| `RESEND_API_KEY` | your Resend key (sends sign-in codes and customers' questions) | **yes** |
 | `SAYGDAY_EMAIL_FROM` | `SayGday <hello@saygday.ai>` | no |
 | `SAYGDAY_PUBLIC_URL` | `https://saygday.ai` | no |
 

@@ -25,6 +25,7 @@ drafts from the website's own sentences instead.
 | The chat window on a business's website | `src/chat/`, `chat.html` |
 | The line of code a business adds (draws the button) | `public/widget.js` |
 | Matching a visitor's question to an approved answer, without AI | `shared/matcher.mjs` |
+| The sign-in email (`POST /api/sign-in`): Supabase makes the code, SayGday sends it | `netlify/functions/sign-in.mts`, `_lib/sign-in.mjs` |
 | Dashboard requests (`POST /api/app`) | `netlify/functions/app.mts`, `_lib/owner.mjs` |
 | Chat requests (`/api/chat`) | `netlify/functions/chat.mts`, `_lib/visitor.mjs` |
 | The website scan (background job) | `netlify/functions/scan-background.mts`, `_lib/scan.mjs` |
