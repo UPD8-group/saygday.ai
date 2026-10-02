@@ -2,6 +2,7 @@
 // Only a request signed with SAYGDAY_SCAN_SECRET starts one.
 import { createServiceClient } from './_lib/runtime.mjs'
 import { runScan, scanConfiguration, verifyScanTrigger } from './_lib/scan.mjs'
+import { createRenderer } from './_lib/render.mjs'
 
 export default async (request: Request) => {
   if (request.method !== 'POST') return
@@ -9,5 +10,6 @@ export default async (request: Request) => {
   try { body = await request.json() } catch { return }
   const configuration = scanConfiguration()
   if (!verifyScanTrigger(body, configuration.secret)) return
-  await runScan({ db: createServiceClient(), scanId: body.scanId, configuration })
+  // A page built in JavaScript is read in a real browser (_lib/render.mjs).
+  await runScan({ db: createServiceClient(), scanId: body.scanId, configuration, renderer: createRenderer() })
 }

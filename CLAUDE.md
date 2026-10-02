@@ -32,6 +32,19 @@ UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
   templates, SMTP, Site URL) is part of signing in. Never bring back
   `signInWithOtp` (test/sign-in.test.mjs locks it).
 
+- **The scan reads any website, JavaScript included** (owner, 2 October
+  2026: "there has to be a way… that the scanner can read any sort of
+  website, even with JavaScript… I'm going to leave this with you"). Every
+  page is fetched plainly first; a page that reads nearly empty, or only
+  through its `<noscript>` fallback, or that turns plain readers away, is
+  opened in headless Chromium (`_lib/render.mjs`, at most 8 pages a scan).
+  The browser keeps safe-fetch's rules (public HTTPS on 443 only, DNS checked
+  for every host, the page never leaves the business's website, no images,
+  fonts or media) and keeps web security ON: the serverless package's
+  `--disable-web-security` family is filtered out (test/render.test.mjs).
+  Chromium itself is `@sparticuz/chromium-min`, downloaded at cold start
+  because the full browser is over Netlify's 50 MB function limit.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.

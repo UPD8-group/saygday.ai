@@ -29,6 +29,7 @@ drafts from the website's own sentences instead.
 | Dashboard requests (`POST /api/app`) | `netlify/functions/app.mts`, `_lib/owner.mjs` |
 | Chat requests (`/api/chat`) | `netlify/functions/chat.mts`, `_lib/visitor.mjs` |
 | The website scan (background job) | `netlify/functions/scan-background.mts`, `_lib/scan.mjs` |
+| Reading a website built in JavaScript in a real browser (only when a page reads nearly empty) | `_lib/render.mjs` |
 | The database and every rule about who may see what | `supabase/migrations/` |
 
 The browser never talks to the database directly. It signs in with Supabase
