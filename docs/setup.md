@@ -32,8 +32,11 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 | `SAYGDAY_EMAIL_FROM` | `SayGday <hello@saygday.ai>` | no |
 | `SAYGDAY_PUBLIC_URL` | `https://saygday.ai` | no |
 
-Optional: `SAYGDAY_SCAN_MODEL` (defaults to `claude-opus-5-5`) and
-`SAYGDAY_SCAN_SECRET` (defaults to a secret derived from the service key).
+Optional: `SAYGDAY_SCAN_MODEL` (defaults to `claude-opus-5-5`),
+`SAYGDAY_SCAN_SECRET` (defaults to a secret derived from the service key) and
+`SAYGDAY_RATE_LIMIT_SECRET` (scrambles the addresses spam limits count; also
+derived from the service key by default, and changing it only restarts the
+day's counts).
 
 3. Deploy. The website is at `/`; sign in at `/login` with your email and
    scan a website.

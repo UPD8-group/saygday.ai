@@ -111,9 +111,9 @@ export async function sendSignInCode({ db, body, ip, configuration = emailConfig
 
   // One code a minute and six an hour for an address; twenty an hour from one
   // connection. Nobody can use the form to flood someone's inbox.
-  await rateLimit(db, `sign-in:ip:${ip || 'unknown'}`, 20, 3600)
-  await rateLimit(db, `sign-in:email-minute:${email}`, 1, 55)
-  await rateLimit(db, `sign-in:email:${email}`, 6, 3600)
+  await rateLimit(db, 'sign-in:ip', ip, 20, 3600)
+  await rateLimit(db, 'sign-in:email-minute', email, 1, 55)
+  await rateLimit(db, 'sign-in:email', email, 6, 3600)
 
   let link
   try { link = await db.auth.admin.generateLink({ type: 'magiclink', email }) } catch { throw new HttpError(503, UNAVAILABLE, 'SIGN_IN_UNAVAILABLE') }
