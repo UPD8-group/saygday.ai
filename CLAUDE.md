@@ -1,7 +1,11 @@
 # Notes for Claude
 
 SayGday, rebuilt from scratch on 2 October 2026 (the earlier platform is
-UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
+UPD8-group/saygdayAI). saygday.ai moved to this site the same day: it is a
+custom domain on the Netlify project `saygdayai`, the only project that
+deploys this repo, and the old `saygday` project was deleted. A second
+project building this repo would serve the pages without the server's
+settings, which is how sign-in broke on saygday.ai before the move.
 
 ## The owner's decisions (don't relitigate in code)
 
