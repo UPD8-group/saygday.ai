@@ -17,6 +17,10 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 
 ## 2. The website (Netlify)
 
+The live project is `saygdayai`, with `saygday.ai` (and `www`) as its custom
+domain on Netlify DNS. Keep it the only project deploying this repo: another
+one would serve the pages without these settings.
+
 1. Add new project → Import an existing project → GitHub →
    `UPD8-group/saygday.ai`. Build settings come from `netlify.toml`.
 2. Environment variables (Project configuration → Environment variables):
