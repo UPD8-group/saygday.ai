@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { database, rpcClient, user } from './helpers/database.mjs'
+import { extractPublicPage } from '../netlify/functions/_lib/safe-fetch.mjs'
 import { buildScanRequest, cleanVariants, crawlWebsite, readScanReply, runScan, scanConfiguration, scanSecret, signScan, startScan, verifyScanTrigger, withoutClashingVariants, groundedAnswer } from '../netlify/functions/_lib/scan.mjs'
 
 // A small cafe website, as the scan would fetch it.
@@ -38,6 +39,30 @@ test('the scan follows the website’s own useful pages and nothing else', async
   assert.deepEqual(skipped, [])
   assert.ok(pages[0].text.includes('Monday to Friday 7am to 3pm'))
   assert.ok(!pages.some(page => /login|elsewhere/.test(page.url)), 'never a login page or another website')
+})
+
+// A website built in JavaScript: every address answers with the same empty
+// shell, and the words a reader without JavaScript gets are in <noscript>.
+const SHELL = `<html><head><title>Joe’s Cafe</title><script type="module" src="/assets/app.js"></script></head><body><div id="root"></div>
+  <noscript><h1>Joe’s Cafe, Braddon</h1><p>Great coffee and breakfast in the heart of Braddon since 2012.</p><p>We are open Monday to Friday 7am to 3pm and Saturday 8am to 2pm. Closed Sundays.</p>
+  <p><a href="/contact">Contact us</a> · <a href="/menu">See the menu</a></p></noscript></body></html>`
+
+test('a website built in JavaScript is read from its <noscript> words, once', async () => {
+  const page = extractPublicPage(SHELL, 'https://joescafe.com.au/')
+  assert.match(page.text, /Monday to Friday 7am to 3pm/)
+  assert.deepEqual(page.readerLinks.map(link => link.url).sort(), ['https://joescafe.com.au/contact', 'https://joescafe.com.au/menu'])
+  const { pages } = await crawlWebsite({ origin: 'https://joescafe.com.au', fetchPage: async url => ({ html: SHELL, url }) })
+  assert.equal(pages.length, 1, 'the same shell at every address is read once')
+
+  const appOnly = '<html><body><div id="root"></div><noscript>You need to enable JavaScript to run this app.</noscript></body></html>'
+  assert.equal(extractPublicPage(appOnly, 'https://joescafe.com.au/').text, '', 'an “enable JavaScript” notice is not the business’s words')
+  const withNotice = extractPublicPage(SHELL.replace('<noscript>', '<noscript><p>You need to enable JavaScript to run this app.</p>'), 'https://joescafe.com.au/')
+  assert.match(withNotice.text, /7am to 3pm/)
+  assert.doesNotMatch(withNotice.text, /enable JavaScript/)
+  const ordinary = SITE['https://joescafe.com.au/'].replace('</body>', '<noscript><img src="https://tracker.example/pixel.gif"><p>Please enable JavaScript to order online.</p><a href="/secret-noscript-page">x</a></noscript></body>')
+  const read = extractPublicPage(ordinary, 'https://joescafe.com.au/')
+  assert.doesNotMatch(read.text, /enable JavaScript/, 'a page with its own words ignores <noscript>')
+  assert.ok(!read.readerLinks.some(link => /secret-noscript-page/.test(link.url)))
 })
 
 test('the one AI request: cited website pages, the business’s name, and room for 20 to 25 questions', async () => {

@@ -99,11 +99,23 @@ export function readerLinkPriority(path) {
 }
 
 export function extractPublicPage(html,url){
-  const document=parse(html),origin=new URL(url).origin,links=[],readerLinks=[],blocks=[]
+  const page=readPage(parse(html),url,false)
+  if(page.text.length>=200)return page
+  // A website built in JavaScript shows little or no text until a browser runs
+  // it. Its <noscript> fallback, when it has one, is what it says to a reader
+  // that doesn't run code (hear.is is one), so a thin page reads that too.
+  const fallback=readPage(parse(html,{scriptingEnabled:false}),url,true)
+  return fallback.text.length>=page.text.length+100?fallback:page
+}
+const noJavaScript=/\b(?:enable|turn on|requires?|needs?|without)\b[^.]{0,40}\bjavascript\b|\bjavascript\b[^.]{0,30}\b(?:disabled|required|is off|turned off)\b/i
+
+function readPage(document,url,withNoscript){
+  const origin=new URL(url).origin,links=[],readerLinks=[],blocks=[]
+  const skip=tag=>tag==='noscript'?!withNoscript:excludedText.has(tag)
   let heading='',buffer=[]
-  const flush=()=>{const text=compact(buffer.join(' '));buffer=[];if(text)blocks.push({heading,text})}
+  const flush=()=>{const text=compact(buffer.join(' '));buffer=[];if(text&&!(withNoscript&&text.length<160&&noJavaScript.test(text)))blocks.push({heading,text})}
   function visit(node){
-    if(excludedText.has(node.tagName)||hidden(node))return
+    if(skip(node.tagName)||hidden(node))return
     const block=blockTags.has(node.tagName),isHeading=/^h[1-6]$/.test(node.tagName||'')
     if(block)flush()
     if(node.nodeName==='#text')buffer.push(node.value)
@@ -127,7 +139,7 @@ export function extractPublicPage(html,url){
   // Discover public links separately: navigation is useful for finding contact
   // pages even though its labels are not business knowledge.
   function discover(node){
-    if(['script','style','noscript','template','form','iframe','svg'].includes(node.tagName)||hidden(node))return
+    if(['script','style','template','form','iframe','svg'].includes(node.tagName)||(node.tagName==='noscript'&&!withNoscript)||hidden(node))return
     if(node.tagName==='a')try{
       const target=new URL(attr(node,'href'),url),priority=linkPriority(target.pathname)
       target.hash=''
