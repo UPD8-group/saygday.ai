@@ -201,6 +201,8 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .look { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: 16px; border: 2px solid var(--line); background: #fff; cursor: pointer; font-weight: 550; font-size: 14px; color: var(--ink); }
 .look img { border-radius: 50%; }
 .look.is-on { border-color: var(--green); background: var(--mint); }
+.looks__title { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.look--plain .chat-avatar { background: var(--green); color: #fff; box-shadow: none; }
 .code { display: flex; gap: 10px; align-items: stretch; margin: 14px 0; }
 .code textarea { flex: 1; min-width: 0; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper); resize: none; color: var(--ink); }
 .platforms { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -220,6 +222,7 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .preview__panel { position: absolute; right: 12px; bottom: 86px; left: 12px; height: 470px; border-radius: 18px; overflow: hidden; box-shadow: 0 16px 40px rgba(20,33,28,.25); }
 .preview__launcher { position: absolute; right: 14px; bottom: 14px; width: 62px; height: 62px; border-radius: 50%; border: 0; padding: 0; background: var(--green); color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 10px 26px rgba(20,33,28,.3); overflow: hidden; }
 .preview__launcher .chat-avatar { box-shadow: none; }
+.preview__launcher .chat-avatar--bubble { background: transparent; color: #fff; }
 
 /* ---- Settings ---- */
 .settings .card { max-width: 720px; }

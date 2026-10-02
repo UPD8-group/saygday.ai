@@ -4,7 +4,7 @@
  *   <script src="https://saygday.ai/widget.js" data-business="joes-cafe" defer></script>
  *
  * It draws a button in the bottom-right corner (the business's chosen
- * character, or a plain chat bubble). Tapping it opens the chat in a window
+ * character, or a plain button). Tapping it opens the chat in a window
  * served from SayGday, so nothing on the business's own page can read or
  * change it, and nothing in it can touch the business's page. The chat only
  * shows answers the business approved. No AI answers visitors.
@@ -21,7 +21,26 @@
   window.__saygdayButton = true
 
   var CHARACTERS = ['skippy', 'quigley', 'eddie', 'kiki', 'kip', 'penny', 'sully', 'wally']
-  var BUBBLE = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 01-11.6 7.1L4 20l1-4.1A8 8 0 1120 12z"/></svg>'
+  // The plain buttons: an exact copy of PLAIN_BUTTONS in shared/characters.mjs
+  // (this file runs on a business's website as a plain script, so it can't
+  // import it). test/characters.test.mjs keeps the two the same.
+  var PLAIN = {
+    'bubble': '<path d="M20 12a8 8 0 01-11.6 7.1L4 20l1-4.1A8 8 0 1120 12z"/>',
+    'typing': '<path d="M20 12a8 8 0 01-11.6 7.1L4 20l1-4.1A8 8 0 1120 12z"/><circle cx="8.4" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.6" cy="12" r="1.15" fill="currentColor" stroke="none"/>',
+    'bubbles': '<path d="M5.5 3.5h7a3 3 0 013 3V10a3 3 0 01-3 3H8.5L5 15.8V12.9A3 3 0 012.5 10V6.5a3 3 0 013-3z"/><path d="M18.5 8.5a3 3 0 013 3V15a3 3 0 01-2.5 2.96V20.8L15.5 18h-3a3 3 0 01-3-3"/>',
+    'gday': '<text x="12" y="15.2" text-anchor="middle" fill="currentColor" stroke="none" font-family="Outfit, system-ui, -apple-system, Segoe UI, sans-serif" font-size="8.6" font-weight="700">G&#8217;day</text>',
+    'hi': '<path d="M6.5 7v10M6.5 12h5.5M12 7v10M17.2 11v6" stroke-width="2.5"/><circle cx="17.2" cy="7.4" r="1.5" fill="currentColor" stroke="none"/>',
+    'question': '<path d="M9 9.2a3 3 0 115.2 2c-.9.9-2.2 1.3-2.2 2.9v.5" stroke-width="2.4"/><circle cx="12" cy="17.8" r="1.35" fill="currentColor" stroke="none"/>',
+    'plus': '<path d="M12 5.5v13M5.5 12h13" stroke-width="2.6"/>',
+    'smile': '<circle cx="12" cy="12" r="8.6"/><path d="M8.6 13.9a4.2 4.2 0 006.8 0"/><circle cx="9.3" cy="9.9" r="1.15" fill="currentColor" stroke="none"/><circle cx="14.7" cy="9.9" r="1.15" fill="currentColor" stroke="none"/>',
+    'heart': '<path d="M12 19.4s-7.6-4.3-7.6-9.6A4.1 4.1 0 0112 7.6a4.1 4.1 0 017.6 2.2c0 5.3-7.6 9.6-7.6 9.6z"/>',
+    'ring': '<circle cx="12" cy="12" r="7.2" stroke-width="2.6"/>',
+    'dot': '<circle cx="12" cy="12" r="6.4" fill="currentColor" stroke="none"/>',
+    'ring-dot': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>'
+  }
+  function plainSvg(key) {
+    return '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PLAIN.hasOwnProperty(key) ? PLAIN[key] : PLAIN.bubble) + '</svg>'
+  }
   var CLOSE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 
   function start(config) {
@@ -62,7 +81,7 @@
     } else {
       var bubble = document.createElement('span')
       bubble.className = 'sg-bubble'
-      bubble.innerHTML = BUBBLE
+      bubble.innerHTML = plainSvg(config.character)
       button.appendChild(bubble)
     }
     var close = document.createElement('span')

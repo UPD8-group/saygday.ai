@@ -60,6 +60,16 @@ UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
   dashboard (`app.html`, at `/app`) reaches it with a full page load, never
   a router link.
 
+- **A chat button is one of the mob or one of twelve plain buttons** (owner,
+  2 October 2026: "some more versions for people - circles - + symbols").
+  `shared/characters.mjs` is the one list (`PLAIN_BUTTONS`, the bubble first
+  and the default); `public/widget.js` keeps an exact copy because a
+  business's website loads it as a plain script, and that copy stays pure
+  ASCII (G’day is `G&#8217;day`). The database check, the widget and the
+  Meet the mob page are all held to the list by test/characters.test.mjs and
+  test/site.test.mjs: a new look is a new key in the list, a migration, and
+  a figure on the page.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.
