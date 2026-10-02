@@ -33,7 +33,7 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 | `SAYGDAY_SUPABASE_URL` | `https://eatczhzhhygfxjafnyct.supabase.co` | no |
 | `SAYGDAY_SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project settings → API keys → `service_role` | **yes**, Functions scope only |
 | `VITE_SAYGDAY_SUPABASE_URL` | `https://eatczhzhhygfxjafnyct.supabase.co` | no |
-| `VITE_SAYGDAY_SUPABASE_PUBLISHABLE_KEY` | Supabase → API keys → publishable key | no (it's public by design) |
+| `VITE_SAYGDAY_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_IKV3HjbxWW9aE1oE3Z4_hQ_uv_PAzzb` | no (it's public by design) |
 | `ANTHROPIC_API_KEY` | your Anthropic key (the same one the old site uses) | **yes** |
 | `RESEND_API_KEY` | your Resend key | **yes** |
 | `SAYGDAY_EMAIL_FROM` | `SayGday <hello@saygday.ai>` | no |
