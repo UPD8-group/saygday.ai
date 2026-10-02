@@ -35,7 +35,8 @@ Project: `eatczhzhhygfxjafnyct` (saygday.ai, ap-southeast-2).
 Optional: `SAYGDAY_SCAN_MODEL` (defaults to `claude-opus-5-5`) and
 `SAYGDAY_SCAN_SECRET` (defaults to a secret derived from the service key).
 
-3. Deploy. Then sign in at `/login` with your email and scan a website.
+3. Deploy. The website is at `/`; sign in at `/login` with your email and
+   scan a website.
 
 ## 3. Moving saygday.ai across
 

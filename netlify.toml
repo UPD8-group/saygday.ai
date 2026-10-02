@@ -14,27 +14,27 @@
   # packages, not bundled. Chromium itself is downloaded when a scan needs it.
   external_node_modules = ["puppeteer-core", "@sparticuz/chromium-min"]
 
-[[redirects]]
-  from = "/"
-  to = "/app"
-  status = 302
-
-[[redirects]]
-  from = "/login"
-  to = "/index.html"
-  status = 200
-
+# The public website is plain pages (site/, built to /pricing/index.html and
+# so on); Netlify serves them and dist/404.html by themselves. The dashboard is
+# one page that draws every /app address.
 [[redirects]]
   from = "/app/*"
-  to = "/index.html"
+  to = "/app.html"
   status = 200
 
 [[redirects]]
   from = "/app"
-  to = "/index.html"
+  to = "/app.html"
   status = 200
 
-# The dashboard: never framed, talks only to itself and Supabase sign-in.
+# The earlier platform's addresses, for when saygday.ai moves across.
+[[redirects]]
+  from = "/about"
+  to = "/story"
+  status = 301
+
+# The website and the dashboard: never framed, talk only to themselves and
+# Supabase sign-in.
 [[headers]]
   for = "/*"
   [headers.values]
