@@ -114,10 +114,13 @@ export async function crawlWebsite({ origin, fetchPage = safeHtml, now = Date.no
   }
   // The most useful pages first, within a fixed amount of text.
   let remaining = limits.totalChars
-  const readable = []
+  const readable = [], kept = new Set()
   for (const page of pages) {
     const text = compact(page.text).slice(0, Math.min(limits.pageChars, remaining))
-    if (text.length < 40) continue
+    // A website built in JavaScript can answer every address with the same
+    // page: that text is read once.
+    if (text.length < 40 || kept.has(text)) continue
+    kept.add(text)
     readable.push({ url: page.url, title: compact(page.title).slice(0, 180), text, sections: page.sections })
     remaining -= text.length
     if (remaining < 200) break
