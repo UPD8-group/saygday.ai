@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<!-- site:head -->
+<title>Sign in · SayGday</title>
+<meta name="description" content="Sign in to SayGday, or get started with your first 14 days free. We email you a code. No password needed.">
+</head>
+<body class="on-photo">
+<!-- site:bar -->
+<main id="main" class="page page--photo">
+  <header class="photo-head photo-head--plain photo-head--login">
+    <div class="photo-head__img photo-head__img--lift" role="img" aria-label="Bare feet up on a car window on a country road, a yellow kangaroo crossing sign beside the gum trees" style="--photo: url('/site/login.webp'); --pos-wide: center 40%"></div>
+    <div class="wrap login">
+      <div class="login__words">
+        <p class="eyebrow">Sign in or get started</p>
+        <h1 class="title">G’day.<br><em>Let’s get you in.</em></h1>
+        <p class="intro">Pop in your email and we’ll send you a code. New here? We’ll set up your account as we go. No password needed.</p>
+        <ul class="login__points">
+          <li><svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Your first 14 days are free</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Only answers you’ve signed off reach your customers</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Questions it can’t answer come straight to you</span></li>
+        </ul>
+      </div>
+
+      <div class="login__card" id="sign-in">
+        <!-- The sign-in form (src/site/SignIn.jsx) replaces this when the page loads. -->
+        <form class="login__step">
+          <span class="login__icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4.5"/></svg></span>
+          <h2>Sign in or get started</h2>
+          <p>We’ll email you a code. That’s it.</p>
+          <noscript><p class="login__error">Signing in needs JavaScript. Turn it on in your browser, then reload this page.</p></noscript>
+          <div class="login__field">
+            <label for="login-address">Your email</label>
+            <input class="login__input" id="login-address" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@yourbusiness.com.au">
+          </div>
+          <button class="btn btn--green" type="button" disabled>Email me a code <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 9h11m-4-4.5L14.5 9 10 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </form>
+      </div>
+    </div>
+    <p class="photo-head__credit wrap">Photo: <a href="https://unsplash.com/@ellenaalice?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Ellena McGuinness</a>, <a href="https://unsplash.com/photos/person-wearing-black-flip-flops-rw52JgLHdW0?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Unsplash</a></p>
+  </header>
+</main>
+<!-- site:foot -->
+<script type="module" src="/src/site/sign-in.jsx"></script>
+</body>
+</html>

@@ -76,7 +76,7 @@ test('a refusal from Supabase or Resend says “try again”, never what went wr
 })
 
 test('the sign-in page asks SayGday for the code, never Supabase’s own email', async () => {
-  const login = await readFile(new URL('../src/app/Login.jsx', import.meta.url), 'utf8')
+  const login = await readFile(new URL('../src/site/SignIn.jsx', import.meta.url), 'utf8')
   assert.match(login, /fetch\('\/api\/sign-in'/)
   assert.doesNotMatch(login, /signInWithOtp|signInWithPassword|signUp\(/, 'Supabase’s built-in emails come from "Supabase Auth" and carry no code')
   assert.match(login, /verifyOtp\(\{ email: sentTo, token: code, type: 'email' \}\)/, 'Supabase still checks the code')

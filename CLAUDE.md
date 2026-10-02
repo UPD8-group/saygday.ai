@@ -45,6 +45,21 @@ UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
   Chromium itself is `@sparticuz/chromium-min`, downloaded at cold start
   because the full browser is over Netlify's 50 MB function limit.
 
+- **The public website is the design the owner approved on 2 October 2026**
+  (a mockup he reviewed page by page, photo by photo, on his phone). It is
+  plain pages in `site/`, one an address, sharing one bar, menu and footer
+  (`site/chrome.mjs`, filled in at build time by `site/vite-plugin.mjs`).
+  His rules for it, locked by test/site.test.mjs: the front page never
+  mentions AI ("Looks like a chatbot. Answers like you."); every Unsplash
+  photo is credited to its photographer (the Unsplash+ ones need none);
+  "Copyright © 2026 SayGday.ai - All rights reserved." and the
+  Acknowledgement of Country close every page; the company details
+  (HEAR.IS PTY LTD, Civic Quarter 1, ABN) live on the Contact page, not the
+  footer; nothing promises "James reads every email". Sign-in is a page of
+  the website (`/login`, the card is `src/site/SignIn.jsx`), so the
+  dashboard (`app.html`, at `/app`) reaches it with a full page load, never
+  a router link.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.

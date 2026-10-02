@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDash } from './Dashboard.jsx'
+import { goToSignIn, useDash } from './Dashboard.jsx'
 import { useAuth } from './auth.jsx'
 import { Button, Field, Notice } from './ui.jsx'
 
@@ -52,7 +52,7 @@ export default function Settings() {
     <section className="card">
       <h2>Your account</h2>
       <p>Signed in as <strong>{dash.email}</strong>.</p>
-      <Button kind="ghost" onClick={async () => { await signOut(); navigate('/login') }}>Sign out</Button>
+      <Button kind="ghost" onClick={async () => { await signOut(); goToSignIn() }}>Sign out</Button>
     </section>
   </div>
 }

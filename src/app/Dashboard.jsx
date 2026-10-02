@@ -33,14 +33,21 @@ export function DashboardProvider({ children }) {
 export function RequireSignIn({ children }) {
   const { loading, session } = useAuth()
   if (loading) return <div className="page"><Spinner label="Checking your sign-in…" /></div>
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) return <GoToSignIn />
   return children
+}
+
+// Sign-in is its own page on the public website (site/login.html), not a
+// screen of the dashboard, so getting there is a full page load.
+export const goToSignIn = () => window.location.replace('/login')
+function GoToSignIn() {
+  useEffect(goToSignIn, [])
+  return <div className="page"><Spinner label="Opening sign-in…" /></div>
 }
 
 export function Layout() {
   const { signOut } = useAuth()
   const dash = useDash()
-  const navigate = useNavigate()
   const ready = dash.business && !SCANNING.includes(dash.scan?.status)
   const drafts = dash.faqs?.filter(faq => faq.status === 'draft').length || 0
   const asked = dash.business?.counts?.newEnquiries || 0
@@ -48,7 +55,7 @@ export function Layout() {
     <header className="topbar">
       <Link to="/app" className="topbar__home" aria-label="SayGday home"><Logo /></Link>
       {dash.business && <span className="topbar__business"><Avatar character={dash.business.character} size={28} />{dash.business.name}</span>}
-      <button type="button" className="text-button topbar__out" onClick={async () => { await signOut(); navigate('/login') }}>Sign out</button>
+      <button type="button" className="text-button topbar__out" onClick={async () => { await signOut(); goToSignIn() }}>Sign out</button>
     </header>
     {ready && <nav className="tabs" aria-label="Dashboard">
       <NavLink end to="/app"><Icon name="home" size={18} />Home</NavLink>

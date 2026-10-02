@@ -21,7 +21,9 @@ drafts from the website's own sentences instead.
 
 | Part | Where |
 |---|---|
-| Dashboard (sign-in, questions, customers asked, chat button, settings) | `src/app/` |
+| The public website: one plain page an address (`/`, `/pricing`, …), sharing one bar, menu and footer | `site/`, `src/site/site.css`, photos in `public/site/` |
+| Sign-in (`/login`): a page of the website with the sign-in card on it | `site/login.html`, `src/site/SignIn.jsx` |
+| Dashboard (`/app`: questions, customers asked, chat button, settings) | `src/app/`, `app.html` |
 | The chat window on a business's website | `src/chat/`, `chat.html` |
 | The line of code a business adds (draws the button) | `public/widget.js` |
 | Matching a visitor's question to an approved answer, without AI | `shared/matcher.mjs` |
