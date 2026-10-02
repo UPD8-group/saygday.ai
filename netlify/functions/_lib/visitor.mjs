@@ -12,8 +12,6 @@ const slugFrom = value => {
   if (typeof value !== 'string' || !SLUG.test(value)) throw new HttpError(404, 'This chat isn’t available.', 'NOT_FOUND')
   return value
 }
-// Requests are counted per visitor without keeping their address.
-const visitorKey = ip => Buffer.from(String(ip || 'unknown')).toString('base64url').slice(0, 64)
 
 export async function widgetFor({ db, slug, seen = false }) {
   const widget = await call(db, 'widget', { p_slug: slugFrom(slug) })
@@ -24,10 +22,9 @@ export async function widgetFor({ db, slug, seen = false }) {
 
 export async function visitorAction({ db, body, ip, dependencies = {} }) {
   const slug = slugFrom(body.business)
-  const who = visitorKey(ip)
   if (body.action === 'viewed') {
     if (typeof body.faqId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.faqId)) throw new HttpError(400, 'That wasn’t found.', 'INVALID')
-    await rateLimit(db, `viewed:${who}`, 120, 3600)
+    await rateLimit(db, 'viewed', ip, 120, 3600)
     await call(db, 'faq_viewed', { p_slug: slug, p_faq: body.faqId })
     return { ok: true }
   }
@@ -38,8 +35,8 @@ export async function visitorAction({ db, body, ip, dependencies = {} }) {
     if (question.length < 2 || question.length > 500) throw new HttpError(400, 'Type your question (up to 500 characters).', 'INVALID_QUESTION')
     const email = typeof body.email === 'string' && body.email.trim() ? body.email.trim().toLowerCase() : null
     if (email && (email.length > 254 || !EMAIL.test(email))) throw new HttpError(400, 'Check your email address, like you@example.com', 'INVALID_EMAIL')
-    await rateLimit(db, `ask:${who}`, 8, 3600)
-    await rateLimit(db, `ask-business:${slug}`, 200, 86400)
+    await rateLimit(db, 'ask', ip, 8, 3600)
+    await rateLimit(db, 'ask-business', slug, 200, 86400)
     const enquiry = await call(db, 'ask_team', { p_slug: slug, p_question: question, p_email: email })
     let emailed = false
     if (email) {

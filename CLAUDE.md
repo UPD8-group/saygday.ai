@@ -60,6 +60,14 @@ UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
   dashboard (`app.html`, at `/app`) reaches it with a full page load, never
   a router link.
 
+- **Spam limits keep no one's address** (the privacy page's promise, 2
+  October 2026). `rateLimit(db, kind, subject, …)` in
+  `netlify/functions/_lib/runtime.mjs` sends the database only the kind of
+  limit and an HMAC of the subject (internet address, email, owner id), and
+  `rate_limit()` clears rows older than a day. Never pass an address, email
+  or anything readable into a rate-limit key; test/rate-limits.test.mjs
+  checks the stored keys and the page's wording.
+
 - **A chat button is one of the mob or one of twelve plain buttons** (owner,
   2 October 2026: "some more versions for people - circles - + symbols").
   `shared/characters.mjs` is the one list (`PLAIN_BUTTONS`, the bubble first

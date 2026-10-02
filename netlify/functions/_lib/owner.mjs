@@ -42,7 +42,7 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
   const user = await requireUser(request, db)
   const action = body.action
   if (!OWNER_ACTIONS.includes(action)) throw new HttpError(400, 'That action isn’t available.', 'UNKNOWN_ACTION')
-  await rateLimit(db, `owner:${user.id}`, 120, 60)
+  await rateLimit(db, 'owner', user.id, 120, 60)
   const p_user = user.id
   switch (action) {
     case 'me': {

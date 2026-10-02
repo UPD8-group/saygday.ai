@@ -1,3 +1,4 @@
+import { createHash, createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 
 export class HttpError extends Error {
@@ -73,7 +74,24 @@ export function rpcResult({ data, error }) {
 }
 export const call = async (db, name, args) => rpcResult(await db.rpc(name, args))
 
-export async function rateLimit(db, key, limit, windowSeconds) {
-  const allowed = await call(db, 'rate_limit', { p_key: key, p_limit: limit, p_window_seconds: windowSeconds })
+// Rate limits count requests by what they came from (a connection's internet
+// address, an email address, an owner) without keeping it: the database only
+// ever sees the kind of limit and a scrambled form of the subject, which can't
+// be turned back into the address (the privacy page says so). Old rows are
+// cleared by the database function itself.
+const clean = value => String(value ?? '').trim().replace(/^(['"])(.*)\1$/, '$2').trim()
+export function rateLimitSecret(read = env) {
+  const own = clean(read('SAYGDAY_RATE_LIMIT_SECRET'))
+  if (own) return own
+  const serviceKey = clean(read('SAYGDAY_SUPABASE_SERVICE_ROLE_KEY'))
+  // Without the database key nothing reaches the database anyway; this keeps
+  // tests and local runs working.
+  return createHash('sha256').update(`saygday-rate-limit:${serviceKey || 'local'}`).digest('hex')
+}
+export const rateLimitKey = (kind, subject, secret = rateLimitSecret()) =>
+  `${kind}:${createHmac('sha256', secret).update(String(subject ?? 'unknown')).digest('base64url').slice(0, 32)}`
+
+export async function rateLimit(db, kind, subject, limit, windowSeconds) {
+  const allowed = await call(db, 'rate_limit', { p_key: rateLimitKey(kind, subject), p_limit: limit, p_window_seconds: windowSeconds })
   if (!allowed) throw new HttpError(429, windowSeconds >= 3600 ? 'A few too many requests. Please try again later.' : 'A few too many requests. Please wait a moment and try again.', 'RATE_LIMITED')
 }
