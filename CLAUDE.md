@@ -23,6 +23,15 @@ UPD8-group/saygdayAI and still runs saygday.ai until the domain moves).
 - The Jay/James rule from the earlier platform still applies to public copy:
   the site names James, never Jay.
 
+- **SayGday sends its own sign-in email** (owner, 2 October 2026, after the
+  first sign-in arrived as Supabase's stock "Confirm your email address",
+  from "Supabase Auth", with no code and a link to localhost). The server asks
+  Supabase for the code with `auth.admin.generateLink` (which sends nothing)
+  and emails it through Resend from `SAYGDAY_EMAIL_FROM`; the browser checks
+  it with `verifyOtp` type `email`. So no Supabase dashboard setting (email
+  templates, SMTP, Site URL) is part of signing in. Never bring back
+  `signInWithOtp` (test/sign-in.test.mjs locks it).
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.
