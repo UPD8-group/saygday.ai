@@ -22,3 +22,35 @@ if (burger && menu) {
   // A page restored from the back/forward cache comes back with its menu shut.
   window.addEventListener('pageshow', () => setMenu(false))
 }
+
+// The contact form (site/contact.html) is a Netlify form. Without JavaScript
+// it posts to /thanks; with it, it sends the same fields in place and says
+// thanks where the form was.
+const contact = document.querySelector('form[name="contact"]')
+const thanks = document.getElementById('contact-thanks')
+
+if (contact && thanks) {
+  const status = contact.querySelector('[data-status]')
+  const send = contact.querySelector('button[type="submit"]')
+  contact.addEventListener('submit', async event => {
+    event.preventDefault()
+    send.disabled = true
+    send.textContent = 'Sending…'
+    status.textContent = ''
+    try {
+      const response = await fetch(contact.getAttribute('action'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(contact)).toString(),
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      contact.hidden = true
+      thanks.hidden = false
+      thanks.querySelector('h2').focus()
+    } catch {
+      status.textContent = 'That didn’t send. Please check your connection and try again.'
+      send.disabled = false
+      send.textContent = 'Send message'
+    }
+  })
+}

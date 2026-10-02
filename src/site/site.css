@@ -302,13 +302,38 @@ body.menu-open .bar { position: fixed; }
 .login__card .login__note { font-size: 14px; }
 
 /* Contact */
-.contact { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 60rem; }
+.contact { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; gap: 18px; max-width: 64rem; }
 @media (max-width: 760px) { .contact { grid-template-columns: minmax(0, 1fr); } }
 .contact__card { display: grid; gap: 12px; align-content: start; padding: clamp(24px, 4vw, 32px); border-radius: 24px; background: var(--card); border: 1px solid var(--line); }
 .contact__email { font: 700 clamp(24px, 3vw, 30px)/1.2 var(--display); letter-spacing: -.02em; overflow-wrap: anywhere; user-select: all; }
 .contact__note { color: var(--muted); }
 .contact__address { font-style: normal; font-size: 18px; line-height: 1.6; }
 .contact__abn { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* The contact form borrows the sign-in card's fields (.login__field, .login__input). */
+.contact-form, .contact-thanks { display: grid; gap: 18px; }
+/* Their display: grid would otherwise beat the hidden attribute. */
+.contact-form[hidden], .contact-thanks[hidden] { display: none; }
+.contact-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.contact-form legend { padding: 0; margin-bottom: 8px; font-weight: 600; font-size: 15px; }
+.choice-row, .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .choice-row, .field-row { grid-template-columns: minmax(0, 1fr); } }
+.choice { display: flex; gap: 12px; align-items: flex-start; min-height: 54px; padding: 14px 16px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--paper); font-weight: 600; line-height: 1.35; cursor: pointer; }
+.choice input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--green); }
+.choice small { display: block; margin-top: 2px; font-size: 14px; font-weight: 400; color: var(--muted); }
+.choice:has(input:checked) { border-color: var(--green-ink); background: var(--mint); }
+.choice:has(input:focus-visible) { outline: 3px solid var(--gold); outline-offset: 2px; }
+.login__field .optional { font-weight: 400; color: var(--muted); }
+.contact-form__message { min-height: 150px; padding: 14px 16px; line-height: 1.5; resize: vertical; }
+.contact-form__error { color: var(--danger); font-weight: 600; font-size: 15px; }
+.contact-form__error:empty { display: none; }
+.contact-form .btn--green { justify-self: start; }
+@media (max-width: 560px) { .contact-form .btn--green { justify-self: stretch; } }
+.contact-form__fine { font-size: 14px; color: var(--muted); }
+.contact-form__fine a { color: var(--green-ink); }
+.contact-form__honey { display: none; }
+.contact-thanks h2 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.contact-thanks h2:focus { outline: none; }
+.contact-thanks p:last-child { color: var(--muted); }
 
 /* Privacy and Terms: a reading column */
 .legal { display: grid; gap: 34px; max-width: 46rem; }
