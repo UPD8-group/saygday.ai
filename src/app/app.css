@@ -211,6 +211,19 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .platform-steps { margin: 14px 0 18px; padding-left: 22px; display: grid; gap: 6px; }
 .live-state { display: flex; gap: 8px; align-items: center; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--paper); color: var(--muted); font-weight: 550; }
 .live-state.is-live { background: var(--mint); color: var(--green-dark); }
+.switch-on { display: grid; gap: 14px; align-content: start; }
+.switch-on > .btn { justify-self: start; }
+.dns { border-top: 1px solid var(--line); padding-top: 14px; }
+.dns summary { cursor: pointer; font-weight: 600; color: var(--green-dark); min-height: 44px; display: flex; gap: 10px; align-items: center; list-style: none; }
+.dns summary::-webkit-details-marker { display: none; }
+.dns summary::before { content: '+'; flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--mint); font-weight: 700; }
+.dns[open] summary::before { content: '\2212'; }
+.live-state svg { flex: none; }
+.dns[open] { display: grid; gap: 12px; }
+.dns__record { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 0; padding: 14px; border-radius: 12px; background: var(--paper); }
+.dns__record dt { font-weight: 600; color: var(--muted); }
+.dns__record dd { margin: 0; min-width: 0; }
+.dns__record code { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; user-select: all; }
 .preview { position: sticky; top: 90px; }
 .preview__label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); font-size: 14.5px; }
 .preview__site { position: relative; height: 640px; border-radius: 20px; background: #eceae2; border: 1px solid var(--line); overflow: hidden; }

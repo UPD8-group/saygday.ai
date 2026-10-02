@@ -3,6 +3,7 @@
 // business.
 import { HttpError, call, rateLimit, requireUser } from './runtime.mjs'
 import { startScan } from './scan.mjs'
+import { checkWebsite } from './verify-website.mjs'
 import { CHARACTER_KEYS } from '../../../shared/characters.mjs'
 
 const text = (value, { max, min = 0, field }) => {
@@ -36,7 +37,7 @@ function variantsFrom(value) {
 }
 
 export const OWNER_ACTIONS = Object.freeze(['me', 'createBusiness', 'startScan', 'scanStatus', 'listFaqs', 'saveFaq', 'deleteFaq', 'approveAll',
-  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry'])
+  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry', 'verifyWebsite'])
 
 export async function ownerAction({ request, db, body, origin, dependencies = {} }) {
   const user = await requireUser(request, db)
@@ -97,5 +98,17 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
       return { updated: await call(db, 'set_enquiry', { p_user, p_id: id(body.id), p_status: body.status }) }
     }
     case 'deleteEnquiry': return { deleted: await call(db, 'delete_enquiry', { p_user, p_id: id(body.id) }) }
+    // "Check my website": the owner asks us to look for the proof now (the
+    // chat button on the home page, or the DNS record). Thirty an hour.
+    case 'verifyWebsite': {
+      const business = await call(db, 'my_business', { p_user })
+      if (!business?.website) throw new HttpError(409, 'Add your website first.', 'NO_BUSINESS')
+      if (business.websiteVerifiedAt) return { business, verified: true }
+      await rateLimit(db, 'verify', user.id, 30, 3600)
+      const { method, reason } = await (dependencies.checkWebsite || checkWebsite)({ website: business.website, slug: business.slug, token: business.verificationToken })
+      if (!method) return { business, verified: false, reason }
+      await call(db, 'mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: method })
+      return { business: await call(db, 'my_business', { p_user }), verified: true }
+    }
   }
 }

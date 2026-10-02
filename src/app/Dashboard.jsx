@@ -155,6 +155,8 @@ function Overview() {
   const live = faqs.filter(faq => faq.status === 'approved').length
   const drafts = faqs.filter(faq => faq.status === 'draft').length
   const seen = Boolean(business.buttonSeenAt)
+  // The chat only runs once the website is proved to be the business's own.
+  const verified = Boolean(business.websiteVerifiedAt)
   async function rescan() {
     setBusy(true); setError('')
     try { const result = await dash.request('startScan'); dash.setBusiness(result.business); dash.setScan(result.scan) }
@@ -165,7 +167,8 @@ function Overview() {
     ? { tone: 'warn', title: 'We couldn’t read your website', text: scan.error || 'Please try again.', action: <><Button onClick={rescan} busy={busy} icon="refresh">Try again</Button><Button kind="ghost" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add questions myself</Button></> }
     : drafts > 0 ? { tone: 'gold', title: `${plural(drafts, 'question')} ${drafts === 1 ? 'is' : 'are'} waiting for you to check`, text: 'Nothing goes on your website until you approve it. Edit anything that isn’t quite right.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions')} iconAfter="arrow">Check them now</Button> }
     : !live ? { tone: 'gold', title: 'Add your first questions', text: 'Write the questions your customers ask, with your answers.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add a question</Button> }
-    : !seen ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website and customers can start asking.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
+    : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, and your chat switches on once we’ve checked the website is yours.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
+    : !seen ? { tone: 'green', title: 'Your chat is switched on', text: `We checked ${business.website.replace(/^https:\/\//, '')} is yours. Your button shows the next time your website loads.`, action: null }
     : { tone: 'green', title: 'Your chat is live on your website', text: `Customers can see ${plural(live, 'answer')}. Questions it can’t answer come to Customers asked.`, action: null }
   return <div className="overview">
     <h1 className="greeting">G’day, {business.name}</h1>
@@ -175,9 +178,9 @@ function Overview() {
       {next.action && <div className="next__actions">{next.action}</div>}
     </section>
     <div className="tiles">
-      <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`live on your website${drafts ? ` · ${drafts} to check` : ''}`} />
+      <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`${verified ? 'live on your website' : 'ready to go live'}${drafts ? ` · ${drafts} to check` : ''}`} />
       <Tile to="/app/asked" icon="inbox" title="Customers asked" big={business.counts?.newEnquiries || 0} label="new questions for you" />
-      <Tile to="/app/button" icon="chat" title="Chat button" big={seen ? 'Live' : 'Not yet'} label={seen ? 'on your website' : 'added to your website'} />
+      <Tile to="/app/button" icon="chat" title="Chat button" big={verified ? 'Live' : 'Not yet'} label={verified ? 'on your website' : 'switched on'} />
       <Tile to="/app/questions?show=live" icon="eye" title="Answers read" big={business.counts?.views || 0} label="times by customers" />
     </div>
   </div>

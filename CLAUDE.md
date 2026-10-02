@@ -68,6 +68,25 @@ settings, which is how sign-in broke on saygday.ai before the move.
   dashboard (`app.html`, at `/app`) reaches it with a full page load, never
   a router link.
 
+- **A chat runs only on a website its business has proved it owns** (owner,
+  3 October 2026: "Somebody has to prove they own the website before they
+  put the code into it"; his picks: the button proves it, a DNS TXT record
+  is the backup, and the chat stays hidden until then). The proof is the
+  business's own `<script src="…/widget.js" data-business="<slug>">` as a
+  real script tag on its home page (www or not), or a TXT record
+  `saygday-verification=<token>` on its domain
+  (`netlify/functions/_lib/verify-website.mjs`). The server looks when the
+  owner presses Check my website, and by itself the first time the button
+  loads on the registered website (twelve checks an hour per business).
+  Until then `widget`, `ask_team`, `faq_viewed` and `button_seen` serve
+  nothing. A different website (www aside) starts again, and a website can
+  be verified by one business only. Once verified, the button only runs
+  where its request's Origin is that website, and the chat window only
+  opens inside it: it reports the page that holds it (`location.ancestorOrigins`,
+  or the referrer, which widget.js forces with `referrerpolicy="origin"`),
+  and the chat's GET is cached per Origin. Locked by
+  test/verification.test.mjs.
+
 - **Spam limits keep no one's address** (the privacy page's promise, 2
   October 2026). `rateLimit(db, kind, subject, …)` in
   `netlify/functions/_lib/runtime.mjs` sends the database only the kind of

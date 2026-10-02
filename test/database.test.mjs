@@ -16,6 +16,12 @@ async function setup() {
   return { pg, db, call }
 }
 const rejects = (promise, pattern) => assert.rejects(promise, error => pattern.test(error.message) || pattern.test(error.code || ''))
+// The chat only runs for a business that proved its website (the server finds
+// the proof; netlify/functions/_lib/verify-website.mjs).
+const verified = async (call, business) => {
+  await call('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'button' })
+  return business
+}
 
 test('one business per owner, named from the website until the owner names it', async () => {
   const { pg, call } = await setup()
@@ -83,7 +89,7 @@ test('approve all approves every draft and makes the first six the opening butto
 test('an owner can never see or change another business’s answers or enquiries', async () => {
   const { pg, call } = await setup()
   const alice = await user(pg), bob = await user(pg)
-  const shop = await call('create_business', { p_user: alice.id, p_email: alice.email, p_website: 'https://alice.com.au' })
+  const shop = await verified(call, await call('create_business', { p_user: alice.id, p_email: alice.email, p_website: 'https://alice.com.au' }))
   await call('create_business', { p_user: bob.id, p_email: bob.email, p_website: 'https://bob.com.au' })
   const faq = await call('save_faq', { p_user: alice.id, p_id: null, p_question: 'Do you deliver?', p_answer: 'Yes, within 5 km.' })
   await rejects(call('save_faq', { p_user: bob.id, p_id: faq.id, p_question: null, p_answer: 'Hacked' }), /NOT_FOUND/)
@@ -101,7 +107,7 @@ test('an owner can never see or change another business’s answers or enquiries
 test('the chat only ever sees approved answers, featured ones first', async () => {
   const { pg, call } = await setup()
   const owner = await user(pg)
-  const business = await call('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://cafe.com.au', p_name: 'The Cafe' })
+  const business = await verified(call, await call('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://cafe.com.au', p_name: 'The Cafe' }))
   await call('save_faq', { p_user: owner.id, p_id: null, p_question: 'Is this a draft?', p_answer: 'Unchecked words.', p_status: 'draft' })
   const one = await call('save_faq', { p_user: owner.id, p_id: null, p_question: 'Where are you?', p_answer: '1 Main St.' })
   const two = await call('save_faq', { p_user: owner.id, p_id: null, p_question: 'When are you open?', p_answer: '7am to 3pm.' })
@@ -121,7 +127,7 @@ test('the chat only ever sees approved answers, featured ones first', async () =
 test('a question the chat couldn’t answer reaches the business, with or without an email', async () => {
   const { pg, call } = await setup()
   const owner = await user(pg, 'owner@cafe.com.au')
-  const business = await call('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://cafe.com.au' })
+  const business = await verified(call, await call('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://cafe.com.au' }))
   const withEmail = await call('ask_team', { p_slug: business.slug, p_question: '  Can I book   the back room? ', p_email: ' Visitor@Example.com ' })
   assert.equal(withEmail.notifyEmail, 'owner@cafe.com.au')
   assert.equal(withEmail.email, 'visitor@example.com')

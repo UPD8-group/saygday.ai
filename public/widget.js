@@ -96,6 +96,10 @@
         frame.title = 'Questions for ' + (config.name || 'this business')
         frame.src = origin + '/chat.html?business=' + encodeURIComponent(slug)
         frame.setAttribute('loading', 'eager')
+        // The chat only runs on the business's verified website, so it needs
+        // to know which website holds it, even where the page sends no
+        // referrer by default.
+        frame.setAttribute('referrerpolicy', 'origin')
         panel.appendChild(frame)
       }
       panel.classList.toggle('is-open', open)
