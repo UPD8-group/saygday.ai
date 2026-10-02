@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
@@ -11,6 +11,64 @@ const PLATFORMS = [
   { key: 'wordpress', label: 'WordPress', steps: ['Install a plugin that adds code to the footer, such as WPCode.', 'Add a new footer snippet and paste the line.', 'Save and turn the snippet on.'] },
   { key: 'shopify', label: 'Shopify', steps: ['In Shopify, open Online Store, then Themes, then Edit code.', 'Open theme.liquid and paste the line just before </body>.', 'Save.'] },
 ]
+
+// What the owner is told when the check finds no proof yet.
+const NOT_YET = {
+  missing: site => `We read ${site} but couldn’t find your chat button on its home page yet. Check you’ve published the change, then try again.`,
+  blocked: site => `${site} didn’t let us read its home page. Use your domain instead (below).`,
+  unreachable: site => `We couldn’t reach ${site}. Check it’s online, then try again.`,
+}
+
+// The chat stays hidden until the business proves the website is its own
+// (owner, 3 October 2026): the chat button on its home page, or a DNS record.
+// The server also checks by itself the first time the button loads there.
+export function SwitchOn({ business, request, onBusiness }) {
+  const site = business.website?.replace(/^https:\/\//, '') || 'your website'
+  const domain = site.replace(/^www\./, '')
+  const verified = Boolean(business.websiteVerifiedAt)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const record = `saygday-verification=${business.verificationToken}`
+  const check = useCallback(async (quiet = false) => {
+    if (!quiet) { setBusy(true); setError('') }
+    try {
+      const result = await request('verifyWebsite')
+      if (result.verified) onBusiness(result.business)
+      else if (!quiet) setError((NOT_YET[result.reason] || NOT_YET.missing)(site))
+    } catch (failure) { if (!quiet) setError(failure.message) }
+    finally { if (!quiet) setBusy(false) }
+  }, [request, onBusiness, site])
+  // If the button is already on the website, opening this page switches it on.
+  useEffect(() => { if (!verified && business.website) check(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  async function copyRecord() {
+    try { await navigator.clipboard.writeText(record); setCopied(true); setTimeout(() => setCopied(false), 2500) }
+    catch { /* the value stays on screen to copy by hand */ }
+  }
+  return <section className="card switch-on">
+    <h2>3. Switch it on</h2>
+    {verified ? <>
+      <p className="live-state is-live"><Icon name="shield" size={18} />{`Switched on. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
+      <p className={`live-state${business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={business.buttonSeenAt ? 'check' : 'globe'} size={18} />
+        {business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+    </> : <>
+      <p>Your chat stays hidden until we’ve checked the button is on {site}, so nobody else can put answers out under your business’s name.</p>
+      <p className="small">Published the change? Press the button below. We also check by ourselves the first time your website shows the button.</p>
+      <Notice kind="error">{error}</Notice>
+      <Button onClick={() => check(false)} busy={busy} icon="shield">Check my website</Button>
+      <details className="dns">
+        <summary>Can’t add the code to your home page? Use your domain instead</summary>
+        <p>Add this record where your domain is managed (usually your domain registrar or web host), then press Check my website. It can take up to an hour to show.</p>
+        <dl className="dns__record">
+          <dt>Type</dt><dd>TXT</dd>
+          <dt>Name</dt><dd>@ <span className="small">(for {domain} itself)</span></dd>
+          <dt>Value</dt><dd><code>{record}</code></dd>
+        </dl>
+        <Button kind="ghost" onClick={copyRecord} icon={copied ? 'check' : 'copy'}>{copied ? 'Copied' : 'Copy the value'}</Button>
+      </details>
+    </>}
+  </section>
+}
 
 // How the button looks, and how to put it on the website.
 export default function ChatButton() {
@@ -65,9 +123,8 @@ export default function ChatButton() {
           <div className="code"><textarea id="install-code" readOnly value={code} rows={2} aria-label="Your chat button code" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copy} icon={copied ? 'check' : 'copy'}>{copied ? 'Copied' : 'Copy'}</Button></div>
           <div className="platforms" role="tablist" aria-label="Your website builder">{PLATFORMS.map(item => <button key={item.key} role="tab" aria-selected={platform === item.key} onClick={() => setPlatform(item.key)}>{item.label}</button>)}</div>
           <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map(step => <li key={step}>{step}</li>)}</ol>
-          <p className={`live-state${business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={business.buttonSeenAt ? 'check' : 'globe'} size={18} />
-            {business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Once the button appears on your website, this will say it’s live.'}</p>
         </section>
+        <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />
       </div>
       <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>

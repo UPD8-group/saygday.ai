@@ -18,13 +18,14 @@ test('a rate limit keeps the kind of limit, never the address it counted', async
   const db = rpcClient(pg)
   const owner = await user(pg)
   const business = (await db.rpc('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://joescafe.com.au', p_name: 'Joe’s Cafe' })).data
+  await db.rpc('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'button' })
   // The real callers: a sign-in code, a customer reading an answer, and a
   // customer asking the team.
   db.auth.admin = { generateLink: async ({ email }) => ({ data: { properties: { email_otp: '482913', hashed_token: 'abc123' }, user: { email } }, error: null }) }
   const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({}) })
   await sendSignInCode({ db, body: { email: EMAIL }, ip: IP, configuration: { configured: true, key: 're_test', from: 'SayGday <hello@saygday.ai>', publicUrl: 'https://saygday.ai' }, fetchImpl })
-  await visitorAction({ db, body: { business: business.slug, action: 'viewed', faqId: randomUUID() }, ip: IP }).catch(() => {})
-  await visitorAction({ db, body: { business: business.slug, action: 'ask', question: 'Do you open on Sundays?', email: EMAIL }, ip: IP }).catch(() => {})
+  await visitorAction({ db, body: { business: business.slug, site: business.website, action: 'viewed', faqId: randomUUID() }, ip: IP }).catch(() => {})
+  await visitorAction({ db, body: { business: business.slug, site: business.website, action: 'ask', question: 'Do you open on Sundays?', email: EMAIL }, ip: IP }).catch(() => {})
   const keys = (await pg.query('select key from public.rate_limits order by key')).rows.map(row => row.key)
   assert.deepEqual(keys.map(key => key.slice(0, key.lastIndexOf(':'))).sort(), ['ask', 'ask-business', 'sign-in:email', 'sign-in:email-minute', 'sign-in:ip', 'viewed'])
   for (const key of keys) {

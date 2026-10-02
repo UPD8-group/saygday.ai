@@ -77,14 +77,15 @@ test('the chat gets approved answers only; a question it couldn’t answer reach
   await act({ action: 'saveFaq', question: 'When are you open?', answer: '7am to 3pm.' })
   await act({ action: 'saveFaq', question: 'Secret draft?', answer: 'Not checked yet.', status: 'draft' })
   const db = rpcClient(pg)
-  const widget = await widgetFor({ db, slug: business.slug, seen: true })
+  await db.rpc('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'button' })
+  const widget = await widgetFor({ db, slug: business.slug, seen: true, origin: 'https://joescafe.com.au' })
   assert.deepEqual(widget.faqs.map(faq => faq.question), ['When are you open?'])
   assert.ok((await act({ action: 'me' })).business.buttonSeenAt, 'the button being seen on the website is recorded')
   await assert.rejects(widgetFor({ db, slug: '../etc' }), error => error.status === 404)
   await assert.rejects(widgetFor({ db, slug: 'nobody-here' }), error => error.status === 404)
 
   const sent = []
-  const ask = (body, ip = '203.0.113.9') => visitorAction({ db, body: { business: business.slug, ...body }, ip, dependencies: { sendEnquiryEmail: async ({ enquiry }) => { sent.push(enquiry); return true } } })
+  const ask = (body, ip = '203.0.113.9') => visitorAction({ db, body: { business: business.slug, site: 'https://joescafe.com.au', ...body }, ip, dependencies: { sendEnquiryEmail: async ({ enquiry }) => { sent.push(enquiry); return true } } })
   assert.deepEqual(await ask({ action: 'ask', question: 'Can I book the back room for a party?', email: 'Visitor@Example.com' }), { ok: true, sent: true })
   assert.equal(sent.length, 1)
   assert.equal(sent[0].notifyEmail, 'jo@joescafe.com.au'); assert.equal(sent[0].email, 'visitor@example.com')
@@ -100,9 +101,9 @@ test('the chat gets approved answers only; a question it couldn’t answer reach
   await assert.rejects(ask({ action: 'ask', question: 'One too many?' }, '198.51.100.1'), error => error.status === 429)
 
   const [answer] = widget.faqs
-  assert.deepEqual(await visitorAction({ db, body: { business: business.slug, action: 'viewed', faqId: answer.id }, ip: '1.1.1.1' }), { ok: true })
+  assert.deepEqual(await visitorAction({ db, body: { business: business.slug, site: 'https://www.joescafe.com.au', action: 'viewed', faqId: answer.id }, ip: '1.1.1.1' }), { ok: true })
   assert.equal((await act({ action: 'listFaqs' })).faqs.find(faq => faq.id === answer.id).views, 1)
-  await assert.rejects(visitorAction({ db, body: { business: business.slug, action: 'delete' }, ip: '1.1.1.1' }), error => error.code === 'UNKNOWN_ACTION')
+  await assert.rejects(visitorAction({ db, body: { business: business.slug, site: 'https://joescafe.com.au', action: 'delete' }, ip: '1.1.1.1' }), error => error.code === 'UNKNOWN_ACTION')
 })
 
 test('the enquiry email lets the owner reply straight to the visitor, and never runs unconfigured', async () => {
