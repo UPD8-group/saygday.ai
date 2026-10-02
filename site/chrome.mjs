@@ -16,6 +16,7 @@ export const PAGES = Object.freeze([
   { slug: 'story', file: 'story.html', name: 'Our story', hint: 'Made in Canberra by James, Luna and Stormi.' },
   { slug: 'pricing', file: 'pricing.html', name: 'Pricing', hint: 'A$30 a month. First 14 days free.' },
   { slug: 'contact', file: 'contact.html', name: 'Contact', hint: 'Where to find us, and how to get in touch.' },
+  { slug: 'thanks', file: 'thanks.html' },
   { slug: 'privacy', file: 'privacy.html' },
   { slug: 'terms', file: 'terms.html' },
   { slug: 'login', file: 'login.html' },

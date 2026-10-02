@@ -91,9 +91,19 @@ test('the owner’s rules for the public copy', async () => {
     const footer = html.slice(html.indexOf('<footer'), html.indexOf('</footer>'))
     assert.doesNotMatch(footer, /ABN|PTY LTD/, `${page.file}: the company details live on the contact page, not the footer`)
   }
-  const contact = words(await built(named('contact')))
-  for (const line of ['SayGday.ai is a business name of HEAR.IS PTY LTD', 'Civic Quarter 1', '68 Northbourne Ave, Canberra ACT 2600', 'ABN 37 702 004 608', 'hello@saygday.ai']) {
-    assert.ok(contact.includes(line), `contact page: ${line}`)
+  // The contact page's company block: SayGday.ai, the address, then the ABN
+  // (owner, 3 October 2026: drop "is a business name of HEAR.IS PTY LTD").
+  const contactHtml = await built(named('contact'))
+  const address = contactHtml.slice(contactHtml.indexOf('<address'), contactHtml.indexOf('</address>'))
+  assert.deepEqual(address.replace(/<address[^>]*>/, '').split('<br>').map(line => line.trim()), ['SayGday.ai', 'Civic Quarter 1', '68 Northbourne Ave, Canberra ACT 2600'])
+  assert.ok(words(contactHtml).includes('ABN 37 702 004 608'), 'contact page: the ABN')
+  assert.doesNotMatch(contactHtml, /business name of|PTY LTD/, 'contact page: just SayGday.ai')
+  // The email address stays only where the privacy page needs it (owner, 3
+  // October 2026); everyone else uses the contact form.
+  for (const page of ALL) {
+    const html = await built(page)
+    if (page.slug === 'privacy') assert.ok(html.includes('hello@saygday.ai'), 'the privacy page keeps the email address')
+    else assert.doesNotMatch(html, /hello@saygday\.ai/, `${page.file}: no email address`)
   }
   for (const slug of ['privacy', 'terms']) assert.ok(words(await built(named(slug))).includes('HEAR.IS PTY LTD (ABN 37 702 004 608)'), `${slug}: names the company`)
   assert.ok((await readdir(new URL('public/site/', root))).every(file => !/jay/i.test(file)), 'no photo’s address says Jay')
@@ -128,4 +138,36 @@ test('Meet the mob shows the looks an owner can actually pick', async () => {
     if (button.key === 'gday') assert.equal(shown[index].picture, '<span class="plain__word">G’day</span>')
     else assert.equal(shown[index].picture, plainSvg(button.key, 32), `${button.name} is drawn as the button draws it`)
   }
+})
+
+test('the contact page’s form is a Netlify form for joining or asking anything', async () => {
+  const html = await built(named('contact'))
+  const form = html.slice(html.indexOf('<form'), html.indexOf('</form>'))
+  const tag = form.slice(0, form.indexOf('>') + 1)
+  for (const attribute of ['name="contact"', 'method="POST"', 'action="/thanks"', 'data-netlify="true"', 'netlify-honeypot="bot-field"']) assert.ok(tag.includes(attribute), `the form tag has ${attribute}`)
+  assert.match(form, /<input type="hidden" name="form-name" value="contact">/, 'the form names itself when sent from the page')
+  assert.match(form, /<p class="contact-form__honey" aria-hidden="true"><label>[^<]*<input name="bot-field" tabindex="-1"/, 'a hidden field only bots fill')
+  const topics = [...form.matchAll(/<input type="radio" name="topic" value="([^"]+)"/g)].map(([, value]) => value)
+  assert.deepEqual(topics, ['Join SayGday', 'Question'], 'a business wanting to join, or anything else')
+  assert.match(form, /name="topic" value="Join SayGday" required/, 'a topic must be chosen')
+  for (const [name, required] of [['name', true], ['email', true], ['business', false], ['website', false], ['message', true]]) {
+    const field = form.match(new RegExp(`<(?:input|textarea)[^>]* id="contact-${name}" name="${name}"[^>]*>`))
+    assert.ok(field, `the ${name} field`)
+    assert.equal(/ required/.test(field[0]), required, `${name} is ${required ? '' : 'not '}required`)
+    assert.match(form, new RegExp(`<label for="contact-${name}">`), `the ${name} field has a label`)
+  }
+  assert.match(form, /id="contact-email" name="email" type="email"/)
+  assert.match(form, /href="\/privacy"/, 'the form points to the privacy page')
+  assert.match(html, /<div class="contact-thanks" id="contact-thanks" hidden>/, 'the in-place thanks waits hidden')
+  assert.match(await read('src/site/site.css'), /\.contact-form\[hidden\], \.contact-thanks\[hidden\] \{ display: none; \}/, 'and hidden really hides it, despite display: grid')
+  const thanks = await built(named('thanks'))
+  assert.match(thanks, /<meta name="robots" content="noindex">/)
+  assert.match(words(thanks), /We’ve got your message/)
+  const script = await read('src/site/site.js')
+  assert.match(script, /document\.querySelector\('form\[name="contact"\]'\)/)
+  assert.match(script, /fetch\(contact\.getAttribute\('action'\), \{\s*method: 'POST',\s*headers: \{ 'Content-Type': 'application\/x-www-form-urlencoded' \},\s*body: new URLSearchParams\(new FormData\(contact\)\)\.toString\(\),/, 'sends what the plain form would, to the same place')
+  assert.match(script, /if \(!response\.ok\) throw/, 'a failed send says so instead of thanking')
+  const privacy = words(await built(named('privacy')))
+  assert.ok(privacy.includes('When you use the form on our contact page, we keep your name, email address, your message and any business details you add'), 'the privacy page covers the form')
+  assert.ok(privacy.includes('holds the messages sent through our contact form'), 'and names who holds them')
 })

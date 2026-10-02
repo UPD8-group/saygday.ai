@@ -57,9 +57,13 @@ settings, which is how sign-in broke on saygday.ai before the move.
   mentions AI ("Looks like a chatbot. Answers like you."); every Unsplash
   photo is credited to its photographer (the Unsplash+ ones need none);
   "Copyright © 2026 SayGday.ai - All rights reserved." and the
-  Acknowledgement of Country close every page; the company details
-  (HEAR.IS PTY LTD, Civic Quarter 1, ABN) live on the Contact page, not the
-  footer; nothing promises "James reads every email". Sign-in is a page of
+  Acknowledgement of Country close every page; the company details live on
+  the Contact page, not the footer, as SayGday.ai, the address, then the ABN
+  (no "business name of" line, owner 3 October 2026); nothing promises
+  "James reads every email". Contact is a Netlify form (`name="contact"`,
+  posting to `/thanks`, sent in place by `src/site/site.js`) for businesses
+  joining and anyone else, and hello@saygday.ai appears only on the privacy
+  page; the privacy page says what the form keeps and that Netlify holds it. Sign-in is a page of
   the website (`/login`, the card is `src/site/SignIn.jsx`), so the
   dashboard (`app.html`, at `/app`) reaches it with a full page load, never
   a router link.

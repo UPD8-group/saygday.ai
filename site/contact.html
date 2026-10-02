@@ -3,7 +3,7 @@
 <head>
 <!-- site:head -->
 <title>Contact · SayGday</title>
-<meta name="description" content="Get in touch with SayGday at hello@saygday.ai. SayGday.ai is a business name of HEAR.IS PTY LTD, Canberra.">
+<meta name="description" content="Get in touch with SayGday: ask to join as a business, or send us any question. Made in Canberra.">
 </head>
 <body class="on-photo">
 <!-- site:bar -->
@@ -13,21 +13,50 @@
     <div class="wrap photo-head__text">
       <p class="eyebrow">Contact</p>
       <h1 class="title">Say g’day.<br><em>We’d love to hear from you.</em></h1>
-      <p class="intro">Got a question about SayGday, or want a hand getting set up? Drop us a line.</p>
+      <p class="intro">Want SayGday for your business, or got a question? Send us a message.</p>
     </div>
     <div class="photo-head__credit wrap" aria-hidden="true"></div>
   </header>
   <div class="wrap">
     <div class="contact">
       <div class="contact__card">
-        <p class="eyebrow">Email us</p>
-        <p class="contact__email">hello@saygday.ai</p>
-        <p class="contact__note">We reply within one business day, usually sooner.</p>
+        <!-- A Netlify form: Netlify finds it in the built page and keeps what
+             people send (Forms, in the Netlify project). It works as a plain
+             post to /thanks; src/site/site.js sends it in place instead. -->
+        <form class="contact-form" name="contact" method="POST" action="/thanks" data-netlify="true" netlify-honeypot="bot-field">
+          <input type="hidden" name="form-name" value="contact">
+          <p class="contact-form__honey" aria-hidden="true"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+          <p class="eyebrow">Send us a message</p>
+          <fieldset>
+            <legend>What’s it about?</legend>
+            <div class="choice-row">
+              <label class="choice"><input type="radio" name="topic" value="Join SayGday" required><span>I’d like SayGday<small>For my business</small></span></label>
+              <label class="choice"><input type="radio" name="topic" value="Question"><span>Something else<small>A question, an idea, anything</small></span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <div class="login__field"><label for="contact-name">Your name</label><input class="login__input" id="contact-name" name="name" autocomplete="name" maxlength="120" required></div>
+            <div class="login__field"><label for="contact-email">Email</label><input class="login__input" id="contact-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required></div>
+          </div>
+          <div class="field-row">
+            <div class="login__field"><label for="contact-business">Business name <span class="optional">(if you have one)</span></label><input class="login__input" id="contact-business" name="business" autocomplete="organization" maxlength="120"></div>
+            <div class="login__field"><label for="contact-website">Website <span class="optional">(if you have one)</span></label><input class="login__input" id="contact-website" name="website" inputmode="url" autocomplete="url" placeholder="joescafe.com.au" maxlength="300"></div>
+          </div>
+          <div class="login__field"><label for="contact-message">Your message</label><textarea class="login__input contact-form__message" id="contact-message" name="message" rows="5" maxlength="3000" required></textarea></div>
+          <p class="contact-form__error" data-status role="alert"></p>
+          <button class="btn btn--green" type="submit">Send message</button>
+          <p class="contact-form__fine">We use your details only to reply to you. See our <a href="/privacy">privacy page</a>. We reply within one business day, usually sooner.</p>
+        </form>
+        <div class="contact-thanks" id="contact-thanks" hidden>
+          <p class="eyebrow">Message sent</p>
+          <h2 tabindex="-1">Thanks, we’ve got your message.</h2>
+          <p>We’ll reply to the email address you gave us, within one business day, usually sooner.</p>
+        </div>
       </div>
       <div class="contact__card">
         <p class="eyebrow">The business behind SayGday</p>
         <address class="contact__address">
-          SayGday.ai is a business name of HEAR.IS PTY LTD<br>
+          SayGday.ai<br>
           Civic Quarter 1<br>
           68 Northbourne Ave, Canberra ACT 2600
         </address>
