@@ -10,6 +10,9 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # The website scan's browser (netlify/functions/_lib/render.mjs): shipped as
+  # packages, not bundled. Chromium itself is downloaded when a scan needs it.
+  external_node_modules = ["puppeteer-core", "@sparticuz/chromium-min"]
 
 [[redirects]]
   from = "/"

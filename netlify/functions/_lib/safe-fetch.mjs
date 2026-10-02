@@ -105,7 +105,7 @@ export function extractPublicPage(html,url){
   // it. Its <noscript> fallback, when it has one, is what it says to a reader
   // that doesn't run code (hear.is is one), so a thin page reads that too.
   const fallback=readPage(parse(html,{scriptingEnabled:false}),url,true)
-  return fallback.text.length>=page.text.length+100?fallback:page
+  return fallback.text.length>=page.text.length+100?{...fallback,fromNoscript:true}:page
 }
 const noJavaScript=/\b(?:enable|turn on|requires?|needs?|without)\b[^.]{0,40}\bjavascript\b|\bjavascript\b[^.]{0,30}\b(?:disabled|required|is off|turned off)\b/i
 

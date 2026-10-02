@@ -23,7 +23,7 @@ import { STANDARD_TOPICS, sourceWebsiteFacts } from './site-facts.mjs'
 import { findAnswer } from '../../../shared/matcher.mjs'
 
 export const SCAN_LIMITS = Object.freeze({
-  pages: 10, pageChars: 12000, totalChars: 60000, crawlMs: 60000, pageMs: 8000,
+  pages: 10, pageChars: 12000, totalChars: 60000, crawlMs: 120000, pageMs: 8000, renderPages: 8, renderMs: 20000,
   outputTokens: 32000, timeoutMs: 600000,
   target: [20, 25], keep: 30, answerChars: 1200, questionChars: 160, variants: 5, variantChars: 80,
 })
@@ -90,11 +90,42 @@ export async function startScan({ db, user, website, origin, configuration = sca
 
 const pageKey = url => { const value = new URL(url); value.hash = ''; return value.href.replace(/\/$/, '') }
 
-export async function crawlWebsite({ origin, fetchPage = safeHtml, now = Date.now, limits = SCAN_LIMITS }) {
+// A page that reads nearly empty, or only through its <noscript> fallback, is
+// a website built in JavaScript: it is opened in a real browser (render.mjs),
+// at most renderPages times a scan, and the browser's reading is kept when it
+// says more (or, over a <noscript> fallback, when it says anything real). A
+// website that refuses plain readers gets the browser too.
+const THIN_PAGE = 200
+
+export async function crawlWebsite({ origin, fetchPage = safeHtml, renderPage = null, now = Date.now, limits = SCAN_LIMITS }) {
   const deadline = now() + limits.crawlMs
-  const home = await fetchPage(`${origin}/`, { deadline: Math.min(deadline, now() + limits.pageMs) })
-  const first = extractPublicPage(home.html, home.url)
-  const pages = [{ url: home.url, ...first }], seen = new Set([pageKey(`${origin}/`), pageKey(home.url)]), skipped = []
+  let renders = 0
+  async function read(url) {
+    let plain = null, failure = null
+    try {
+      const page = await fetchPage(url, { deadline: Math.min(deadline, now() + limits.pageMs) })
+      plain = { url: page.url, ...extractPublicPage(page.html, page.url) }
+    } catch (error) { failure = error }
+    const wanted = failure ? failure.code === 'WEBSITE_ACCESS_BLOCKED' : plain.fromNoscript || compact(plain.text).length < THIN_PAGE
+    if (renderPage && wanted && renders < limits.renderPages && now() < deadline) {
+      renders++
+      try {
+        const page = await renderPage(url, { origin, deadline: Math.min(deadline, now() + limits.renderMs) })
+        const rendered = { url: page.url, ...extractPublicPage(page.html, page.url) }
+        const length = compact(rendered.text).length
+        // A <noscript> fallback is the same for the whole website; the browser
+        // shows what this page says.
+        if (!plain || (plain.fromNoscript ? length >= THIN_PAGE : length > compact(plain.text).length)) return rendered
+      } catch (error) {
+        // The plain reading stands; the log says why the browser couldn't help.
+        console.error(`Browser reading failed: ${error?.code || error?.name || 'Error'} ${String(error?.message || '').slice(0, 160)}`)
+      }
+    }
+    if (failure) throw failure
+    return plain
+  }
+  const first = await read(`${origin}/`)
+  const pages = [first], seen = new Set([pageKey(`${origin}/`), pageKey(first.url)]), skipped = []
   const queue = [...(first.readerLinks || [])]
   while (queue.length && pages.length < limits.pages) {
     queue.sort((a, b) => a.priority - b.priority)
@@ -103,13 +134,12 @@ export async function crawlWebsite({ origin, fetchPage = safeHtml, now = Date.no
     seen.add(pageKey(url))
     if (now() >= deadline) { skipped.push(url); continue }
     try {
-      const page = await fetchPage(url, { deadline: Math.min(deadline, now() + limits.pageMs) })
+      const page = await read(url)
       if (pages.some(existing => pageKey(existing.url) === pageKey(page.url))) continue
       seen.add(pageKey(page.url))
-      const extracted = extractPublicPage(page.html, page.url)
-      pages.push({ url: page.url, ...extracted })
+      pages.push(page)
       // A contact or hours page linked only from an inner page is still found.
-      for (const link of extracted.readerLinks || []) if (!seen.has(pageKey(link.url)) && link.priority <= 3) queue.push(link)
+      for (const link of page.readerLinks || []) if (!seen.has(pageKey(link.url)) && link.priority <= 3) queue.push(link)
     } catch { skipped.push(url) /* Keep the pages that could be read. */ }
   }
   // The most useful pages first, within a fixed amount of text.
@@ -295,11 +325,14 @@ export function withoutClashingVariants(entries) {
 
 const scanFailed = message => Object.assign(new HttpError(409, message, 'SCAN_FAILED'), { scanFailure: true })
 
-export async function runScan({ db, scanId, configuration = scanConfiguration(), fetchPage = safeHtml, client }) {
+export async function runScan({ db, scanId, configuration = scanConfiguration(), fetchPage = safeHtml, renderer = null, client }) {
   const claimed = await call(db, 'claim_scan', { p_scan: scanId })
   if (!claimed) return { started: false }
   try {
-    const { pages, skipped } = await crawlWebsite({ origin: claimed.business.website, fetchPage })
+    let crawl
+    try { crawl = await crawlWebsite({ origin: claimed.business.website, fetchPage, renderPage: renderer ? (url, options) => renderer.render(url, options) : null }) }
+    finally { await renderer?.close() }
+    const { pages, skipped } = crawl
     if (!pages.length) throw scanFailed('We couldn’t find readable text on your website. You can still add your questions and answers yourself.')
     await call(db, 'scan_stage', { p_scan: scanId, p_stage: `Writing questions from ${pages.length} ${pages.length === 1 ? 'page' : 'pages'}` })
     let entries = [], mode = 'ai'
