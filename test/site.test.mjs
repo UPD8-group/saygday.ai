@@ -19,7 +19,7 @@ test('every page is built at an address of its own, with a title, a description 
   const files = (await readdir(new URL('site/', root))).filter(file => file.endsWith('.html'))
   assert.deepEqual(files.sort(), ALL.map(page => page.file).sort(), 'every page in site/ is listed, and every listed page exists')
   assert.equal(outputFor(named('')), 'index.html')
-  assert.equal(outputFor(named('pricing')), 'pricing/index.html', '/pricing, not /site/pricing.html')
+  assert.equal(outputFor(named('pricing')), 'pricing.html', 'served at /pricing, with no redirect to /pricing/')
   assert.equal(outputFor(NOT_FOUND), '404.html', 'Netlify shows 404.html for an address that doesn’t exist')
   const inputs = Object.values(siteInputs)
   for (const page of ALL) {

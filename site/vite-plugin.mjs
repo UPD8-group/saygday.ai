@@ -1,6 +1,7 @@
 // Builds the public website from site/: fills each page's shared parts in
-// (site/chrome.mjs) and publishes site/pricing.html as /pricing/index.html, so
-// every page has a plain address (/pricing). The dashboard is app.html, served
+// (site/chrome.mjs) and publishes each page at the top of the site
+// (site/pricing.html as /pricing.html), which Netlify serves at /pricing with
+// no redirect. The dashboard is app.html, served
 // at /app; the chat window is chat.html.
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,9 +10,9 @@ import { NOT_FOUND, PAGES, composePage } from './chrome.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 const ALL = [...PAGES, NOT_FOUND]
 
-// Where each page is published: index.html and 404.html stay at the top, the
-// rest get a folder of their own.
-export const outputFor = page => (page.slug === '' ? 'index.html' : page === NOT_FOUND ? '404.html' : `${page.slug}/index.html`)
+// Where each page is published. A folder per page (pricing/index.html) would
+// make Netlify answer /pricing with a redirect to /pricing/ first.
+export const outputFor = page => (page.slug === '' ? 'index.html' : `${page.slug}.html`)
 
 export const siteInputs = Object.fromEntries(ALL.map(page => [`site-${page.slug || 'home'}`, resolve(here, page.file)]))
 
