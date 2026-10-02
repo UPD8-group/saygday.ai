@@ -82,7 +82,7 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
     case 'deleteFaq': return { deleted: await call(db, 'delete_faq', { p_user, p_id: id(body.id) }) }
     case 'approveAll': return { approved: await call(db, 'approve_all', { p_user }), faqs: await call(db, 'list_faqs', { p_user }) }
     case 'updateBusiness': {
-      if (body.character !== undefined && !CHARACTER_KEYS.includes(body.character)) throw new HttpError(400, 'Choose one of the characters.', 'INVALID')
+      if (body.character !== undefined && !CHARACTER_KEYS.includes(body.character)) throw new HttpError(400, 'Choose one of the looks on the list.', 'INVALID')
       const notifyEmail = text(body.notifyEmail, { max: 254, field: 'email address' })
       if (notifyEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(notifyEmail)) throw new HttpError(400, 'Enter an email address, like you@yourbusiness.com.au', 'INVALID')
       const business = await call(db, 'update_business', {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
-import { CHARACTERS, DEFAULT_CHARACTER, characterImage, characterLabel } from '../../shared/characters.mjs'
+import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel } from '../../shared/characters.mjs'
 
 const PLATFORMS = [
   { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website. The button appears in the bottom-right corner.'] },
@@ -46,9 +46,13 @@ export default function ChatButton() {
         <section className="card">
           <h2>1. Choose its look</h2>
           <div className="looks" role="radiogroup" aria-label="Button look">
-            {[DEFAULT_CHARACTER, ...CHARACTERS.map(item => item.key)].map(key => <button key={key} type="button" role="radio" aria-checked={character === key} className={`look${character === key ? ' is-on' : ''}`} onClick={() => setCharacter(key)} title={characterLabel(key)}>
-              {key === DEFAULT_CHARACTER ? <Avatar character={key} size={56} /> : <img src={characterImage(key)} alt="" width="56" height="56" />}
-              <span>{key === DEFAULT_CHARACTER ? 'Plain bubble' : CHARACTERS.find(item => item.key === key).name}</span>
+            <p className="looks__title">The mob</p>
+            {CHARACTERS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
+              <img src={characterImage(item.key)} alt="" width="56" height="56" /><span>{item.name}</span>
+            </button>)}
+            <p className="looks__title">Or keep it simple</p>
+            {PLAIN_BUTTONS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look look--plain${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
+              <Avatar character={item.key} size={56} /><span>{item.name}</span>
             </button>)}
           </div>
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { respond, typeahead } from '../../shared/matcher.mjs'
-import { characterFor, characterImage } from '../../shared/characters.mjs'
+import { characterFor, characterImage, plainSvg } from '../../shared/characters.mjs'
 
 // The chat on a business's website, and its preview in the dashboard. It
 // only ever shows answers the business approved, word for word. A question it
@@ -12,9 +12,9 @@ const key = () => `m${++counter}`
 export function Avatar({ character, size = 40 }) {
   const found = characterFor(character)
   if (found) return <img className="chat-avatar" src={characterImage(found.key)} alt="" width={size} height={size} />
-  return <span className="chat-avatar chat-avatar--bubble" style={{ width: size, height: size }} aria-hidden="true">
-    <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12a8 8 0 01-11.6 7.1L4 20l1-4.1A8 8 0 1120 12z" /></svg>
-  </span>
+  // A plain button: one of the shapes in shared/characters.mjs (fixed markup,
+  // never anything a business or visitor typed).
+  return <span className="chat-avatar chat-avatar--bubble" style={{ width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: plainSvg(character, Math.round(size * 0.5)) }} />
 }
 
 export default function Chat({ widget, preview = false, api = {}, onClose }) {
