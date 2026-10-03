@@ -363,7 +363,7 @@ body.menu-open .bar { position: fixed; }
 /* Our story, in James's words */
 .maker--story { align-items: start; }
 @media (min-width: 901px) { .maker--story figure { position: sticky; top: 104px; } }
-.story > p:not(.eyebrow) { margin-top: 18px; max-width: 36em; font-size: 19px; line-height: 1.65; }
+.story > p:not(.eyebrow), .story > .more > p { margin-top: 18px; max-width: 36em; font-size: 19px; line-height: 1.65; }
 .story .story__lead { font-size: clamp(21px, 2vw, 24px); line-height: 1.5; font-weight: 500; }
 .story__quote { margin: 30px 0 8px; padding: 4px 0 4px 20px; border-left: 4px solid var(--gold); font: 600 clamp(23px, 2.4vw, 30px)/1.3 var(--display); letter-spacing: -.01em; color: var(--green-ink); max-width: 30em; }
 .story .story__sign { margin-top: 26px; font: 600 44px/1 var(--hand); color: var(--green-ink); transform: rotate(-3deg); transform-origin: left; }
@@ -512,4 +512,26 @@ body.menu-open [data-saygday] { display: none; }
   }
   .hero::before { background: linear-gradient(180deg, rgba(10, 22, 17, .55) 0, rgba(10, 22, 17, 0) 150px); }
   .hero__spacer { height: calc(var(--hero-top) + var(--hero-photo) - 84px); }
+}
+
+/* ---- Phones: each page's short version first (owner, 3 October 2026, after
+   a friend read it on her phone: "there's way too much information… a big
+   button that shows people to go to the next page… learn more and then that
+   opens all the other information"). The photo and its few lines, a big
+   button on to the next page, and Learn more, which opens the rest (.more).
+   Desktop never sees the block and always shows the whole page. ---- */
+.phone-next { display: none; }
+.btn--big { width: 100%; min-height: 60px; justify-content: center; font-size: 18px; }
+.phone-next__more { display: inline-flex; align-items: center; justify-content: center; gap: 8px; justify-self: center; min-height: 48px; padding: 0 14px; border: 0; background: none; font: 600 17px/1 var(--body); color: var(--green-ink); cursor: pointer; }
+.phone-next__more span { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.phone-next__more svg { transition: transform .2s ease; }
+.phone-next__more[aria-expanded="true"] svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .phone-next__more svg { transition: none; } }
+@media (max-width: 600px) {
+  .phone-next { display: grid; gap: 10px; }
+  .more:not(.is-open) { display: none; }
+  .hide-phone { display: none; }
+  .page--photo .photo-head { margin-bottom: 28px; }
+  .story .phone-next { margin-top: 28px; }
+  .hero .phone-next { margin-top: 2px; }
 }
