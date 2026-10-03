@@ -143,8 +143,12 @@ settings, which is how sign-in broke on saygday.ai before the move.
   information… a big button that shows people to go to the next page… the
   next one should probably be Is this AI?… learn more… opens all the other
   information"). The site reads in one order, the menu's: front page, Is
-  this AI?, What's different, How it works, Getting started, Meet the mob,
-  Our story, Pricing (`JOURNEY` in site/chrome.mjs). Up to 600px wide each of
+  this AI?, What's different, When it matters, How it works, Getting started,
+  Meet the mob, Our story, Pricing (`JOURNEY` in site/chrome.mjs). When it
+  matters (the Riverbend Vet example) was a section of What's different until
+  the owner made it a page of its own the same day ("so that can be its own
+  full page"); What's different keeps its comparison table above the button.
+  The examples on both pages are made up and say so. Up to 600px wide each of
   those pages shows its photo and few lines, a big button to the next page
   (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
   opens everything marked `more`; Pricing's button is Start your free 14

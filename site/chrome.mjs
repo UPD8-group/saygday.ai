@@ -8,10 +8,13 @@
 // address (/whats-different). Pages without a menu entry are still published.
 // The menu's order is also the order the site reads in, page to page: the
 // front page, then Is this AI? (owner, 3 October 2026), and on to Pricing.
+// When it matters, the vet example, is a page of its own after What's
+// different (owner, 3 October 2026).
 export const PAGES = Object.freeze([
   { slug: '', file: 'index.html' },
   { slug: 'is-this-ai', file: 'is-this-ai.html', name: 'Is this AI?', hint: 'Sort of. But not the way you think.' },
   { slug: 'whats-different', file: 'whats-different.html', name: 'What’s different', hint: 'It looks like a chatbot. Here’s how it isn’t one.' },
+  { slug: 'when-it-matters', file: 'when-it-matters.html', name: 'When it matters', hint: 'Nervous customers get a person’s answer.' },
   { slug: 'how-it-works', file: 'how-it-works.html', name: 'How it works', hint: 'Where SayGday sits between you and your customers.' },
   { slug: 'getting-started', file: 'getting-started.html', name: 'Getting started', hint: 'Set up your business in an afternoon.' },
   { slug: 'meet-the-mob', file: 'meet-the-mob.html', name: 'Meet the mob', hint: 'Pick a local for the corner of your website.' },

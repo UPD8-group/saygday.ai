@@ -385,21 +385,6 @@ body.menu-open .bar { position: fixed; }
 .photo-head__img--lift { background-image: var(--photo); }
 @media (max-width: 900px) { .photo-head__img--lift { background-image: linear-gradient(180deg, transparent 0, transparent calc(var(--lift, 75%) - 17%), var(--deep) calc(var(--lift, 75%) - 1%)), var(--photo); background-size: 100% 100%, var(--size-lift, auto 75%); background-position: 0 0, var(--pos-lift, center top); } }
 
-/* The nervous-customer moment: the words and the signed answer beside a big
-   photo on wide screens; on phones the answer sits over the photo's edge */
-.moment--photo { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); grid-template-areas: "text photo" "card photo"; column-gap: clamp(32px, 5vw, 64px); row-gap: 28px; align-items: start; }
-.moment--photo .title { font-size: clamp(32px, 3.8vw, 50px); }
-.moment--photo .moment__text { grid-area: text; }
-.moment__visual { display: contents; }
-.moment__photo { grid-area: photo; align-self: stretch; min-height: 460px; width: 100%; max-width: 100%; border-radius: 26px; background: var(--mint) center / cover no-repeat; }
-.moment__visual .proof { grid-area: card; position: static; width: 100%; max-width: 440px; margin: 0; justify-self: start; box-shadow: 0 18px 50px rgba(20, 33, 28, .14); border: 1px solid var(--line); }
-@media (max-width: 900px) {
-  .moment--photo { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
-  .moment__visual { display: block; }
-  .moment__photo { min-height: 0; aspect-ratio: 4 / 3; }
-  .moment__visual .proof { position: relative; width: auto; max-width: none; margin: -64px 14px 0; }
-}
-
 /* Is this AI? */
 .photo-head--plain .photo-head__img { background-color: var(--deep); }
 .ask--inline, .answer--inline { justify-self: start; max-width: 100%; margin: 4px 0; }
@@ -450,14 +435,6 @@ body.menu-open .bar { position: fixed; }
 /* ---- Phones: more room (owner, 3 October 2026: "the mobile version looks a
    little bit cramped"). Desktop is untouched: everything below is for narrow
    screens only. ---- */
-
-/* When it matters (What's different): the desktop grid placed the words, the
-   photo and the card by area name, and on a phone those names sent the words
-   into a stray indented column and squashed the photo to nothing. On a phone
-   they simply follow one another. */
-@media (max-width: 900px) {
-  .moment--photo .moment__text, .moment__photo, .moment__visual .proof { grid-area: auto; }
-}
 
 /* The side-by-side table becomes one card per row: the question, then what
    most chatbots do, then what SayGday does, each with its own small label. */
@@ -538,3 +515,23 @@ body.menu-open [data-saygday] { display: none; }
      3 October 2026), so the button needs room after the three cards. */
   .wrap > div + .phone-next { margin-top: 40px; }
 }
+
+/* ---- What's different and When it matters (owner, 3 October 2026: "the
+   when it matters section that has the vet… can be its own full page"). The
+   same question answered two ways, and more moments like the vet's: chat
+   cards side by side on wide screens, one under another on a phone. ---- */
+.pair { margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.pair--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .pair, .pair--three { grid-template-columns: minmax(0, 1fr); } }
+.pair .proof { max-width: none; justify-self: stretch; box-shadow: none; border: 1px solid var(--line); }
+.pair__who { padding: 4px 4px 12px; border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green-ink); }
+.pair__card--them .pair__who { color: var(--muted); }
+.answer--guess { background: var(--paper); border: 1px solid var(--line); }
+.pair__note { padding: 10px 4px 2px; font-size: 15.5px; color: var(--muted); }
+.pair__caption { margin-top: 12px; font-size: 13px; color: var(--muted); }
+/* When it matters: the vet's answer beside the words about it. */
+.moment .title { font-size: clamp(30px, 3.6vw, 46px); }
+/* A two-word signer ("Dr Mel") stays on one line; the stamp moves under it
+   when a phone has no room for both. */
+.signoff { flex-wrap: wrap; }
+.signoff__hand { white-space: nowrap; }
