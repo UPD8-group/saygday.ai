@@ -228,7 +228,7 @@ test('on a phone each page is its short version first: a big button on, and Lear
     if (slug === '') {
       assert.doesNotMatch(block[1], /data-more/, 'the front page is all short version')
       assert.ok(html.indexOf('<div class="phone-next">') > html.indexOf('</figure>'), 'its button comes after the example chat')
-      assert.match(html, /<a class="btn btn--line hide-phone" href="\/whats-different">/, 'the big button replaces the small link on a phone')
+      assert.match(html, /<a class="btn btn--gold hide-phone" href="\/is-this-ai">Next: The honest answer <svg/, 'on a wide screen the front page leads on where the phone does, as a gold button')
       continue
     }
     assert.match(block[1], /<button class="phone-next__more" type="button" aria-expanded="false" aria-controls="more" data-more><span>Learn more<\/span>/, `${slug}: Learn more`)
@@ -279,6 +279,11 @@ test('on a phone each page is its short version first: a big button on, and Lear
   assert.throws(() => composePage('<!-- site:head --><!-- site:bar --><!-- site:foot -->', 'pricing'), /expected 1 <!-- site:phone-next -->/, 'a page on the way can’t lose its button')
   const css = await read('src/site/site.css')
   assert.match(css, /\n\.phone-next \{ display: none; \}/, 'desktop never sees it')
+  // Desktop's calls to action stand out like the phone's big button (owner, 3
+  // October 2026): Next is a big gold button, Try it free a white one as big.
+  assert.match(css, /\n\.next \.btn, \.next a\.next__on \{ min-height: 60px;/, 'as tall as the phone’s button')
+  assert.match(css, /\n\.next a\.next__on \{ display: inline-flex;[^}]*background: var\(--gold\);[^}]*text-decoration: none; \}/, 'Next is a gold button, not underlined text')
+  assert.match(css, /@media \(min-width: 601px\) \{ \.hero__actions \.btn \{ min-height: 60px;/)
   const phone = mediaRules(css, '(max-width: 600px)')
   assert.match(phone, /\.phone-next \{ display: grid;/)
   assert.match(phone, /\.more:not\(\.is-open\) \{ display: none; \}/, 'the rest waits for Learn more')
