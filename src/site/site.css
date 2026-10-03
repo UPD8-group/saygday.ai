@@ -498,11 +498,24 @@ body.menu-open [data-saygday] { display: none; }
 .signoff { flex-wrap: wrap; }
 .signoff__hand { white-space: nowrap; }
 
-/* What's different says what SayGday does, in a few ticked lines, instead of
+/* What's different says what SayGday does, in ticked lines, instead of
    setting it beside other chatbots (owner, 3 October 2026: "keep it almost
    bullet points… how we do things differently instead of comparing us to
-   someone else"). */
+   someone else"), then what the business and its customers each get ("what
+   the business gets out of it… and then what the customer on their site gets
+   out of it"): two cards side by side on wide screens, one under the other on
+   a phone. */
 .ticks { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 40px; border-top: 2px solid var(--ink); }
 @media (min-width: 901px) { .ticks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ticks li { display: flex; gap: 14px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 19px; font-weight: 500; line-height: 1.4; }
 .ticks__mark { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--mint); color: var(--green-ink); display: grid; place-items: center; }
+.gets { margin-top: 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .gets { grid-template-columns: minmax(0, 1fr); } }
+.gets__col { padding: 24px 24px 8px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); }
+.gets__col--customers { background: var(--mint); border-color: transparent; }
+.gets__col h3 { font-size: 21px; font-weight: 650; }
+.gets .ticks { margin-top: 10px; grid-template-columns: minmax(0, 1fr); border-top: 0; }
+.gets .ticks li { padding: 14px 0; font-size: 17.5px; }
+.gets .ticks li:last-child { border-bottom: 0; }
+.gets__col--customers .ticks li { border-color: rgba(49, 88, 74, .18); }
+.gets__col--customers .ticks__mark { background: var(--card); }

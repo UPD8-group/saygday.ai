@@ -254,12 +254,16 @@ test('on a phone each page is its short version first: a big button on, and Lear
   const shortOf = html => html.slice(html.indexOf('</header>'), html.indexOf('<div class="phone-next">'))
   const different = await built(named('whats-different'))
   const ticks = [...shortOf(different).matchAll(/<li><span class="ticks__mark">[\s\S]*?<\/span><span>([^<]+)<\/span><\/li>/g)].map(([, line]) => line)
-  assert.deepEqual(ticks, ['Your answers are ready before anyone asks.', 'Customers read them word for word.', 'Every answer is signed off by someone at your business.', 'No answer yet? It says so, and passes the question straight to you.'], 'What’s different, before the button: what we do, ticked')
-  // The idea his friend got straight away, explained without calling it an
-  // interactive FAQ (owner, 3 October 2026: "don't say that it's an
-  // interactive FAQ but maybe we can explain that to them").
+  assert.deepEqual(ticks, [
+    'Fewer of the same questions by phone, email and message.', 'Answers ready before anyone asks, signed off by you.', 'Never miss a question: anything new lands in your inbox, with the customer’s email.', 'See which answers customers read most, right in your dashboard.',
+    'Answers any time, even when you’re closed.', 'They ask in their own words, typos and all. No digging through pages.', 'Your answer, word for word, with the name of who signed it off.', 'A real person when they need one: anything new goes straight to you.',
+  ], 'What’s different, before the button: what the business gets, then what its customers get')
+  assert.ok(shortOf(different).indexOf('<h3>What your business gets</h3>') < shortOf(different).indexOf('<h3>What your customers get</h3>'), 'the business first, then its customers')
+  // The idea his friend got straight away: an interactive FAQ (owner, 3
+  // October 2026: "I'm happy for it to say it's an interactive FAQ… people
+  // understand"), then what it's like.
+  assert.match(shortOf(different), /<h2 class="title">Think of it as an interactive FAQ\.<\/h2>/, 'What’s different, before the button: it says what it is')
   assert.ok(words(shortOf(different)).includes('It works like the questions and answers on your website, except customers don’t have to go looking.'), 'What’s different, before the button: what it’s like')
-  for (const page of ALL) assert.doesNotMatch(words(await built(page)), /interactive FAQ/i, `${page.file}: never “interactive FAQ”`)
   assert.doesNotMatch(mainOf(different), /class="versus|pair__card--them|A chatbot that writes its own answers|Most chatbots<\/span>/, 'no side-by-side with other chatbots')
   assert.doesNotMatch(different, /Riverbend|different-vet/, 'the vet has moved to its own page')
   for (const line of ['What stays yours', 'Your words. Nobody else’s.']) assert.ok(words(different.slice(different.indexOf('id="more"'))).includes(line), `What’s different, behind Learn more: ${line}`)
