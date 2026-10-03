@@ -200,12 +200,6 @@ test('on a phone the site has room (owner, 3 October 2026: “the mobile version
   // When it matters and What's different: the example chats go one under
   // another below 900px.
   assert.match(mediaRules(css, '(max-width: 900px)'), /\.pair, \.pair--three \{ grid-template-columns: minmax\(0, 1fr\); \}/)
-  // What's different: one card per row, each answer labelled.
-  const phone = mediaRules(css, '(max-width: 640px)')
-  assert.match(phone, /\.versus__row \{ grid-template-columns: minmax\(0, 1fr\); \}/, 'the comparison stacks')
-  assert.match(phone, /\.versus__them::before \{ content: "Most chatbots" \/ ""; /, 'most chatbots’ answer says whose it is')
-  assert.match(phone, /\.versus__us::before \{ content: "SayGday" \/ ""; /, 'and so does ours')
-  assert.match(phone, /\.versus__head \{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\);/, 'the heading row stays for screen readers')
   const small = mediaRules(css, '(max-width: 480px)')
   assert.match(small, /\.draft \{ grid-template-columns: minmax\(0, 1fr\);/, 'Getting started: the check goes under the answer')
   assert.match(small, /\.plain \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/, 'Meet the mob: three plain buttons to a row')
@@ -252,15 +246,18 @@ test('on a phone each page is its short version first: a big button on, and Lear
   const shortAi = isThisAi.slice(isThisAi.indexOf('</header>'), isThisAi.indexOf('<div class="phone-next">'))
   for (const line of ['How we do it differently', 'AI does the legwork.<br>You have the final say.', 'AI reads your website', 'You choose what stays', 'Customers get you']) assert.ok(shortAi.includes(line), `Is this AI?, before the button: ${line}`)
   assert.ok(!isThisAi.slice(isThisAi.indexOf('id="more"')).includes('How we do it differently'), 'and not again behind Learn more')
-  // What's different keeps its side-by-side table above the button, and When
-  // it matters, the vet's answer, is a page of its own after it (owner, 3
-  // October 2026: "the when it matters section that has the vet so that can be
-  // its own full page").
+  // What's different says what SayGday does in a few ticked lines above the
+  // button, never set beside other chatbots (owner, 3 October 2026: "keep it
+  // almost bullet points… instead of comparing us to someone else"), and When
+  // it matters, the vet's answer, is a page of its own after it ("so that can
+  // be its own full page").
   const shortOf = html => html.slice(html.indexOf('</header>'), html.indexOf('<div class="phone-next">'))
   const different = await built(named('whats-different'))
-  assert.match(shortOf(different), /<div class="versus" role="table"/, 'What’s different, before the button: the table')
+  const ticks = [...shortOf(different).matchAll(/<li><span class="ticks__mark">[\s\S]*?<\/span><span>([^<]+)<\/span><\/li>/g)].map(([, line]) => line)
+  assert.deepEqual(ticks, ['Your answers are ready before anyone asks.', 'Customers read them word for word.', 'Every answer is signed off by someone at your business.', 'No answer yet? It says so, and passes the question straight to you.'], 'What’s different, before the button: what we do, ticked')
+  assert.doesNotMatch(mainOf(different), /class="versus|pair__card--them|A chatbot that writes its own answers|Most chatbots<\/span>/, 'no side-by-side with other chatbots')
   assert.doesNotMatch(different, /Riverbend|different-vet/, 'the vet has moved to its own page')
-  for (const line of ['Same question, two answers', 'What stays yours']) assert.ok(words(different.slice(different.indexOf('id="more"'))).includes(line), `What’s different, behind Learn more: ${line}`)
+  for (const line of ['What stays yours', 'Your words. Nobody else’s.']) assert.ok(words(different.slice(different.indexOf('id="more"'))).includes(line), `What’s different, behind Learn more: ${line}`)
   const matters = await built(named('when-it-matters'))
   assert.match(matters, /<p class="eyebrow">When it matters<\/p>\s*<h1 class="title">Nervous customers<br><em>get a person’s answer\.<\/em><\/h1>/)
   assert.match(matters, /url\('\/site\/different-vet\.webp'\)/, 'the vet photo heads the page')

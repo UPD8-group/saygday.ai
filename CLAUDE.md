@@ -147,8 +147,11 @@ settings, which is how sign-in broke on saygday.ai before the move.
   Meet the mob, Our story, Pricing (`JOURNEY` in site/chrome.mjs). When it
   matters (the Riverbend Vet example) was a section of What's different until
   the owner made it a page of its own the same day ("so that can be its own
-  full page"); What's different keeps its comparison table above the button.
-  The examples on both pages are made up and say so. Up to 600px wide each of
+  full page"). What's different no longer sets SayGday beside other chatbots
+  (his call, the same day: "keep it almost bullet points… how we do things
+  differently instead of comparing us to someone else"): above the button it
+  says what SayGday does in four ticked lines, and the side-by-side table is
+  gone. The examples on When it matters are made up and say so. Up to 600px wide each of
   those pages shows its photo and few lines, a big button to the next page
   (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
   opens everything marked `more`; Pricing's button is Start your free 14
