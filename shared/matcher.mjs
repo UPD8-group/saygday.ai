@@ -14,7 +14,7 @@
 
 const STOP = new Set(('a an the is are am do does did can could will would you your youse u ur i we my me us it its there ' +
   'what whats how much many any some all please pls hey hi gday of for to in on at and or with about have has ' +
-  'get got that these those thing this thi').split(' '))
+  'get got that these those thing this thi doe').split(' '))
 // Loose pass: only articles, for a question that is all stopwords ("how much").
 const STOP_LOOSE = new Set(['a', 'an', 'the'])
 

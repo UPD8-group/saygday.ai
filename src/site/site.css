@@ -487,3 +487,11 @@ body.menu-open .bar { position: fixed; }
   .page__part, .next { margin-top: 64px; }
 }
 
+
+/* SayGday's own chat button (owner, 3 October 2026) steps aside while the
+   full-screen menu is open, so it never sits over the menu's links. */
+body.menu-open [data-saygday] { display: none; }
+/* And every page ends clear of it: the footer's last lines, the
+   Acknowledgement of Country among them, never sit under the button (64px,
+   20px from the corner). From 1360px wide the footer ends before the corner. */
+@media (max-width: 1360px) { .site-foot { padding-bottom: 112px; } }

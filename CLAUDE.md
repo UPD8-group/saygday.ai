@@ -105,6 +105,25 @@ settings, which is how sign-in broke on saygday.ai before the move.
   test/site.test.mjs: a new look is a new key in the list, a migration, and
   a figure on the page.
 
+- **saygday.ai runs SayGday's own chat, as a business on its own platform**
+  (owner, 3 October 2026: "put a say g'day icon for us in the bottom
+  right-hand corner… more than 20 [questions], we'll really pack this thing
+  out… use the G'day icon… put a pulse around it"). Business `saygday`, owned
+  by the owner's own account, so its answers live in his dashboard like any
+  business's; `site/own-chat.mjs` is where they started (57, every fact one
+  the site already states) and `scripts/own-chat-sql.mjs` loaded them
+  without ever overwriting an edited answer. Every page carries the same line
+  a business pastes (`OWN_BUTTON` in site/chrome.mjs, with `data-pulse`: a gold
+  ring until the chat is first opened that visit, never under reduced motion),
+  so saygday.ai passes the ownership check every business does
+  (`scripts/own-chat-verify.mjs` runs it; the button can't trigger it itself,
+  because a same-site request carries no Origin, so widget.js also names the
+  page it's on with `site=`, which the server reads only when there's no
+  Origin). Locked by test/own-chat.test.mjs, which also asks the chat about
+  140 questions the way visitors type them: change an answer's wording or
+  variants and run it. Writing those found `does` singularised to `doe` and
+  slipping past the stopwords (like `this` → `thi`); `doe` is a stopword now.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.
