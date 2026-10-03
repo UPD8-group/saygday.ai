@@ -169,24 +169,6 @@ section { padding-block: clamp(64px, 10vw, 120px); }
 .foot__legal { padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; }
 .foot__country { padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; text-align: center; text-wrap: balance; }
 
-/* Side by side with other chatbots */
-.versus { margin-top: 44px; display: grid; border-radius: 26px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
-.versus__row { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr) minmax(0, 1.15fr); border-top: 1px solid var(--line); }
-.versus__row:first-child { border-top: 0; }
-.versus__row > * { padding: 18px 20px; min-width: 0; }
-.versus__label { font-weight: 650; }
-.versus__them { color: var(--muted); }
-.versus__us { background: var(--mint); font-weight: 600; display: flex; gap: 10px; align-items: flex-start; }
-.versus__us svg { flex: none; margin-top: 5px; color: var(--green-ink); }
-.versus__head { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.versus__head .versus__us { background: var(--green); color: #fff; }
-@media (max-width: 640px) {
-  .versus__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .versus__label { grid-column: 1 / -1; padding-bottom: 4px; }
-  .versus__row > .versus__them, .versus__row > .versus__us { padding-top: 8px; }
-  .versus__head .versus__label { display: none; }
-}
-
 /* The anxious-customer moment */
 .moment { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 6vw, 80px); align-items: center; }
 @media (max-width: 900px) { .moment { grid-template-columns: minmax(0, 1fr); } }
@@ -363,7 +345,7 @@ body.menu-open .bar { position: fixed; }
 /* Our story, in James's words */
 .maker--story { align-items: start; }
 @media (min-width: 901px) { .maker--story figure { position: sticky; top: 104px; } }
-.story > p:not(.eyebrow) { margin-top: 18px; max-width: 36em; font-size: 19px; line-height: 1.65; }
+.story > p:not(.eyebrow), .story > .more > p { margin-top: 18px; max-width: 36em; font-size: 19px; line-height: 1.65; }
 .story .story__lead { font-size: clamp(21px, 2vw, 24px); line-height: 1.5; font-weight: 500; }
 .story__quote { margin: 30px 0 8px; padding: 4px 0 4px 20px; border-left: 4px solid var(--gold); font: 600 clamp(23px, 2.4vw, 30px)/1.3 var(--display); letter-spacing: -.01em; color: var(--green-ink); max-width: 30em; }
 .story .story__sign { margin-top: 26px; font: 600 44px/1 var(--hand); color: var(--green-ink); transform: rotate(-3deg); transform-origin: left; }
@@ -384,21 +366,6 @@ body.menu-open .bar { position: fixed; }
 /* A photo whose faces sit mid-frame: on a phone it is shown smaller, at the top, and fades into the header behind the words. */
 .photo-head__img--lift { background-image: var(--photo); }
 @media (max-width: 900px) { .photo-head__img--lift { background-image: linear-gradient(180deg, transparent 0, transparent calc(var(--lift, 75%) - 17%), var(--deep) calc(var(--lift, 75%) - 1%)), var(--photo); background-size: 100% 100%, var(--size-lift, auto 75%); background-position: 0 0, var(--pos-lift, center top); } }
-
-/* The nervous-customer moment: the words and the signed answer beside a big
-   photo on wide screens; on phones the answer sits over the photo's edge */
-.moment--photo { grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); grid-template-areas: "text photo" "card photo"; column-gap: clamp(32px, 5vw, 64px); row-gap: 28px; align-items: start; }
-.moment--photo .title { font-size: clamp(32px, 3.8vw, 50px); }
-.moment--photo .moment__text { grid-area: text; }
-.moment__visual { display: contents; }
-.moment__photo { grid-area: photo; align-self: stretch; min-height: 460px; width: 100%; max-width: 100%; border-radius: 26px; background: var(--mint) center / cover no-repeat; }
-.moment__visual .proof { grid-area: card; position: static; width: 100%; max-width: 440px; margin: 0; justify-self: start; box-shadow: 0 18px 50px rgba(20, 33, 28, .14); border: 1px solid var(--line); }
-@media (max-width: 900px) {
-  .moment--photo { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
-  .moment__visual { display: block; }
-  .moment__photo { min-height: 0; aspect-ratio: 4 / 3; }
-  .moment__visual .proof { position: relative; width: auto; max-width: none; margin: -64px 14px 0; }
-}
 
 /* Is this AI? */
 .photo-head--plain .photo-head__img { background-color: var(--deep); }
@@ -451,29 +418,6 @@ body.menu-open .bar { position: fixed; }
    little bit cramped"). Desktop is untouched: everything below is for narrow
    screens only. ---- */
 
-/* When it matters (What's different): the desktop grid placed the words, the
-   photo and the card by area name, and on a phone those names sent the words
-   into a stray indented column and squashed the photo to nothing. On a phone
-   they simply follow one another. */
-@media (max-width: 900px) {
-  .moment--photo .moment__text, .moment__photo, .moment__visual .proof { grid-area: auto; }
-}
-
-/* The side-by-side table becomes one card per row: the question, then what
-   most chatbots do, then what SayGday does, each with its own small label. */
-@media (max-width: 640px) {
-  .versus__row { grid-template-columns: minmax(0, 1fr); }
-  .versus__label { padding: 20px 20px 8px; font-size: 18px; }
-  .versus__row > .versus__them, .versus__row > .versus__us { padding: 12px 20px; }
-  .versus__row > .versus__us { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; padding-bottom: 16px; }
-  .versus__row:not(.versus__head) > .versus__them::before,
-  .versus__row:not(.versus__head) > .versus__us::before { grid-column: 1 / -1; display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-  .versus__row:not(.versus__head) > .versus__them::before { content: "Most chatbots" / ""; color: var(--muted); }
-  .versus__row:not(.versus__head) > .versus__us::before { content: "SayGday" / ""; color: var(--green-ink); }
-  /* The column names now sit on every row, so the heading row only speaks to screen readers. */
-  .versus__head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-}
-
 @media (max-width: 480px) {
   /* Checking your answers (Getting started): the label goes under the answer
      instead of squeezing it into half the card. */
@@ -513,3 +457,65 @@ body.menu-open [data-saygday] { display: none; }
   .hero::before { background: linear-gradient(180deg, rgba(10, 22, 17, .55) 0, rgba(10, 22, 17, 0) 150px); }
   .hero__spacer { height: calc(var(--hero-top) + var(--hero-photo) - 84px); }
 }
+
+/* ---- Phones: each page's short version first (owner, 3 October 2026, after
+   a friend read it on her phone: "there's way too much information… a big
+   button that shows people to go to the next page… learn more and then that
+   opens all the other information"). The photo and its few lines, a big
+   button on to the next page, and Learn more, which opens the rest (.more).
+   Desktop never sees the block and always shows the whole page. ---- */
+.phone-next { display: none; }
+.btn--big { width: 100%; min-height: 60px; justify-content: center; font-size: 18px; }
+.phone-next__more { display: inline-flex; align-items: center; justify-content: center; gap: 8px; justify-self: center; min-height: 48px; padding: 0 14px; border: 0; background: none; font: 600 17px/1 var(--body); color: var(--green-ink); cursor: pointer; }
+.phone-next__more span { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.phone-next__more svg { transition: transform .2s ease; }
+.phone-next__more[aria-expanded="true"] svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .phone-next__more svg { transition: none; } }
+@media (max-width: 600px) {
+  .phone-next { display: grid; gap: 10px; }
+  .more:not(.is-open) { display: none; }
+  .hide-phone { display: none; }
+  .page--photo .photo-head { margin-bottom: 28px; }
+  .story .phone-next { margin-top: 28px; }
+  .hero .phone-next { margin-top: 2px; }
+  /* Is this AI? keeps "How we do it differently" above the button (owner,
+     3 October 2026), so the button needs room after the three cards. */
+  .wrap > div + .phone-next { margin-top: 40px; }
+}
+
+/* ---- When it matters (owner, 3 October 2026: "the when it matters section
+   that has the vet… can be its own full page"). More moments like the vet's:
+   chat cards side by side on wide screens, one under another on a phone. ---- */
+.pair { margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.pair--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .pair, .pair--three { grid-template-columns: minmax(0, 1fr); } }
+.pair .proof { max-width: none; justify-self: stretch; box-shadow: none; border: 1px solid var(--line); }
+.pair__caption { margin-top: 12px; font-size: 13px; color: var(--muted); }
+/* When it matters: the vet's answer beside the words about it. */
+.moment .title { font-size: clamp(30px, 3.6vw, 46px); }
+/* A two-word signer ("Dr Mel") stays on one line; the stamp moves under it
+   when a phone has no room for both. */
+.signoff { flex-wrap: wrap; }
+.signoff__hand { white-space: nowrap; }
+
+/* What's different says what SayGday does, in ticked lines, instead of
+   setting it beside other chatbots (owner, 3 October 2026: "keep it almost
+   bullet points… how we do things differently instead of comparing us to
+   someone else"), then what the business and its customers each get ("what
+   the business gets out of it… and then what the customer on their site gets
+   out of it"): two cards side by side on wide screens, one under the other on
+   a phone. */
+.ticks { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 40px; border-top: 2px solid var(--ink); }
+@media (min-width: 901px) { .ticks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ticks li { display: flex; gap: 14px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 19px; font-weight: 500; line-height: 1.4; }
+.ticks__mark { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--mint); color: var(--green-ink); display: grid; place-items: center; }
+.gets { margin-top: 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .gets { grid-template-columns: minmax(0, 1fr); } }
+.gets__col { padding: 24px 24px 8px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); }
+.gets__col--customers { background: var(--mint); border-color: transparent; }
+.gets__col h3 { font-size: 21px; font-weight: 650; }
+.gets .ticks { margin-top: 10px; grid-template-columns: minmax(0, 1fr); border-top: 0; }
+.gets .ticks li { padding: 14px 0; font-size: 17.5px; }
+.gets .ticks li:last-child { border-bottom: 0; }
+.gets__col--customers .ticks li { border-color: rgba(49, 88, 74, .18); }
+.gets__col--customers .ticks__mark { background: var(--card); }

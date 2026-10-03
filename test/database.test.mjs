@@ -132,6 +132,10 @@ test('a question the chat couldn’t answer reaches the business, with or withou
   assert.equal(withEmail.notifyEmail, 'owner@cafe.com.au')
   assert.equal(withEmail.email, 'visitor@example.com')
   assert.equal(withEmail.question, 'Can I book the back room?')
+  // The inbox lists the newest first, by time. The test database's clock
+  // counts whole milliseconds, so two questions asked back to back can share
+  // a time and come back in either order (CI, 3 October 2026).
+  await new Promise(resolve => setTimeout(resolve, 5))
   await call('ask_team', { p_slug: business.slug, p_question: 'Do you sell gift cards?' })
   await rejects(call('ask_team', { p_slug: business.slug, p_question: 'Hello?', p_email: 'not-an-email' }), /23514/)
   await rejects(call('ask_team', { p_slug: 'missing', p_question: 'Hello?' }), /NOT_FOUND/)

@@ -138,6 +138,31 @@ settings, which is how sign-in broke on saygday.ai before the move.
   the question the chat had just offered to pass on. The words are
   `src/chat/words.mjs`; locked by test/chat-look.test.mjs.
 
+- **On a phone, every page is its short version first** (owner, 3 October
+  2026, after a friend read the site on her phone: "there's way too much
+  information… a big button that shows people to go to the next page… the
+  next one should probably be Is this AI?… learn more… opens all the other
+  information"). The site reads in one order, the menu's: front page, Is
+  this AI?, What's different, When it matters, How it works, Getting started,
+  Meet the mob, Our story, Pricing (`JOURNEY` in site/chrome.mjs). When it
+  matters (the Riverbend Vet example) was a section of What's different until
+  the owner made it a page of its own the same day ("so that can be its own
+  full page"). What's different no longer sets SayGday beside other chatbots
+  (his call, the same day: "keep it almost bullet points… how we do things
+  differently instead of comparing us to someone else"): above the button it
+  says what SayGday is ("Think of it as an interactive FAQ", the phrase his
+  friend understood at once; he first asked to avoid it, then: "I'm happy
+  for it to say it's an interactive FAQ… people understand"), one paragraph
+  on what that's like, and two ticked cards, What your business gets and What
+  your customers get. The side-by-side table is gone. The examples on When it matters are made up and say so. Up to 600px wide each of
+  those pages shows its photo and few lines, a big button to the next page
+  (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
+  opens everything marked `more`; Pricing's button is Start your free 14
+  days. The front page's button says "Next: The honest answer", because the
+  front page never mentions AI. Desktop shows every page whole. Without
+  JavaScript a phone gets the whole page (a `<noscript>` style). Contact, the
+  legal pages and sign-in are read whole. Locked by test/site.test.mjs.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.

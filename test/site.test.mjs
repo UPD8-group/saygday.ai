@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { access, readFile, readdir } from 'node:fs/promises'
-import { NOT_FOUND, PAGES, composePage, pathFor } from '../site/chrome.mjs'
+import { JOURNEY, NOT_FOUND, PAGES, composePage, nextAfter, pathFor } from '../site/chrome.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, plainSvg } from '../shared/characters.mjs'
 import { outputFor, siteInputs } from '../site/vite-plugin.mjs'
 
@@ -41,7 +41,7 @@ test('a page missing one of its shared parts doesn’t build', () => {
 
 test('the bar, the menu and the footer are on every page, and the menu marks the page you’re on', async () => {
   const menu = PAGES.filter(page => page.name)
-  assert.deepEqual(menu.map(page => page.name), ['What’s different', 'How it works', 'Getting started', 'Is this AI?', 'Meet the mob', 'Our story', 'Pricing', 'Contact'])
+  assert.deepEqual(menu.map(page => page.name), ['Is this AI?', 'What’s different', 'When it matters', 'How it works', 'Getting started', 'Meet the mob', 'Our story', 'Pricing', 'Contact'])
   for (const page of ALL) {
     const html = await built(page)
     assert.match(html, /<a class="bar__cta" href="\/login">Try it free<\/a>/, `${page.file}: the bar`)
@@ -197,20 +197,9 @@ test('on a phone the site has room (owner, 3 October 2026: “the mobile version
   assert.ok(gutter, 'the page gutter is one clamp')
   assert.ok(Number(gutter[1]) >= 20, 'at least 20px at the side of a phone')
   assert.equal(gutter[2], '40', 'and desktop keeps its 40px')
-  // When it matters: once the grid drops its area names, anything still placed
-  // by name lands in a stray column (the photo shrank to nothing).
-  const tablet = mediaRules(css, '(max-width: 900px)')
-  assert.match(tablet, /\.moment--photo \{[^}]*grid-template-areas: none;/)
-  for (const named of ['.moment--photo .moment__text', '.moment__photo', '.moment__visual .proof']) {
-    const rule = [...tablet.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([, selectors, body]) => selectors.split(',').map(s => s.trim()).includes(named) && /grid-area: auto;/.test(body))
-    assert.ok(rule, `${named} stops being placed by name on a phone`)
-  }
-  // What's different: one card per row, each answer labelled.
-  const phone = mediaRules(css, '(max-width: 640px)')
-  assert.match(phone, /\.versus__row \{ grid-template-columns: minmax\(0, 1fr\); \}/, 'the comparison stacks')
-  assert.match(phone, /\.versus__them::before \{ content: "Most chatbots" \/ ""; /, 'most chatbots’ answer says whose it is')
-  assert.match(phone, /\.versus__us::before \{ content: "SayGday" \/ ""; /, 'and so does ours')
-  assert.match(phone, /\.versus__head \{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\);/, 'the heading row stays for screen readers')
+  // When it matters and What's different: the example chats go one under
+  // another below 900px.
+  assert.match(mediaRules(css, '(max-width: 900px)'), /\.pair, \.pair--three \{ grid-template-columns: minmax\(0, 1fr\); \}/)
   const small = mediaRules(css, '(max-width: 480px)')
   assert.match(small, /\.draft \{ grid-template-columns: minmax\(0, 1fr\);/, 'Getting started: the check goes under the answer')
   assert.match(small, /\.plain \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/, 'Meet the mob: three plain buttons to a row')
@@ -222,4 +211,80 @@ test('on a phone the front page’s photo sits at the top, like every other page
   assert.match(phone, /\.hero__photo \{[^}]*#1b2620 45% var\(--hero-top\) \/ auto var\(--hero-photo\) no-repeat var\(--photo\);/, 'drawn from just under the bar, his face and the cup in view')
   assert.match(phone, /\.hero__spacer \{ height: calc\(var\(--hero-top\) \+ var\(--hero-photo\) - 84px\); \}/, 'and the words start below it, not over his face')
   assert.match(await read('src/site/site.css'), /@media \(min-width: 901px\) \{ \.hero__photo \{ background-size: 118% auto; background-position: 0% 30%; \} \}/, 'wide screens keep the photo behind the words')
+})
+
+test('on a phone each page is its short version first: a big button on, and Learn more for the rest (owner, 3 October 2026)', async () => {
+  assert.deepEqual(JOURNEY, ['', 'is-this-ai', 'whats-different', 'when-it-matters', 'how-it-works', 'getting-started', 'meet-the-mob', 'story', 'pricing'], 'the front page, then Is this AI?, then the menu in order')
+  for (const slug of JOURNEY) {
+    const html = await built(named(slug))
+    const block = html.match(/<div class="phone-next">([\s\S]*?)<\/div>/)
+    assert.ok(block, `${slug || 'home'}: the phone block`)
+    const next = nextAfter(slug)
+    const go = block[1].match(/<a class="btn btn--big [^"]+" href="([^"]+)">([^<]+?) <svg/)
+    assert.ok(go, `${slug || 'home'}: one big button`)
+    assert.equal(go[1], next ? pathFor(next) : '/login', `${slug || 'home'}: on to the next page`)
+    assert.equal(go[2], slug === '' ? 'Next: The honest answer' : next ? `Next: ${next.name}` : 'Start your free 14 days')
+    if (next && slug !== '') assert.ok(html.includes(`<a class="next__on" href="${pathFor(next)}">Next: ${next.name} →</a>`), `${slug}: the desktop’s Next link agrees`)
+    if (slug === '') {
+      assert.doesNotMatch(block[1], /data-more/, 'the front page is all short version')
+      assert.ok(html.indexOf('<div class="phone-next">') > html.indexOf('</figure>'), 'its button comes after the example chat')
+      assert.match(html, /<a class="btn btn--line hide-phone" href="\/whats-different">/, 'the big button replaces the small link on a phone')
+      continue
+    }
+    assert.match(block[1], /<button class="phone-next__more" type="button" aria-expanded="false" aria-controls="more" data-more><span>Learn more<\/span>/, `${slug}: Learn more`)
+    const rest = html.slice(html.indexOf('id="more"'))
+    assert.ok(html.indexOf('<div class="phone-next">') < html.indexOf('id="more"'), `${slug}: the button comes before the rest`)
+    assert.ok(words(rest).length > 400, `${slug}: the rest of the page is behind Learn more`)
+    if (html.includes('<header class="photo-head')) {
+      assert.ok(html.indexOf('</header>') < html.indexOf('<div class="phone-next">'), `${slug}: the photo and its few lines stay`)
+      assert.match(html, /<div class="wrap more" id="more">/)
+    }
+  }
+  // Is this AI? keeps its three steps above the button: AI does the legwork,
+  // you have the final say (owner, 3 October 2026).
+  const isThisAi = await built(named('is-this-ai'))
+  const shortAi = isThisAi.slice(isThisAi.indexOf('</header>'), isThisAi.indexOf('<div class="phone-next">'))
+  for (const line of ['How we do it differently', 'AI does the legwork.<br>You have the final say.', 'AI reads your website', 'You choose what stays', 'Customers get you']) assert.ok(shortAi.includes(line), `Is this AI?, before the button: ${line}`)
+  assert.ok(!isThisAi.slice(isThisAi.indexOf('id="more"')).includes('How we do it differently'), 'and not again behind Learn more')
+  // What's different says what SayGday does in a few ticked lines above the
+  // button, never set beside other chatbots (owner, 3 October 2026: "keep it
+  // almost bullet points… instead of comparing us to someone else"), and When
+  // it matters, the vet's answer, is a page of its own after it ("so that can
+  // be its own full page").
+  const shortOf = html => html.slice(html.indexOf('</header>'), html.indexOf('<div class="phone-next">'))
+  const different = await built(named('whats-different'))
+  const ticks = [...shortOf(different).matchAll(/<li><span class="ticks__mark">[\s\S]*?<\/span><span>([^<]+)<\/span><\/li>/g)].map(([, line]) => line)
+  assert.deepEqual(ticks, [
+    'Fewer of the same questions by phone, email and message.', 'Answers ready before anyone asks, signed off by you.', 'Never miss a question: anything new lands in your inbox, with the customer’s email.', 'See which answers customers read most, right in your dashboard.',
+    'Answers any time, even when you’re closed.', 'They ask in their own words, typos and all. No digging through pages.', 'Your answer, word for word, with the name of who signed it off.', 'A real person when they need one: anything new goes straight to you.',
+  ], 'What’s different, before the button: what the business gets, then what its customers get')
+  assert.ok(shortOf(different).indexOf('<h3>What your business gets</h3>') < shortOf(different).indexOf('<h3>What your customers get</h3>'), 'the business first, then its customers')
+  // The idea his friend got straight away: an interactive FAQ (owner, 3
+  // October 2026: "I'm happy for it to say it's an interactive FAQ… people
+  // understand"), then what it's like.
+  assert.match(shortOf(different), /<h2 class="title">Think of it as an interactive FAQ\.<\/h2>/, 'What’s different, before the button: it says what it is')
+  assert.ok(words(shortOf(different)).includes('It works like the questions and answers on your website, except customers don’t have to go looking.'), 'What’s different, before the button: what it’s like')
+  assert.doesNotMatch(mainOf(different), /class="versus|pair__card--them|A chatbot that writes its own answers|Most chatbots<\/span>/, 'no side-by-side with other chatbots')
+  assert.doesNotMatch(different, /Riverbend|different-vet/, 'the vet has moved to its own page')
+  for (const line of ['What stays yours', 'Your words. Nobody else’s.']) assert.ok(words(different.slice(different.indexOf('id="more"'))).includes(line), `What’s different, behind Learn more: ${line}`)
+  const matters = await built(named('when-it-matters'))
+  assert.match(matters, /<p class="eyebrow">When it matters<\/p>\s*<h1 class="title">Nervous customers<br><em>get a person’s answer\.<\/em><\/h1>/)
+  assert.match(matters, /url\('\/site\/different-vet\.webp'\)/, 'the vet photo heads the page')
+  assert.match(shortOf(matters), /Maisie gets really anxious at the vet\. Can I stay with her\?[\s\S]*Signed off by Dr Mel/, 'When it matters, before the button: the vet’s signed answer')
+  for (const line of ['More moments like this', 'Why it helps']) assert.ok(words(matters.slice(matters.indexOf('id="more"'))).includes(line), `When it matters, behind Learn more: ${line}`)
+  for (const slug of ['contact', 'privacy', 'terms', 'login', 'thanks', '404']) {
+    const html = await built(named(slug))
+    assert.doesNotMatch(mainOf(html), /phone-next|class="[^"]*\bmore\b/, `${slug}: read whole`)
+  }
+  assert.throws(() => composePage('<!-- site:head --><!-- site:bar --><!-- site:foot -->', 'pricing'), /expected 1 <!-- site:phone-next -->/, 'a page on the way can’t lose its button')
+  const css = await read('src/site/site.css')
+  assert.match(css, /\n\.phone-next \{ display: none; \}/, 'desktop never sees it')
+  const phone = mediaRules(css, '(max-width: 600px)')
+  assert.match(phone, /\.phone-next \{ display: grid;/)
+  assert.match(phone, /\.more:not\(\.is-open\) \{ display: none; \}/, 'the rest waits for Learn more')
+  assert.match(phone, /\.hide-phone \{ display: none; \}/)
+  assert.match(await built(named('')), /<noscript><style>\.more \{ display: block !important; \}/, 'without JavaScript, a phone gets the whole page')
+  const script = await read('src/site/site.js')
+  assert.match(script, /label\.textContent = open \? 'Show less' : 'Learn more'/)
+  assert.match(script, /for \(const body of bodies\) body\.classList\.toggle\('is-open', open\)/)
 })

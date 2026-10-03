@@ -6,12 +6,17 @@
 
 // Every public page, in menu order. `file` is the page in site/; `slug` is its
 // address (/whats-different). Pages without a menu entry are still published.
+// The menu's order is also the order the site reads in, page to page: the
+// front page, then Is this AI? (owner, 3 October 2026), and on to Pricing.
+// When it matters, the vet example, is a page of its own after What's
+// different (owner, 3 October 2026).
 export const PAGES = Object.freeze([
   { slug: '', file: 'index.html' },
+  { slug: 'is-this-ai', file: 'is-this-ai.html', name: 'Is this AI?', hint: 'Sort of. But not the way you think.' },
   { slug: 'whats-different', file: 'whats-different.html', name: 'What’s different', hint: 'It looks like a chatbot. Here’s how it isn’t one.' },
+  { slug: 'when-it-matters', file: 'when-it-matters.html', name: 'When it matters', hint: 'Nervous customers get a person’s answer.' },
   { slug: 'how-it-works', file: 'how-it-works.html', name: 'How it works', hint: 'Where SayGday sits between you and your customers.' },
   { slug: 'getting-started', file: 'getting-started.html', name: 'Getting started', hint: 'Set up your business in an afternoon.' },
-  { slug: 'is-this-ai', file: 'is-this-ai.html', name: 'Is this AI?', hint: 'Sort of. But not the way you think.' },
   { slug: 'meet-the-mob', file: 'meet-the-mob.html', name: 'Meet the mob', hint: 'Pick a local for the corner of your website.' },
   { slug: 'story', file: 'story.html', name: 'Our story', hint: 'Made in Canberra by James, Luna and Stormi.' },
   { slug: 'pricing', file: 'pricing.html', name: 'Pricing', hint: 'A$30 a month. First 14 days free.' },
@@ -28,6 +33,14 @@ export const NOT_FOUND = Object.freeze({ slug: '404', file: '404.html' })
 
 export const pathFor = page => (page.slug ? `/${page.slug}` : '/')
 
+// The site, read page to page: the front page, then the menu in order, ending
+// at Pricing (Contact is a form, not a stop on the way).
+export const JOURNEY = Object.freeze(['', ...PAGES.filter(page => page.name && page.slug !== 'contact').map(page => page.slug)])
+export const nextAfter = slug => {
+  const index = JOURNEY.indexOf(slug)
+  return index >= 0 && index < JOURNEY.length - 1 ? PAGES.find(page => page.slug === JOURNEY[index + 1]) : null
+}
+
 const ARROW = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 9h11m-4-4.5L14.5 9 10 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 export function head() {
@@ -39,7 +52,28 @@ export function head() {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Caveat:wght@600&amp;display=swap">
 <link rel="stylesheet" href="/src/site/site.css">
-<script type="module" src="/src/site/site.js"></script>`
+<script type="module" src="/src/site/site.js"></script>
+<noscript><style>.more { display: block !important; } .next.more { display: flex !important; } .phone-next__more { display: none !important; }</style></noscript>`
+}
+
+const CHEVRON = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4.5 7l4.5 4.5L13.5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+// On a phone each page is its short version first (owner, 3 October 2026,
+// after a friend read it on her phone: "there's way too much information… a
+// big button that shows people to go to the next page… if people want to know
+// more then at the bottom it can say learn more and then that opens all the
+// other information"): the photo and its few lines, a big button to the next
+// page, and Learn more, which opens the rest of the page (class "more").
+// Desktop shows every page whole and never sees this block. The front page
+// never mentions AI (owner, 2 October 2026), so its button names the next
+// page by its first words instead: "The honest answer".
+export function phoneNext(slug) {
+  const next = nextAfter(slug)
+  const home = slug === ''
+  const label = home ? 'Next: The honest answer' : next ? `Next: ${next.name}` : 'Start your free 14 days'
+  const go = `<a class="btn btn--big ${home ? 'btn--light' : 'btn--green'}" href="${next ? pathFor(next) : '/login'}">${label} ${ARROW}</a>`
+  const more = home ? '' : `<button class="phone-next__more" type="button" aria-expanded="false" aria-controls="more" data-more><span>Learn more</span> ${CHEVRON}</button>`
+  return `<div class="phone-next">${go}${more}</div>`
 }
 
 // The bar on every page, and the menu its burger opens. The page being shown
@@ -87,15 +121,19 @@ ${OWN_BUTTON}`
 }
 
 // A page's source with the shared parts filled in. Every marker must be there
-// exactly once: a page missing its footer is a mistake, not a choice.
+// exactly once: a page missing its footer is a mistake, not a choice. (The
+// phone block belongs only on the pages read in order; see JOURNEY.)
 export function composePage(html, slug) {
-  const parts = { head: head(), bar: bar(slug), foot: foot() }
+  const parts = { head: head(), bar: bar(slug), foot: foot(), 'phone-next': phoneNext(slug) }
   let out = html
   for (const [name, content] of Object.entries(parts)) {
     const marker = `<!-- site:${name} -->`
     const count = out.split(marker).length - 1
-    if (count !== 1) throw new Error(`site/${slug || 'index'}: expected one ${marker}, found ${count}`)
-    out = out.replace(marker, () => content)
+    // Every page on the way from the front page to Pricing has its phone
+    // block; the rest (Contact, the legal pages, sign-in) are read whole.
+    const wanted = name === 'phone-next' ? (JOURNEY.includes(slug) ? 1 : 0) : 1
+    if (count !== wanted) throw new Error(`site/${slug || 'index'}: expected ${wanted} ${marker}, found ${count}`)
+    if (count) out = out.replace(marker, () => content)
   }
   return out
 }

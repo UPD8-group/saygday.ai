@@ -54,3 +54,21 @@ if (contact && thanks) {
     }
   })
 }
+
+// On a phone each page shows its short version first, and Learn more opens
+// the rest (owner, 3 October 2026). The rest is every element marked "more";
+// on a wider screen it is always open and the button isn't shown.
+const bodies = [...document.querySelectorAll('.more')]
+for (const button of document.querySelectorAll('[data-more]')) {
+  const label = button.querySelector('span')
+  button.setAttribute('aria-controls', bodies.map(body => body.id).join(' '))
+  const setMore = open => {
+    button.setAttribute('aria-expanded', String(open))
+    label.textContent = open ? 'Show less' : 'Learn more'
+    for (const body of bodies) body.classList.toggle('is-open', open)
+  }
+  button.addEventListener('click', () => setMore(button.getAttribute('aria-expanded') !== 'true'))
+  // A link to something in the rest of the page opens it.
+  const target = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)))
+  if (target && bodies.some(body => body.contains(target))) { setMore(true); target.scrollIntoView() }
+}
