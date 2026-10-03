@@ -127,9 +127,13 @@ settings, which is how sign-in broke on saygday.ai before the move.
 - **The chat wears the front page's example card** (owner, 3 October 2026:
   "Can we make it look like the one on the front screen? It just looks
   awesome, especially when somebody wants to inquire and add the email
-  address"). Green questions; mint answers signed off in handwriting with a
-  "Signed off by Sam" stamp; a gold, dashed "That's one for Sam" box with the
-  email field and Send side by side and "Goes straight to Sam's inbox". The
+  address"). Green questions; mint answers; a gold, dashed "That's one for
+  Sam" box with the email field and Send side by side and "Goes straight to
+  Sam's inbox". Answers carry no handwritten name or "Signed off by" stamp:
+  the owner took them off saygday.ai's own chat, then every client's, the
+  same day ("please remove… also the Signed off by James", "every client
+  chat also removes this as well"). The header still says "Answers from Sam
+  and the team". The
   name is the business's own `signed_by` (the Chat button page, optional; set
   by `set_signed_by`, migration 20261003120000); without one the chat names
   the business, never a made-up person, and never guesses a pronoun. An email

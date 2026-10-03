@@ -3,9 +3,11 @@
 // tests can hold it (test/chat-look.test.mjs).
 //
 // The chat looks and talks like the example on saygday.ai's front page (owner,
-// 3 October 2026): every answer carries the name of the person who signed it
-// off, and a question it can't answer is "one for Sam", going "straight to
-// Sam's inbox". A business that hasn't given a name is named instead.
+// 3 October 2026): it names who answers ("Answers from Sam and the team"), and
+// a question it can't answer is "one for Sam", going "straight to Sam's
+// inbox". A business that hasn't given a name is named instead. Answers carry
+// no handwritten name or "Signed off by" stamp (owner, the same day: "please
+// remove… also the Signed off by James", then "every client chat also").
 
 export const signerOf = widget => (typeof widget?.signedBy === 'string' ? widget.signedBy.trim() : '')
 
@@ -16,7 +18,6 @@ export function chatWords(widget) {
   return {
     signer,
     subtitle: signer ? `Answers from ${signer} and the team` : `Answers from ${team}`,
-    stamp: `Signed off by ${signer || name}`,
     handoff: signer ? `That’s one for ${signer}. Leave your email and ${signer} will get back to you.` : `That’s one for ${team}. Leave your email and they’ll get back to you.`,
     // The visitor typed their email address into the question box.
     handoffWithEmail: `Thanks! Tap Send and ${signer || team} will get back to you at this address.`,

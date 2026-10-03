@@ -115,7 +115,7 @@ export default function ChatButton() {
             </button>)}
           </div>
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
-          <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. It’s written on every answer, like a signature, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
+          <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
           <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
           <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim()} icon="check">Save</Button>
         </section>
