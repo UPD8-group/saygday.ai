@@ -251,6 +251,12 @@ test('on a phone each page is its short version first: a big button on, and Lear
       assert.match(html, /<div class="wrap more" id="more">/)
     }
   }
+  // Is this AI? keeps its three steps above the button: AI does the legwork,
+  // you have the final say (owner, 3 October 2026).
+  const isThisAi = await built(named('is-this-ai'))
+  const shortAi = isThisAi.slice(isThisAi.indexOf('</header>'), isThisAi.indexOf('<div class="phone-next">'))
+  for (const line of ['How we do it differently', 'AI does the legwork.<br>You have the final say.', 'AI reads your website', 'You choose what stays', 'Customers get you']) assert.ok(shortAi.includes(line), `Is this AI?, before the button: ${line}`)
+  assert.ok(!isThisAi.slice(isThisAi.indexOf('id="more"')).includes('How we do it differently'), 'and not again behind Learn more')
   for (const slug of ['contact', 'privacy', 'terms', 'login', 'thanks', '404']) {
     const html = await built(named(slug))
     assert.doesNotMatch(mainOf(html), /phone-next|class="[^"]*\bmore\b/, `${slug}: read whole`)

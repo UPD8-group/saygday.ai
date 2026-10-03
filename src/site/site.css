@@ -534,4 +534,7 @@ body.menu-open [data-saygday] { display: none; }
   .page--photo .photo-head { margin-bottom: 28px; }
   .story .phone-next { margin-top: 28px; }
   .hero .phone-next { margin-top: 2px; }
+  /* Is this AI? keeps "How we do it differently" above the button (owner,
+     3 October 2026), so the button needs room after the three cards. */
+  .wrap > div + .phone-next { margin-top: 40px; }
 }
