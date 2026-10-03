@@ -171,3 +171,42 @@ test('the contact page’s form is a Netlify form for joining or asking anything
   assert.ok(privacy.includes('When you use the form on our contact page, we keep your name, email address, your message and any business details you add'), 'the privacy page covers the form')
   assert.ok(privacy.includes('holds the messages sent through our contact form'), 'and names who holds them')
 })
+
+// The rules inside each @media block of the stylesheet, by its query.
+function mediaRules(css, query) {
+  const blocks = []
+  for (let at = css.indexOf(`@media ${query} {`); at !== -1; at = css.indexOf(`@media ${query} {`, at + 1)) {
+    let depth = 0, end = css.indexOf('{', at)
+    for (let i = end; i < css.length; i++) {
+      if (css[i] === '{') depth++
+      else if (css[i] === '}' && --depth === 0) { end = i; break }
+    }
+    blocks.push(css.slice(css.indexOf('{', at) + 1, end))
+  }
+  return blocks.join('\n').replace(/\/\*[\s\S]*?\*\//g, '')
+}
+
+test('on a phone the site has room (owner, 3 October 2026: “the mobile version looks a little bit cramped”)', async () => {
+  const css = await read('src/site/site.css')
+  const gutter = css.match(/--gutter: clamp\((\d+)px, [\d.]+vw, (\d+)px\);/)
+  assert.ok(gutter, 'the page gutter is one clamp')
+  assert.ok(Number(gutter[1]) >= 20, 'at least 20px at the side of a phone')
+  assert.equal(gutter[2], '40', 'and desktop keeps its 40px')
+  // When it matters: once the grid drops its area names, anything still placed
+  // by name lands in a stray column (the photo shrank to nothing).
+  const tablet = mediaRules(css, '(max-width: 900px)')
+  assert.match(tablet, /\.moment--photo \{[^}]*grid-template-areas: none;/)
+  for (const named of ['.moment--photo .moment__text', '.moment__photo', '.moment__visual .proof']) {
+    const rule = [...tablet.matchAll(/([^{}]+)\{([^}]*)\}/g)].find(([, selectors, body]) => selectors.split(',').map(s => s.trim()).includes(named) && /grid-area: auto;/.test(body))
+    assert.ok(rule, `${named} stops being placed by name on a phone`)
+  }
+  // What's different: one card per row, each answer labelled.
+  const phone = mediaRules(css, '(max-width: 640px)')
+  assert.match(phone, /\.versus__row \{ grid-template-columns: minmax\(0, 1fr\); \}/, 'the comparison stacks')
+  assert.match(phone, /\.versus__them::before \{ content: "Most chatbots" \/ ""; /, 'most chatbots’ answer says whose it is')
+  assert.match(phone, /\.versus__us::before \{ content: "SayGday" \/ ""; /, 'and so does ours')
+  assert.match(phone, /\.versus__head \{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\);/, 'the heading row stays for screen readers')
+  const small = mediaRules(css, '(max-width: 480px)')
+  assert.match(small, /\.draft \{ grid-template-columns: minmax\(0, 1fr\);/, 'Getting started: the check goes under the answer')
+  assert.match(small, /\.plain \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/, 'Meet the mob: three plain buttons to a row')
+})

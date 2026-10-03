@@ -21,7 +21,8 @@
   --display: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --body: 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --hand: 'Caveat', 'Bradley Hand', 'Segoe Print', cursive;
-  --gutter: clamp(16px, 4vw, 40px);
+  /* 20px at the side of a phone (it was 16px and read as cramped), 40px from tablets up. */
+  --gutter: clamp(20px, 5.4vw, 40px);
   --max: 1180px;
 }
 @media (prefers-color-scheme: dark) {
@@ -445,3 +446,44 @@ body.menu-open .bar { position: fixed; }
 
 /* The page that isn't there */
 .lost .btn { margin-top: 28px; }
+
+/* ---- Phones: more room (owner, 3 October 2026: "the mobile version looks a
+   little bit cramped"). Desktop is untouched: everything below is for narrow
+   screens only. ---- */
+
+/* When it matters (What's different): the desktop grid placed the words, the
+   photo and the card by area name, and on a phone those names sent the words
+   into a stray indented column and squashed the photo to nothing. On a phone
+   they simply follow one another. */
+@media (max-width: 900px) {
+  .moment--photo .moment__text, .moment__photo, .moment__visual .proof { grid-area: auto; }
+}
+
+/* The side-by-side table becomes one card per row: the question, then what
+   most chatbots do, then what SayGday does, each with its own small label. */
+@media (max-width: 640px) {
+  .versus__row { grid-template-columns: minmax(0, 1fr); }
+  .versus__label { padding: 20px 20px 8px; font-size: 18px; }
+  .versus__row > .versus__them, .versus__row > .versus__us { padding: 12px 20px; }
+  .versus__row > .versus__us { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; padding-bottom: 16px; }
+  .versus__row:not(.versus__head) > .versus__them::before,
+  .versus__row:not(.versus__head) > .versus__us::before { grid-column: 1 / -1; display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+  .versus__row:not(.versus__head) > .versus__them::before { content: "Most chatbots" / ""; color: var(--muted); }
+  .versus__row:not(.versus__head) > .versus__us::before { content: "SayGday" / ""; color: var(--green-ink); }
+  /* The column names now sit on every row, so the heading row only speaks to screen readers. */
+  .versus__head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+@media (max-width: 480px) {
+  /* Checking your answers (Getting started): the label goes under the answer
+     instead of squeezing it into half the card. */
+  .draft { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 18px; }
+  .draft .chip { justify-self: start; }
+  /* Meet the mob: the plain buttons three to a row, so their names have room. */
+  .plain { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 12px; }
+  .plain__btn { width: 64px; height: 64px; }
+  .mob { gap: 22px 10px; }
+  /* A little more air between the big blocks of a page. */
+  .page__part, .next { margin-top: 64px; }
+}
+
