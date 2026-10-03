@@ -151,7 +151,11 @@ settings, which is how sign-in broke on saygday.ai before the move.
   (his call, the same day: "keep it almost bullet points… how we do things
   differently instead of comparing us to someone else"): above the button it
   says what SayGday does in four ticked lines, and the side-by-side table is
-  gone. The examples on When it matters are made up and say so. Up to 600px wide each of
+  gone. Above the lines, one paragraph explains the idea his friend got at
+  once when he called it an interactive FAQ ("it works like the questions
+  and answers on your website, except customers don't have to go looking"),
+  but the site never uses that phrase, at his request ("don't say that it's
+  an interactive FAQ but maybe we can explain that to them"). The examples on When it matters are made up and say so. Up to 600px wide each of
   those pages shows its photo and few lines, a big button to the next page
   (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
   opens everything marked `more`; Pricing's button is Start your free 14
