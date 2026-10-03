@@ -107,6 +107,11 @@ test('the owner’s rules for the public copy', async () => {
   }
   for (const slug of ['privacy', 'terms']) assert.ok(words(await built(named(slug))).includes('HEAR.IS PTY LTD (ABN 37 702 004 608)'), `${slug}: names the company`)
   assert.ok((await readdir(new URL('public/site/', root))).every(file => !/jay/i.test(file)), 'no photo’s address says Jay')
+  // Is this AI? Owner, 3 October 2026: "sort of but not the way you think".
+  const isThisAi = await built(named('is-this-ai'))
+  assert.match(isThisAi, /<p class="eyebrow">The honest answer<\/p>\s*<h1 class="title">Is this AI\?<br><em>Sort of\. But not the way you think\.<\/em><\/h1>/)
+  for (const page of ALL) assert.doesNotMatch(words(await built(page)), /Yes, and no|A straight answer/i, `${page.file}: the old answer is gone, menu included`)
+  assert.match(isThisAi, /<meta name="description" content="Sort of, but not the way you think\./)
 })
 
 test('sign-in is a page of the website, and the dashboard sends signed-out owners to it', async () => {
