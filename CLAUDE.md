@@ -154,12 +154,18 @@ settings, which is how sign-in broke on saygday.ai before the move.
   friend understood at once; he first asked to avoid it, then: "I'm happy
   for it to say it's an interactive FAQ… people understand"), one paragraph
   on what that's like, and two ticked cards, What your business gets and What
-  your customers get. The side-by-side table is gone. The examples on When it matters are made up and say so. Up to 600px wide each of
-  those pages shows its photo and few lines, a big button to the next page
+  your customers get. The side-by-side table is gone. The examples on When
+  it matters are made up and say so. Up to 600px wide each of those pages
+  shows its photo and few lines, a big button to the next page
   (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
   opens everything marked `more`; Pricing's button is Start your free 14
   days. The front page's button says "Next: The honest answer", because the
-  front page never mentions AI. Desktop shows every page whole. Without
+  front page never mentions AI. Desktop shows every page whole, and its
+  calls to action stand out the way the phone's big button does (owner, same
+  day: "the CTAs on the desktop don't stand out as much as they do on the
+  mobile"): every page's closing Next is a big gold button beside a white
+  Try it free, and the front page's second button is the phone's "Next: The
+  honest answer", to Is this AI?. Without
   JavaScript a phone gets the whole page (a `<noscript>` style). Contact, the
   legal pages and sign-in are read whole. Locked by test/site.test.mjs.
 
