@@ -215,3 +215,11 @@ test('on a phone the site has room (owner, 3 October 2026: “the mobile version
   assert.match(small, /\.draft \{ grid-template-columns: minmax\(0, 1fr\);/, 'Getting started: the check goes under the answer')
   assert.match(small, /\.plain \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/, 'Meet the mob: three plain buttons to a row')
 })
+
+test('on a phone the front page’s photo sits at the top, like every other page (owner, 3 October 2026)', async () => {
+  const phone = mediaRules(await read('src/site/site.css'), '(max-width: 600px)')
+  assert.match(phone, /\.hero \{ --hero-top: 44px; --hero-photo: min\(128vw, 560px\); \}/, 'the photo’s band under the bar')
+  assert.match(phone, /\.hero__photo \{[^}]*#1b2620 45% var\(--hero-top\) \/ auto var\(--hero-photo\) no-repeat var\(--photo\);/, 'drawn from just under the bar, his face and the cup in view')
+  assert.match(phone, /\.hero__spacer \{ height: calc\(var\(--hero-top\) \+ var\(--hero-photo\) - 84px\); \}/, 'and the words start below it, not over his face')
+  assert.match(await read('src/site/site.css'), /@media \(min-width: 901px\) \{ \.hero__photo \{ background-size: 118% auto; background-position: 0% 30%; \} \}/, 'wide screens keep the photo behind the words')
+})

@@ -495,3 +495,21 @@ body.menu-open [data-saygday] { display: none; }
    Acknowledgement of Country among them, never sit under the button (64px,
    20px from the corner). From 1360px wide the footer ends before the corner. */
 @media (max-width: 1360px) { .site-foot { padding-bottom: 112px; } }
+
+/* ---- The front page on phones: the photo at the top, like every other page
+   (owner, 3 October 2026: "move the image up so it matches all the other
+   pages… we can't see the coffee cup… so it's not covering his face. Just for
+   mobile"). The photo starts just under the bar, so his face and the red cup
+   sit clear of it; it fades into the green, and the words start below.
+   Wider screens keep the photo behind the words. ---- */
+@media (max-width: 600px) {
+  .hero { --hero-top: 44px; --hero-photo: min(128vw, 560px); }
+  .hero__photo {
+    background:
+      linear-gradient(180deg, #1b2620 0, #1b2620 var(--hero-top), rgba(27, 38, 32, 0) calc(var(--hero-top) + 90px), rgba(27, 38, 32, 0) calc(var(--hero-top) + var(--hero-photo) - 120px), #1b2620 calc(var(--hero-top) + var(--hero-photo) - 8px)),
+      #1b2620 45% var(--hero-top) / auto var(--hero-photo) no-repeat var(--photo);
+    transform: none;
+  }
+  .hero::before { background: linear-gradient(180deg, rgba(10, 22, 17, .55) 0, rgba(10, 22, 17, 0) 150px); }
+  .hero__spacer { height: calc(var(--hero-top) + var(--hero-photo) - 84px); }
+}
