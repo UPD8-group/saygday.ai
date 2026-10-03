@@ -11,7 +11,7 @@ export const PAGES = Object.freeze([
   { slug: 'whats-different', file: 'whats-different.html', name: 'What’s different', hint: 'It looks like a chatbot. Here’s how it isn’t one.' },
   { slug: 'how-it-works', file: 'how-it-works.html', name: 'How it works', hint: 'Where SayGday sits between you and your customers.' },
   { slug: 'getting-started', file: 'getting-started.html', name: 'Getting started', hint: 'Set up your business in an afternoon.' },
-  { slug: 'is-this-ai', file: 'is-this-ai.html', name: 'Is this AI?', hint: 'Yes, and no. Here’s how we do it differently.' },
+  { slug: 'is-this-ai', file: 'is-this-ai.html', name: 'Is this AI?', hint: 'Sort of. But not the way you think.' },
   { slug: 'meet-the-mob', file: 'meet-the-mob.html', name: 'Meet the mob', hint: 'Pick a local for the corner of your website.' },
   { slug: 'story', file: 'story.html', name: 'Our story', hint: 'Made in Canberra by James, Luna and Stormi.' },
   { slug: 'pricing', file: 'pricing.html', name: 'Pricing', hint: 'A$30 a month. First 14 days free.' },
