@@ -67,6 +67,12 @@ ${links}
 </nav>`
 }
 
+// SayGday's own chat button (owner, 3 October 2026), on every page: the same
+// line every business pastes, so saygday.ai's home page passes the same
+// ownership check a business's does. Its answers are in the owner's dashboard;
+// site/own-chat.mjs is where they started.
+export const OWN_BUTTON = '<script src="https://saygday.ai/widget.js" data-business="saygday" data-pulse defer></script>'
+
 export function foot() {
   return `<footer class="site-foot">
   <div class="wrap foot">
@@ -76,7 +82,8 @@ export function foot() {
     </div>
     <p class="foot__country">SayGday.ai acknowledges the Traditional Owners of the lands on which we work. We pay our respects to Elders past and present. We recognise their connection to our land, and we thank them for their contribution to our industry.</p>
   </div>
-</footer>`
+</footer>
+${OWN_BUTTON}`
 }
 
 // A page's source with the shared parts filled in. Every marker must be there

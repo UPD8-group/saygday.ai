@@ -3,6 +3,10 @@
  *
  *   <script src="https://saygday.ai/widget.js" data-business="joes-cafe" defer></script>
  *
+ * Add data-pulse to the tag and a soft gold ring pulses around the button
+ * until the visitor first opens the chat (never for anyone who asks their
+ * device for less motion). saygday.ai's own chat does.
+ *
  * It draws a button in the bottom-right corner (the business's chosen
  * character, or a plain button). Tapping it opens the chat in a window
  * served from SayGday, so nothing on the business's own page can read or
@@ -19,6 +23,8 @@
   try { origin = new URL(script.src).origin } catch (e) { return }
   if (!/^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$/.test(slug)) { console.warn('[SayGday] Add data-business="your-business" to the script tag.'); return }
   window.__saygdayButton = true
+  var pulse = script.hasAttribute('data-pulse')
+  var OPENED = 'saygday-opened:' + slug
 
   var CHARACTERS = ['skippy', 'quigley', 'eddie', 'kiki', 'kip', 'penny', 'sully', 'wally']
   // The plain buttons: an exact copy of PLAIN_BUTTONS in shared/characters.mjs
@@ -60,7 +66,10 @@
       'border:0;border-radius:20px;overflow:hidden;box-shadow:0 18px 48px rgba(20,33,28,.25);background:#fbfaf6;display:none}' +
       '.sg-panel.is-open{display:block}.sg-panel iframe{border:0;width:100%;height:100%;display:block}' +
       '@media (max-width:520px){.sg-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100%;max-height:100%;border-radius:0}.sg-button.is-open{display:none}}' +
-      '@media (prefers-reduced-motion:reduce){.sg-button{transition:none}}'
+      '.sg-button.sg-pulse{animation:sg-pulse 2.8s ease-out infinite}' +
+      '@keyframes sg-pulse{0%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 0 rgba(243,201,105,.8)}' +
+      '70%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 18px rgba(243,201,105,0)}100%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 0 rgba(243,201,105,0)}}' +
+      '@media (prefers-reduced-motion:reduce){.sg-button{transition:none}.sg-button.sg-pulse{animation:none}}'
     root.appendChild(style)
 
     var panel = document.createElement('div')
@@ -84,6 +93,10 @@
       bubble.innerHTML = plainSvg(config.character)
       button.appendChild(bubble)
     }
+    // The pulse stops for good once the chat has been opened on this visit.
+    var pulsing = pulse
+    try { if (window.sessionStorage.getItem(OPENED)) pulsing = false } catch (e) { /* storage blocked: keep pulsing */ }
+    if (pulsing) button.classList.add('sg-pulse')
     var close = document.createElement('span')
     close.className = 'sg-close'
     close.innerHTML = CLOSE
@@ -91,6 +104,11 @@
 
     var frame = null
     function setOpen(open) {
+      if (open && pulsing) {
+        pulsing = false
+        button.classList.remove('sg-pulse')
+        try { window.sessionStorage.setItem(OPENED, '1') } catch (e) { /* storage blocked */ }
+      }
       if (open && !frame) {
         frame = document.createElement('iframe')
         frame.title = 'Questions for ' + (config.name || 'this business')
@@ -118,8 +136,11 @@
     document.body.appendChild(host)
   }
 
-  // seen=1 lets the dashboard say the button is live on the website.
-  fetch(origin + '/api/chat?business=' + encodeURIComponent(slug) + '&seen=1', { credentials: 'omit' })
+  // seen=1 lets the dashboard say the button is live on the website. site=
+  // says which page holds the button: the server goes by the request's
+  // Origin whenever the browser sends one, so this only counts where it
+  // doesn't, on SayGday's own website, whose chat lives on saygday.ai.
+  fetch(origin + '/api/chat?business=' + encodeURIComponent(slug) + '&site=' + encodeURIComponent(location.origin) + '&seen=1', { credentials: 'omit' })
     .then(function (response) { return response.ok ? response.json() : null })
     .then(function (config) {
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { start(config) })

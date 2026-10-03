@@ -20,6 +20,16 @@ test('tokenize drops stopwords and singularises', () => {
   assert.deepEqual(tokenize('this is a thing'), [])
 })
 
+// "does" is singularised to "doe" before the stopwords are dropped, the same
+// trap "this" (→ "thi") fell into, so "doe" is a stopword too (3 October
+// 2026, found writing SayGday's own answers: every "does it…" question shared
+// a word with every other one).
+test('“does” is a stopword even after singularising', () => {
+  assert.deepEqual(tokenize('Does it work on phones?'), ['work', 'contact'])
+  const work = [{ question: 'Does it work on Wix?', answer: 'Yes.', variants: [] }, { question: 'Does it take bookings?', answer: 'No.', variants: [] }]
+  assert.equal(findAnswer('does it work on squarespace', work), null, 'one shared “does” is not half a match')
+})
+
 test('the exact question finds its answer', () => {
   assert.equal(findAnswer('What are your opening hours?', entries), hours)
   assert.equal(findAnswer('Do you take bookings?', entries), bookings)
