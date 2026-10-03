@@ -259,6 +259,7 @@ test('the SQL sets SayGday up on the real schema, and running it again keeps the
   const business = await call('my_business', { p_user: owner.id })
   assert.equal(business.slug, 'saygday'); assert.equal(business.name, 'SayGday'); assert.equal(business.website, 'https://saygday.ai')
   assert.equal(business.character, 'gday'); assert.equal(business.notifyEmail, 'owner@example.com', 'questions go to the owner’s sign-in email, as for any business')
+  assert.equal(business.signedBy, 'James', 'every answer signed off by James')
   assert.equal(business.counts.approved, OWN_ANSWERS.length); assert.equal(business.counts.featured, 6); assert.equal(business.counts.drafts, 0)
   assert.equal(business.websiteVerifiedAt, null, 'the website still has to pass the same check as everyone’s')
   assert.equal(await call('widget', { p_slug: 'saygday' }), null, 'so the chat stays hidden until then')
@@ -268,6 +269,7 @@ test('the SQL sets SayGday up on the real schema, and running it again keeps the
   // no Origin: the page it names is the website.
   const chat = await widgetFor({ db, slug: 'saygday', seen: true, origin: null, site: 'https://saygday.ai' })
   assert.equal(chat.name, 'SayGday'); assert.equal(chat.character, 'gday'); assert.equal(chat.greeting, OWN_CHAT.greeting)
+  assert.equal(chat.signedBy, 'James')
   assert.equal(chat.faqs.length, OWN_ANSWERS.length)
   assert.deepEqual(chat.faqs.slice(0, 6).map(faq => faq.question), OWN_ANSWERS.filter(faq => faq.featured).map(faq => faq.question), 'the six buttons, in order')
   assert.deepEqual(chat.faqs.find(faq => faq.question === 'Is this AI?').variants, OWN_ANSWERS.find(faq => faq.question === 'Is this AI?').variants)

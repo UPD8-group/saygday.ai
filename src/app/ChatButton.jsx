@@ -76,6 +76,7 @@ export default function ChatButton() {
   const { business } = dash
   const [character, setCharacter] = useState(business.character)
   const [greeting, setGreeting] = useState(business.greeting)
+  const [signedBy, setSignedBy] = useState(business.signedBy || '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
@@ -84,12 +85,12 @@ export default function ChatButton() {
   const [open, setOpen] = useState(true)
   useEffect(() => { document.title = 'Chat button · SayGday' }, [])
   const code = `<script src="${location.origin}/widget.js" data-business="${business.slug}" defer></script>`
-  const changed = character !== business.character || greeting.trim() !== business.greeting
+  const changed = character !== business.character || greeting.trim() !== business.greeting || signedBy.trim() !== (business.signedBy || '')
   const live = (dash.faqs || []).filter(faq => faq.status === 'approved')
 
   async function save() {
     setBusy(true); setError(''); setSaved('')
-    try { const result = await dash.request('updateBusiness', { character, greeting }); dash.setBusiness(result.business); setSaved('Saved. Your chat button shows this now.') }
+    try { const result = await dash.request('updateBusiness', { character, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); setSaved('Saved. Your chat button shows this now.') }
     catch (failure) { setError(failure.message) }
     finally { setBusy(false) }
   }
@@ -114,6 +115,7 @@ export default function ChatButton() {
             </button>)}
           </div>
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
+          <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. It’s written on every answer, like a signature, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
           <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
           <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim()} icon="check">Save</Button>
         </section>
@@ -131,7 +133,7 @@ export default function ChatButton() {
         <div className="preview__site">
           <div className="preview__bar"><span /><span /><span /><em>{business.website?.replace(/^https:\/\//, '')}</em></div>
           <div className="preview__page" aria-hidden="true"><i /><i /><i /><i className="short" /></div>
-          {open && <div className="preview__panel"><Chat key={`${character}-${greeting}-${live.length}`} widget={{ name: business.name, character, greeting: greeting.trim() || business.greeting, faqs: live, slug: business.slug }} preview onClose={() => setOpen(false)} /></div>}
+          {open && <div className="preview__panel"><Chat key={`${character}-${greeting}-${signedBy}-${live.length}`} widget={{ name: business.name, character, greeting: greeting.trim() || business.greeting, signedBy: signedBy.trim(), faqs: live, slug: business.slug }} preview onClose={() => setOpen(false)} /></div>}
           <button type="button" className="preview__launcher" onClick={() => setOpen(value => !value)} aria-label={open ? 'Close the preview chat' : 'Open the preview chat'}>
             {open ? <Icon name="close" size={24} /> : <Avatar character={character} size={56} />}
           </button>

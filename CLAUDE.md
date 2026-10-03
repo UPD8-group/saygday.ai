@@ -124,6 +124,20 @@ settings, which is how sign-in broke on saygday.ai before the move.
   variants and run it. Writing those found `does` singularised to `doe` and
   slipping past the stopwords (like `this` → `thi`); `doe` is a stopword now.
 
+- **The chat wears the front page's example card** (owner, 3 October 2026:
+  "Can we make it look like the one on the front screen? It just looks
+  awesome, especially when somebody wants to inquire and add the email
+  address"). Green questions; mint answers signed off in handwriting with a
+  "Signed off by Sam" stamp; a gold, dashed "That's one for Sam" box with the
+  email field and Send side by side and "Goes straight to Sam's inbox". The
+  name is the business's own `signed_by` (the Chat button page, optional; set
+  by `set_signed_by`, migration 20261003120000); without one the chat names
+  the business, never a made-up person, and never guesses a pronoun. An email
+  address typed into the question box ("Please message me jo@…", his
+  screenshot) is caught before any matching and comes back filled in, with
+  the question the chat had just offered to pass on. The words are
+  `src/chat/words.mjs`; locked by test/chat-look.test.mjs.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.

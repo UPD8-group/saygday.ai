@@ -23,8 +23,8 @@ export function ownChatSql(ownerId) {
   const rows = OWN_ANSWERS.map((faq, index) => `  (${text(faq.question)}, ${text(faq.answer)}, ${textArray(faq.variants)}, ${faq.featured ? 'true' : 'false'}, ${index})`)
   return `begin;
 
-insert into public.businesses (owner_id, slug, name, website, notify_email, character, greeting)
-select u.id, ${text(OWN_CHAT.slug)}, ${text(OWN_CHAT.name)}, ${text(OWN_CHAT.website)}, u.email, ${text(OWN_CHAT.character)}, ${text(OWN_CHAT.greeting)}
+insert into public.businesses (owner_id, slug, name, website, notify_email, character, greeting, signed_by)
+select u.id, ${text(OWN_CHAT.slug)}, ${text(OWN_CHAT.name)}, ${text(OWN_CHAT.website)}, u.email, ${text(OWN_CHAT.character)}, ${text(OWN_CHAT.greeting)}, ${text(OWN_CHAT.signedBy)}
 from auth.users u where u.id = ${text(ownerId)}
 on conflict do nothing;
 

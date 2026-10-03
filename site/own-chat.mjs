@@ -20,6 +20,8 @@ export const OWN_CHAT = Object.freeze({
   website: 'https://saygday.ai',
   // The G'day plain button, the one on the Meet the mob page.
   character: 'gday',
+  // Every answer is signed off by James, in handwriting, like the front page's example.
+  signedBy: 'James',
   greeting: 'G’day! This is SayGday’s own chat, and it works just like yours would: every answer here is ours, word for word. Tap a question or type your own.',
 })
 
