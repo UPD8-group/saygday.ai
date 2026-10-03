@@ -73,7 +73,7 @@ test('every link and photo on the site goes somewhere real', async () => {
 })
 
 test('every Unsplash photo is credited to its photographer', async () => {
-  const credits = { '': 'Snappr', 'whats-different': 'Samuel T', 'getting-started': 'Vitaly Gariev', 'meet-the-mob': 'Tianlei Sun', pricing: 'Miles Burke', privacy: 'Santy Sun', terms: 'Santy Sun', login: 'Ellena McGuinness' }
+  const credits = { '': 'Snappr', 'whats-different': 'Samuel T', 'getting-started': 'Vitaly Gariev', 'meet-the-mob': 'Tianlei Sun', pricing: 'Miles Burke', privacy: 'Santy Sun', terms: 'Santy Sun', login: 'Toni Pomar' }
   for (const [slug, photographer] of Object.entries(credits)) {
     const html = await built(named(slug))
     assert.match(html, new RegExp(`Photo: <a href="https://unsplash\\.com/@[^"]+">${photographer}</a>, <a href="https://unsplash\\.com/photos/[^"]+">Unsplash</a>`), `${slug || 'home'}: credited to ${photographer}`)
