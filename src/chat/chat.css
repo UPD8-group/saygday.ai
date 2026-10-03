@@ -1,13 +1,13 @@
 /* The chat a visitor sees on a business's website, and its preview in the
    dashboard. Scoped under .chat so it never leaks into either page. It wears
    the front page's example card (owner, 3 October 2026: "make it look like the
-   one on the front screen"): green questions, mint answers signed off in
-   handwriting with a stamp, and a gold, dashed "that's one for Sam" box with
-   the email field and Send side by side. The values are site.css's own. */
+   one on the front screen"): green questions, mint answers, and a gold,
+   dashed "that's one for Sam" box with the email field and Send side by side.
+   Answers carry no handwritten name or stamp (owner, the same day). The values
+   are site.css's own. */
 .chat {
   --c-ink: #14211c; --c-muted: #56655e; --c-line: #d8dfda; --c-green: #31584a; --c-green-dark: #234237;
   --c-mint: #e3eee8; --c-card: #fffefa; --c-paper: #f6f4ee; --c-white: #ffffff; --c-gold: #f3c969; --c-gold-soft: #fdf3dc;
-  --c-hand: 'Caveat', 'Bradley Hand', 'Segoe Print', cursive;
   display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--c-card); color: var(--c-ink);
   font: 400 15px/1.5 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
@@ -27,14 +27,10 @@
 /* The visitor's own words. */
 .msg--me { align-self: flex-end; max-width: 82%; padding: 11px 15px; background: var(--c-green); color: var(--c-white); border-radius: 18px 18px 4px 18px; }
 .msg--bot { align-self: flex-start; background: var(--c-white); border: 1px solid var(--c-line); }
-/* An approved answer, signed off. */
-.msg--answer { background: var(--c-mint); border-color: transparent; padding: 13px 15px 10px; }
+/* An approved answer. */
+.msg--answer { background: var(--c-mint); border-color: transparent; padding: 13px 15px; }
 .msg__label { font-size: 13px; font-weight: 650; color: var(--c-green); margin-bottom: 2px; }
 .msg__label + p { margin-top: 0; }
-.signoff { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: 8px; }
-.signoff__hand { font: 600 26px/1 var(--c-hand); color: var(--c-green); transform: rotate(-4deg); white-space: nowrap; }
-.stamp { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-green); border: 1.5px solid currentColor; border-radius: 6px; padding: 3px 7px; transform: rotate(-2deg); line-height: 1.3; }
-.stamp svg { flex: none; }
 .msg__note { color: var(--c-muted); font-size: 14px; }
 /* "That's one for Sam": the question goes to the business. */
 .msg--handoff { background: var(--c-gold-soft); border: 1px dashed var(--c-gold); }

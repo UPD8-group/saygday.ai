@@ -6,9 +6,9 @@ import { EMAIL, chatWords, emailIn, questionFor } from './words.mjs'
 // The chat on a business's website, and its preview in the dashboard. It
 // only ever shows answers the business approved, word for word. A question it
 // can't match is offered to the business's team, never guessed at. It looks
-// like the example on saygday.ai's front page (owner, 3 October 2026): each
-// answer signed off by name, and a question it can't answer goes straight to
-// that person's inbox.
+// like the example on saygday.ai's front page (owner, 3 October 2026): mint
+// answers, and a question it can't answer goes straight to the named person's
+// inbox. No handwritten name or stamp on answers (owner, the same day).
 let counter = 0
 const key = () => `m${++counter}`
 const TICK = <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -100,14 +100,6 @@ export default function Chat({ widget, preview = false, api = {}, onClose }) {
   </div>
 }
 
-// The name in handwriting, and the stamp: who signed this answer off.
-function SignOff({ words }) {
-  return <div className="signoff">
-    {words.signer && <span className="signoff__hand" aria-hidden="true">{words.signer}</span>}
-    <span className="stamp">{TICK}{words.stamp}</span>
-  </div>
-}
-
 function Message({ message, widget, words, starters, showAnswer, add, preview, api, replaced, onSent }) {
   if (message.from === 'me') return <div className="msg msg--me"><p>{message.text}</p></div>
   if (message.kind === 'greeting') return <div className="msg msg--bot">
@@ -118,7 +110,6 @@ function Message({ message, widget, words, starters, showAnswer, add, preview, a
   if (message.kind === 'answer') return <div className="msg msg--bot msg--answer">
     {message.askedAs && message.askedAs !== message.faq.question && <p className="msg__label">{message.faq.question}</p>}
     <p>{message.faq.answer}</p>
-    <SignOff words={words} />
   </div>
   if (message.kind === 'text') return <div className="msg msg--bot"><p>{message.text}</p></div>
   if (message.kind === 'suggest') return <div className="msg msg--bot">

@@ -14,11 +14,10 @@ import { widgetFor } from '../netlify/functions/_lib/visitor.mjs'
 // change the greeting?").
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 
-test('every answer is signed off by name, and a new question is “one for” that person', () => {
+test('the chat names who answers, and a new question is “one for” that person', () => {
   const sam = chatWords({ name: 'The Corner Pantry', signedBy: '  Sam ' })
   assert.equal(sam.signer, 'Sam')
   assert.equal(sam.subtitle, 'Answers from Sam and the team')
-  assert.equal(sam.stamp, 'Signed off by Sam')
   assert.equal(sam.handoff, 'That’s one for Sam. Leave your email and Sam will get back to you.')
   assert.equal(sam.inbox, 'Goes straight to Sam’s inbox')
   assert.equal(sam.noReply, 'No reply needed? Just let Sam know')
@@ -29,12 +28,21 @@ test('every answer is signed off by name, and a new question is “one for” th
   const team = chatWords({ name: 'Joe’s Cafe', signedBy: null })
   assert.equal(team.signer, '')
   assert.equal(team.subtitle, 'Answers from the Joe’s Cafe team')
-  assert.equal(team.stamp, 'Signed off by Joe’s Cafe')
   assert.equal(team.handoff, 'That’s one for the Joe’s Cafe team. Leave your email and they’ll get back to you.')
   assert.equal(team.inbox, 'Goes straight to the Joe’s Cafe team')
   assert.equal(team.sent('jo@example.com'), 'Sent. The Joe’s Cafe team will reply to jo@example.com.')
   assert.equal(signerOf({ signedBy: 42 }), '')
   for (const words of [sam, team]) assert.doesNotMatch(Object.values(words).filter(value => typeof value === 'string').join(' '), /\b(he|she|him|her|his|hers|himself|herself)\b/i, 'no guessing anyone’s pronouns')
+})
+
+test('no chat signs its answers in handwriting or stamps them (owner, 3 October 2026: “remove… the Signed off by James”, then “every client chat also”)', async () => {
+  const chat = await read('src/chat/Chat.jsx')
+  assert.doesNotMatch(chat, /SignOff|signoff|className="stamp"/, 'answers carry no hand and no stamp')
+  assert.match(chat, /<div className="msg msg--bot msg--answer">\n\s*\{message\.askedAs[^\n]*\n\s*<p>\{message\.faq\.answer\}<\/p>\n\s*<\/div>/, 'an answer is the question it matched and the business’s words')
+  assert.doesNotMatch(await read('src/chat/chat.css'), /\.signoff|\.stamp|--c-hand|Caveat/, 'nor their styles')
+  for (const page of ['chat.html', 'app.html']) assert.doesNotMatch(await read(page), /Caveat/, `${page} no longer loads the handwriting font`)
+  for (const words of [chatWords({ name: 'SayGday', signedBy: 'James' }), chatWords({ name: 'Joe’s Cafe' })]) assert.equal('stamp' in words, false)
+  assert.equal(chatWords({ name: 'SayGday', signedBy: 'James' }).subtitle, 'Answers from James and the team', 'the header still names who answers')
 })
 
 test('an email address typed into the question box is found', () => {
@@ -76,8 +84,6 @@ test('the owner names who signs off; the chat gets the name; an empty name takes
 test('the chat, its styles and the dashboard all play their part', async () => {
   const chat = await read('src/chat/Chat.jsx')
   assert.match(chat, /const email = emailIn\(question\)\n\s*if \(email\) \{[\s\S]*?\n\s*\}\n\s*const decision = respond\(question, faqs, context\)/, 'an email address is caught before any matching')
-  assert.match(chat, /<SignOff words=\{words\} \/>/, 'every answer is signed off')
-  assert.match(chat, /<span className="signoff__hand" aria-hidden="true">\{words\.signer\}<\/span>/)
   assert.match(chat, /<div className="handoff__field">[\s\S]*?type="email"[\s\S]*?<button type="submit" className="chat__ask"[^>]*>\{state === 'sending' \? 'Sending…' : 'Send'\}<\/button>/, 'the email field and Send side by side')
   assert.match(chat, /<p className="handoff__to">\{ARROW\}\{words\.inbox\}<\/p>/)
   assert.match(chat, /const \[email, setEmail\] = useState\(message\.email \|\| ''\)/, 'a typed address arrives filled in')
@@ -85,10 +91,8 @@ test('the chat, its styles and the dashboard all play their part', async () => {
   const css = await read('src/chat/chat.css')
   assert.match(css, /\.msg--answer \{ background: var\(--c-mint\);/)
   assert.match(css, /\.msg--handoff \{ background: var\(--c-gold-soft\); border: 1px dashed var\(--c-gold\); \}/)
-  assert.match(css, /\.signoff__hand \{ font: 600 26px\/1 var\(--c-hand\);/)
-  assert.match(css, /--c-hand: 'Caveat',/)
-  for (const page of ['chat.html', 'app.html']) assert.match(await read(page), /family=Caveat:wght@600/, `${page} loads the handwriting`)
   const button = await read('src/app/ChatButton.jsx')
   assert.match(button, /request\('updateBusiness', \{ character, greeting, signedBy: signedBy\.trim\(\) \}\)/)
-  assert.match(button, /signedBy: signedBy\.trim\(\), faqs: live/, 'the preview signs off with the name as it’s typed')
+  assert.match(button, /signedBy: signedBy\.trim\(\), faqs: live/, 'the preview names who answers as it’s typed')
+  assert.doesNotMatch(button, /written on every answer|like a signature/, 'the dashboard doesn’t promise a signature the chat no longer shows')
 })
