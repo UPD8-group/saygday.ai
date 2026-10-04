@@ -1,10 +1,11 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import Chat from './Chat.jsx'
+import { createWidgetReader } from './widget-reader.mjs'
 import './chat.css'
 
 // The page inside the chat window on a business's website (chat.html,
-// opened by public/widget.js). It reads the business's approved answers once.
+// opened by public/widget.js). It refreshes approved answers before replying.
 // It only opens inside the business's own website: it tells the server which
 // website holds it (the browser's own record of the page, which a page can't
 // fake), and the server answers only for the business's verified website.
@@ -27,19 +28,45 @@ const api = {
   },
 }
 const close = () => window.parent?.postMessage({ source: 'saygday', type: 'close' }, '*')
+const readWidget = createWidgetReader(async () => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10000)
+  try {
+    const response = await fetch(`/api/chat?business=${encodeURIComponent(slug)}&site=${encodeURIComponent(site)}&fresh=1`, { cache: 'no-store', signal: controller.signal })
+    if (!response.ok) throw new Error('The current answers aren’t available. Please try again.')
+    return await response.json()
+  } finally { clearTimeout(timer) }
+})
 
 function App() {
   const [widget, setWidget] = useState(null)
   const [failed, setFailed] = useState(false)
+  const currentWidget = useCallback(async () => {
+    const current = await readWidget()
+    setWidget(current)
+    setFailed(false)
+    return current
+  }, [])
   useEffect(() => {
     if (!site) return
-    fetch(`/api/chat?business=${encodeURIComponent(slug)}&site=${encodeURIComponent(site)}`).then(response => (response.ok ? response.json() : Promise.reject())).then(setWidget).catch(() => setFailed(true))
-  }, [])
+    const refresh = () => { currentWidget().catch(() => setFailed(true)) }
+    const opened = event => {
+      if (event.source === window.parent && event.origin === site && event.data?.source === 'saygday' && event.data?.type === 'refresh') refresh()
+    }
+    const visible = () => { if (document.visibilityState === 'visible') refresh() }
+    refresh()
+    window.addEventListener('message', opened)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.removeEventListener('message', opened)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [currentWidget])
   useEffect(() => { if (widget) document.title = `${widget.name} · Questions` }, [widget])
   if (!site) return <div className="chat chat--unavailable"><p style={{ padding: 24 }}>This chat opens from the business’s own website.</p></div>
-  if (failed) return <div className="chat chat--unavailable"><p style={{ padding: 24 }}>This chat isn’t available right now. Please try again later.</p></div>
+  if (failed && !widget) return <div className="chat chat--unavailable"><p style={{ padding: 24 }}>This chat isn’t available right now. Please try again later.</p></div>
   if (!widget) return <div className="chat" aria-busy="true" />
-  return <Chat widget={widget} api={api} onClose={window.parent !== window ? close : undefined} />
+  return <Chat widget={widget} api={{ ...api, currentWidget }} onClose={window.parent !== window ? close : undefined} />
 }
 
 createRoot(document.getElementById('root')).render(<StrictMode><App /></StrictMode>)

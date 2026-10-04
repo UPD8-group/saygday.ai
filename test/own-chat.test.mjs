@@ -237,12 +237,44 @@ const ASKS = [
 // Never answered with confidence: they belong to someone else's chat, or to the team.
 const NOT_OURS = ['do you have gluten free options', 'are dogs allowed', 'can i book a table for 12 on friday', 'what is the meaning of life']
 
+// These previously selected one answer from incomplete/ambiguous word
+// overlap. Keep every original case, but require the intended FAQ to remain
+// available as an explicit choice instead of claiming the intent is certain.
+const NEEDS_CONFIRMATION = new Set([
+  'what happens when it cant answer', // "when" vs the approved "if" phrasing
+  'how does it work', // equally fits operation and platform compatibility
+  'how do i cancel my subscription', // subscription is an unapproved qualifier
+  'do i have to write the answers', // drafting answers vs editing them
+  'can i test it first', // "first" adds a condition not in the short variant
+  'dns txt record', // DNS and TXT only occur in separate approved variants
+  'why the name saygday', // the combined wording is not an approved variant
+])
+
 test('visitors find the right answer however they ask, and nothing finds the wrong one', () => {
   const entries = OWN_ANSWERS.map(faq => ({ ...faq }))
-  for (const [asked, question] of ASKS) assert.equal(findAnswer(asked, entries)?.question, question, `“${asked}”`)
+  for (const [asked, question] of ASKS) {
+    if (!NEEDS_CONFIRMATION.has(asked)) assert.equal(findAnswer(asked, entries)?.question, question, `“${asked}”`)
+    else {
+      const decision = respond(asked, entries, { name: OWN_CHAT.name })
+      assert.equal(decision.kind, 'suggest', `“${asked}” asks the visitor to choose`)
+      assert.ok(decision.options.some(option => option.question === question), `“${asked}” still offers ${question}`)
+    }
+  }
   for (const asked of NOT_OURS) assert.equal(findAnswer(asked, entries), null, `“${asked}” goes to the team`)
   assert.deepEqual(variantClashes(entries).map(clash => `${clash.entry.question}: ${clash.phrasing} → ${clash.other.question}`), [], 'no other way of asking finds a different answer')
   assert.equal(respond('g’day', entries, { name: OWN_CHAT.name }).kind, 'smalltalk', 'a g’day gets a g’day back')
+})
+
+test('SayGday’s own chat does not confidently substitute a general answer for new intent', () => {
+  for (const question of [
+    'Does SayGday work with Wix?',
+    'Does SayGday integrate with Xero?',
+    'How do I update my opening hours?',
+    'What time does my trial end?',
+    'How much does it cost and does it work on Wix?',
+  ]) assert.equal(findAnswer(question, OWN_ANSWERS), null, question)
+  assert.equal(findAnswer('Does it work with Wix, WordPress, Squarespace or Shopify?', OWN_ANSWERS)?.question,
+    'Does it work with Wix, WordPress, Squarespace or Shopify?', 'the exact approved question still wins')
 })
 
 test('the SQL sets SayGday up on the real schema, and running it again keeps the owner’s edits', async () => {

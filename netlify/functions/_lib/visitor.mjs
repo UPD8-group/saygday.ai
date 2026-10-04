@@ -8,7 +8,8 @@
 // 3 October 2026), and then only on that website: the button's request
 // carries the page's Origin, and the chat window says which page holds it.
 import { HttpError, call, rateLimit } from './runtime.mjs'
-import { sendEnquiryEmail } from './email.mjs'
+import { emailConfiguration } from './email.mjs'
+import { processEnquiryNotifications } from './enquiry-notifications.mjs'
 import { checkWebsite, sameSite } from './verify-website.mjs'
 
 export const SLUG = /^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$/
@@ -65,13 +66,21 @@ export async function visitorAction({ db, body, ip, dependencies = {} }) {
     if (email && (email.length > 254 || !EMAIL.test(email))) throw new HttpError(400, 'Check your email address, like you@example.com', 'INVALID_EMAIL')
     await rateLimit(db, 'ask', ip, 8, 3600)
     await rateLimit(db, 'ask-business', slug, 200, 86400)
-    const enquiry = await call(db, 'ask_team', { p_slug: slug, p_question: question, p_email: email })
-    let emailed = false
+    const configuration = emailConfiguration()
+    const enquiry = await call(db, 'ask_team_queued', { p_slug: slug, p_question: question, p_email: email,
+      p_sender: configuration.from || null, p_public_url: configuration.publicUrl })
+    let notification = email ? 'pending' : 'not_requested'
     if (email) {
-      emailed = await (dependencies.sendEnquiryEmail || sendEnquiryEmail)({ enquiry })
-      if (emailed) await db.rpc('enquiry_emailed', { p_id: enquiry.id }).then(() => {}, () => {})
+      try {
+        const results = await processEnquiryNotifications({ db, id: enquiry.id, send: dependencies.sendEnquiryEmail })
+        notification = results[0]?.notification || 'pending'
+      } catch {
+        // Submission succeeded. The scheduler owns recovery; asking the
+        // visitor to submit again here would create a duplicate enquiry.
+        console.error('Enquiry notification deferred')
+      }
     }
-    return { ok: true, sent: Boolean(email) }
+    return { ok: true, sent: notification === 'sent', notification }
   }
   throw new HttpError(400, 'That action isn’t available.', 'UNKNOWN_ACTION')
 }

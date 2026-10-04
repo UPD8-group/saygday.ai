@@ -13,8 +13,8 @@
 // to the business.
 
 const STOP = new Set(('a an the is are am do does did can could will would you your youse u ur i we my me us it its there ' +
-  'what whats how much many any some all please pls hey hi gday of for to in on at and or with about have has ' +
-  'get got that these those thing this thi doe').split(' '))
+  'what whats how much many any please pls hey hi gday of for to in on at and or with about have has ' +
+  'get got that these those thing this thi doe which should very really just').split(' '))
 // Loose pass: only articles, for a question that is all stopwords ("how much").
 const STOP_LOOSE = new Set(['a', 'an', 'the'])
 
@@ -24,16 +24,17 @@ for (const group of [
   ['location', 'located', 'address', 'find', 'where', 'whereabout', 'direction'],
   ['book', 'booking', 'reservation', 'reserve', 'appointment'],
   ['price', 'cost', 'pricing', 'charge', 'fee', 'rate'],
-  ['contact', 'phone', 'call', 'ring', 'number', 'email'],
+  ['contact', 'call', 'ring'],
   ['park', 'parking', 'carpark'],
   ['kid', 'child', 'children', 'family'],
   ['pet', 'dog', 'puppy'],
   ['wifi', 'internet'],
   ['takeaway', 'takeout'],
   ['deliver', 'delivery', 'shipping', 'postage', 'ship'],
-  ['pay', 'payment', 'eftpos', 'card', 'afterpay'],
-  ['refund', 'return', 'exchange'],
+  ['pay', 'payment'],
   ['voucher', 'giftcard'],
+  ['try', 'test'],
+  ['something', 'stuff'],
 ]) for (const word of group) SYN.set(word, group[0])
 
 // Real words one letter from a synonym that must never fold into it:
@@ -65,26 +66,57 @@ function canon(word) {
 }
 
 const singular = word => (word.length > 3 && word.endsWith('s') && !word.endsWith('ss') ? word.slice(0, -1) : word)
-const words = text => String(text ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean)
+const words = text => String(text ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean)
+const normalPhrase = text => words(text).join(' ')
+const significant = word => word.length > 1 || /^\d+$/.test(word)
+const NEGATION = new Set(['no', 'not', 'never', 'without', 'cannot', 'cant', 'dont', 'doesnt', 'didnt', 'isnt', 'arent', 'wasnt', 'werent', 'wont', 'wouldnt', 'shouldnt', 'havent', 'hasnt'])
+
+// Used for scan deduplication, not for choosing a reply. Only equivalent
+// whole questions count: no partial overlap, typo guesses, broad synonym
+// groups or missing qualifiers. Keep numbers and negation, including one
+// digit numbers. An uncertain duplicate is cheaper than losing a new fact.
+export function isSameQuestion(a, b) {
+  // Preserve order too: "from Sydney to Perth" is not "from Perth to Sydney".
+  // The visitor stopwords are intentionally NOT reused: "how many" vs
+  // "how", and "you" vs "I", can ask different questions when deduplicating.
+  const filler = new Set(['a', 'an', 'the', 'please', 'pls', 'do', 'doe', 'can', 'could'])
+  const tokens = text => words(text).map(singular).filter(word => (significant(word) || word === 'i') && !filler.has(word))
+  const left = tokens(a), right = tokens(b)
+  return left.length > 0 && left.length === right.length && left.every((word, index) => word === right[index])
+}
 
 export function tokenize(text, loose = false) {
   const stop = loose ? STOP_LOOSE : STOP
-  return words(text).map(singular).filter(word => word.length > 1 && !stop.has(word)).map(canon)
+  const phrasing = loose ? text : String(text ?? '').replace(/\bi (?:want to|would like to|['’]d like to)\b/gi, '')
+  const tokens = words(phrasing).map(singular).filter(word => significant(word) && !stop.has(word)).map(canon)
+  // Generic placeholders in common questions add no new condition. Keep
+  // every other noun, so "parking in Perth" and "booking for 12" stay specific.
+  return loose ? tokens : tokens.filter(word => !(word === 'place' && tokens.includes('location')) && !(word === 'spot' && tokens.includes('book')))
 }
 
 function score(messageTokens, candidate, loose) {
   const cand = [...new Set(tokenize(candidate, loose))]
   const keys = [...new Set(messageTokens)]
-  if (!keys.length || !cand.length) return { s: 0, overlap: 0, candLen: 99 }
-  const candSet = new Set(cand)
-  let overlap = 0
+  if (!keys.length || !cand.length) return { s: 0, overlap: 0, candLen: 99, eligible: false }
+  const remaining = new Set(cand)
+  let overlap = 0, matched = 0
+  const unmatched = []
   for (const token of keys) {
-    if (candSet.has(token)) { overlap++; continue }
-    if (token.length < 5) continue
-    // A one-letter-out word counts a little less than an exact one.
-    if (cand.some(word => word.length >= 5 && word[0] === token[0] && within1(token, word))) overlap += 0.9
+    if (remaining.delete(token)) { overlap++; matched++ } else unmatched.push(token)
   }
-  return { s: Math.min(1, overlap / Math.min(keys.length, cand.length)), overlap, candLen: cand.length }
+  for (const token of unmatched) {
+    // Numbers and negation are never typo-corrected. Match each candidate
+    // word at most once: two near-misses cannot count as two known facts.
+    if (token.length < 5 || /\d/.test(token) || NEGATION.has(token) || NOFOLD.has(token)) continue
+    const found = [...remaining].find(word => word.length >= 5 && !/\d/.test(word) && !NEGATION.has(word) && !NOFOLD.has(word) && word[0] === token[0] && within1(token, word))
+    if (found) { remaining.delete(found); overlap += 0.9; matched++ }
+  }
+  const protectedWords = tokens => tokens.filter(word => NEGATION.has(word) || /\d/.test(word)).sort().join(' ')
+  // A general approved answer cannot establish a new location, date,
+  // accessibility condition, payment method or second topic. Every content
+  // word in the visitor's question must be supported by this one phrasing.
+  return { s: 2 * overlap / (keys.length + cand.length), overlap, candLen: cand.length,
+    eligible: matched === keys.length && protectedWords(keys) === protectedWords(cand) }
 }
 
 export const THRESHOLD = 0.6
@@ -97,6 +129,7 @@ const phrasings = entry => [entry.question, ...(Array.isArray(entry.variants) ? 
 // first; ties go to more matched words, then the tighter phrasing, then the
 // owner's order.
 export function rank(message, entries) {
+  const phrase = normalPhrase(message)
   let loose = false
   let tokens = tokenize(message)
   if (!tokens.length) { loose = true; tokens = tokenize(message, true) }
@@ -104,17 +137,24 @@ export function rank(message, entries) {
   return entries.map((entry, index) => {
     let best = null
     for (const phrasing of phrasings(entry)) {
-      const result = score(tokens, phrasing, loose)
-      if (!best || result.s > best.s || (result.s === best.s && (result.overlap > best.overlap || (result.overlap === best.overlap && result.candLen < best.candLen)))) best = result
+      const result = { ...score(tokens, phrasing, loose), exact: phrase === normalPhrase(phrasing) }
+      if (!best || result.exact > best.exact || (result.exact === best.exact && (result.s > best.s || (result.s === best.s && (result.overlap > best.overlap || (result.overlap === best.overlap && result.candLen < best.candLen)))))) best = result
     }
     return { entry, ...best, index }
-  }).sort((a, b) => b.s - a.s || b.overlap - a.overlap || a.candLen - b.candLen || a.index - b.index)
+  }).sort((a, b) => Number(b.exact) - Number(a.exact) || b.s - a.s || b.overlap - a.overlap || a.candLen - b.candLen || a.index - b.index)
 }
 
 // The one approved answer the visitor is confidently asking for, or null.
 export function findAnswer(message, entries) {
   const ranked = rank(message, entries)
-  return ranked.length && ranked[0].s >= THRESHOLD ? ranked[0].entry : null
+  const [first, second] = ranked
+  if (!first) return null
+  if (first.exact) return second?.exact ? null : first.entry
+  const [supported, alternative] = ranked.filter(result => result.eligible)
+  if (!supported || supported.s < THRESHOLD) return null
+  // Reordering or featuring FAQs must not decide between competing intents.
+  if (alternative && supported.s - alternative.s < 0.12) return null
+  return supported.entry
 }
 
 // Close, but not confident: up to three approved questions to offer.
@@ -187,7 +227,8 @@ export function variantClashes(entries) {
   const clashes = []
   for (const entry of entries) {
     for (const phrasing of phrasings(entry)) {
-      const found = findAnswer(phrasing, entries)
+      const ranked = rank(phrasing, entries)
+      const found = findAnswer(phrasing, entries) || (ranked[0]?.exact && ranked[1]?.exact ? ranked[0].entry : null)
       if (found && found !== entry) clashes.push({ entry, phrasing, other: found })
     }
   }

@@ -20,11 +20,13 @@ import Anthropic from '@anthropic-ai/sdk'
 import { env, HttpError, call } from './runtime.mjs'
 import { safeHtml, extractPublicPage } from './safe-fetch.mjs'
 import { STANDARD_TOPICS, sourceWebsiteFacts } from './site-facts.mjs'
-import { findAnswer } from '../../../shared/matcher.mjs'
+import { findAnswer, isSameQuestion } from '../../../shared/matcher.mjs'
 
 export const SCAN_LIMITS = Object.freeze({
   pages: 10, pageChars: 12000, totalChars: 60000, crawlMs: 120000, pageMs: 8000, renderPages: 8, renderMs: 20000,
-  outputTokens: 32000, timeoutMs: 600000,
+  // Netlify kills background functions after 15 minutes. Leave time to save
+  // source-text drafts even when the AI stream stalls after sending headers.
+  outputTokens: 32000, timeoutMs: 540000, jobMs: 720000, finishMs: 30000,
   target: [20, 25], keep: 30, answerChars: 1200, questionChars: 160, variants: 5, variantChars: 80,
 })
 // The server-side fallback beta: if the model declines a page for policy
@@ -97,8 +99,8 @@ const pageKey = url => { const value = new URL(url); value.hash = ''; return val
 // website that refuses plain readers gets the browser too.
 const THIN_PAGE = 200
 
-export async function crawlWebsite({ origin, fetchPage = safeHtml, renderPage = null, now = Date.now, limits = SCAN_LIMITS }) {
-  const deadline = now() + limits.crawlMs
+export async function crawlWebsite({ origin, fetchPage = safeHtml, renderPage = null, now = Date.now, limits = SCAN_LIMITS, deadline: jobDeadline = Infinity }) {
+  const deadline = Math.min(now() + limits.crawlMs, jobDeadline)
   let renders = 0
   async function read(url) {
     let plain = null, failure = null
@@ -239,7 +241,8 @@ const RISKY = /\$\s?\d[\d,]*(?:\.\d+)?|\b\d{1,2}(?:[:.]\d{2})?\s?(?:a\.?m\.?|p\.
 // "7 a.m.", "7:00am" and "7am" are the same time.
 export const squash = value => String(value).toLowerCase().replace(/[’']/g, '').replace(/\s+/g, '')
   .replace(/(\d)([ap])\.?m\.?/g, '$1$2m').replace(/(\d)\.(\d{2})(?=[ap]m)/g, '$1:$2').replace(/:00(?=[ap]m)/g, '')
-export const riskyTokens = value => (String(value).match(RISKY) || []).map(squash).map(token => token.replace(/s$/, '')).filter(Boolean)
+export const riskyTokens = value => (String(value).match(RISKY) || []).map(squash)
+  .map(token => token.replace(/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekday|weekend)s$/, '$1')).filter(Boolean)
 
 const cleanAnswer = value => compact(String(value).replace(/\*\*|__|^[-•*]\s+/g, ''))
 
@@ -248,8 +251,10 @@ const cleanAnswer = value => compact(String(value).replace(/\*\*|__|^[-•*]\s+/
 export function groundedAnswer(answer, citations, pages) {
   if (!citations.length) return null
   const cited = [...new Set(citations.map(citation => compact(citation.cited_text)))]
-  const source = squash(cited.join(' '))
-  const grounded = riskyTokens(answer).every(token => source.includes(token))
+  // Compare complete details, never substrings: "$15" is not "$150", and
+  // "1am" is not "11am". Time punctuation and plural day names still normalise.
+  const source = new Set(riskyTokens(cited.join(' ')))
+  const grounded = riskyTokens(answer).every(token => source.has(token))
   const text = grounded ? answer : cited.join(' ')
   if (!text || text.length > SCAN_LIMITS.answerChars) return null
   return { answer: text, source_url: pages[citations[0].document_index].url, verbatim: !grounded }
@@ -298,15 +303,22 @@ export function readScanReply(response, pages) {
   return { status: 'answered', entries, verbatim, truncated: response.stop_reason === 'max_tokens' }
 }
 
-export async function draftWithClaude({ business, pages, configuration, client }) {
+export async function draftWithClaude({ business, pages, configuration, client, deadline = Date.now() + SCAN_LIMITS.timeoutMs }) {
   const request = buildScanRequest({ business, pages, model: configuration.model })
+  const controller = new AbortController()
+  let stream
   try {
     const anthropic = client || new Anthropic({ apiKey: configuration.key, baseURL: configuration.baseURL, timeout: SCAN_LIMITS.timeoutMs, maxRetries: 1 })
-    const stream = anthropic.beta.messages.stream({ ...request, betas: [FALLBACK_BETA], fallbacks: 'default' })
-    const response = await stream.finalMessage()
+    const response = await beforeDeadline(async () => {
+      stream = anthropic.beta.messages.stream({ ...request, betas: [FALLBACK_BETA], fallbacks: 'default' }, { signal: controller.signal })
+      return stream.finalMessage()
+    }, Math.min(deadline, Date.now() + SCAN_LIMITS.timeoutMs), () => {
+      controller.abort()
+      stream?.abort?.()
+    })
     return readScanReply(response, pages)
   } catch (error) {
-    const status = Number.isInteger(error?.status) ? `http_${error.status}` : error?.name === 'APIConnectionTimeoutError' ? 'timeout' : 'network'
+    const status = Number.isInteger(error?.status) ? `http_${error.status}` : ['APIConnectionTimeoutError', 'ScanTimeoutError'].includes(error?.name) ? 'timeout' : 'network'
     console.error(`Website scan AI call failed: ${status}`)
     return { status: 'failed', problem: status }
   }
@@ -316,37 +328,69 @@ export async function draftWithClaude({ business, pages, configuration, client }
 // customer is never shown the wrong approved answer.
 export function withoutClashingVariants(entries) {
   return entries.map(entry => ({ ...entry, variants: entry.variants.filter(variant => {
-    const found = findAnswer(variant, entries)
-    return !found || found === entry
+    const others = entries.filter(other => other !== entry)
+    // Exclude the variant's own draft when looking for a collision. Otherwise
+    // its exact self-match can conceal the other answer (or return ambiguity).
+    return !others.some(other => [other.question, ...other.variants].some(question => isSameQuestion(variant, question))) &&
+      !findAnswer(variant, others.map(other => ({ ...other, variants: [] })))
   }) }))
 }
 
 // A second scan of the same website drafts the same questions in new words.
-// Any draft the chat would already answer from the business's known questions
-// (approved, the owner's own, or a draft the owner has edited) is dropped, so
-// a re-scan only ever brings what is new.
+// Visitor matching is intentionally more flexible than duplicate detection.
+// Only a strict equivalent question/variant with the same answer is redundant;
+// different services, qualifiers and newly changed facts must reach review.
 export function withoutKnownQuestions(entries, known) {
   if (!Array.isArray(known) || !known.length) return entries
-  return entries.filter(entry => !findAnswer(entry.question, known))
+  const answerKey = answer => compact(answer).toLowerCase()
+  return entries.filter(entry => !known.some(previous =>
+    answerKey(entry.answer) === answerKey(previous.answer) &&
+    [previous.question, ...(previous.variants || [])].some(question => isSameQuestion(entry.question, question))))
 }
 
 // ---- The job ------------------------------------------------------------------------------
 
 const scanFailed = message => Object.assign(new HttpError(409, message, 'SCAN_FAILED'), { scanFailure: true })
 
-export async function runScan({ db, scanId, configuration = scanConfiguration(), fetchPage = safeHtml, renderer = null, client }) {
-  const claimed = await call(db, 'claim_scan', { p_scan: scanId })
+// The SDK's request timeout stops at response headers. This deadline covers
+// the complete stream (and retries), independently of the SDK's own timer.
+async function beforeDeadline(work, deadline, cancel = () => {}) {
+  let timer
+  try {
+    return await Promise.race([
+      new Promise((_, reject) => {
+        const expired = () => {
+          try { cancel() } catch { /* Still reject when cancellation fails. */ }
+          reject(Object.assign(new Error('The website scan took too long.'), { name: 'ScanTimeoutError' }))
+        }
+        const remaining = deadline - Date.now()
+        if (remaining <= 0) expired()
+        else timer = setTimeout(expired, remaining)
+      }),
+      Promise.resolve().then(() => {
+        if (Date.now() >= deadline) throw Object.assign(new Error('The website scan took too long.'), { name: 'ScanTimeoutError' })
+        return work()
+      }),
+    ])
+  } finally { clearTimeout(timer) }
+}
+
+export async function runScan({ db, scanId, configuration = scanConfiguration(), fetchPage = safeHtml, renderer = null, client, limits = SCAN_LIMITS }) {
+  const deadline = Date.now() + limits.jobMs
+  const workDeadline = deadline - limits.finishMs
+  const jobCall = (name, args) => beforeDeadline(() => call(db, name, args), deadline)
+  const claimed = await jobCall('claim_scan', { p_scan: scanId })
   if (!claimed) return { started: false }
   try {
     let crawl
-    try { crawl = await crawlWebsite({ origin: claimed.business.website, fetchPage, renderPage: renderer ? (url, options) => renderer.render(url, options) : null }) }
-    finally { await renderer?.close() }
+    try { crawl = await beforeDeadline(() => crawlWebsite({ origin: claimed.business.website, fetchPage, renderPage: renderer ? (url, options) => renderer.render(url, options) : null, limits, deadline: workDeadline }), workDeadline) }
+    finally { await beforeDeadline(() => renderer?.close(), deadline).catch(() => {}) }
     const { pages, skipped } = crawl
     if (!pages.length) throw scanFailed('We couldn’t find readable text on your website. You can still add your questions and answers yourself.')
-    await call(db, 'scan_stage', { p_scan: scanId, p_stage: `Writing questions from ${pages.length} ${pages.length === 1 ? 'page' : 'pages'}` })
+    await jobCall('scan_stage', { p_scan: scanId, p_stage: `Writing questions from ${pages.length} ${pages.length === 1 ? 'page' : 'pages'}` })
     let entries = [], mode = 'ai'
     if (configuration.ai) {
-      const reply = await draftWithClaude({ business: claimed.business, pages, configuration, client })
+      const reply = await draftWithClaude({ business: claimed.business, pages, configuration, client, deadline: Math.min(workDeadline, Date.now() + limits.timeoutMs) })
       if (reply.status === 'answered') entries = reply.entries
     }
     if (!entries.length) {
@@ -356,14 +400,14 @@ export async function runScan({ db, scanId, configuration = scanConfiguration(),
         .map(snippet => ({ question: snippet.question, answer: snippet.answer, variants: [], source_url: snippet.source_url }))
     }
     if (!entries.length) throw scanFailed('We couldn’t find questions and answers on your website’s public pages. You can still add them yourself.')
-    await call(db, 'scan_stage', { p_scan: scanId, p_stage: 'Saving your questions' })
-    const known = await call(db, 'scan_known_questions', { p_scan: scanId })
+    await jobCall('scan_stage', { p_scan: scanId, p_stage: 'Saving your questions' })
+    const known = await jobCall('scan_known_questions', { p_scan: scanId })
     const fresh = withoutKnownQuestions(withoutClashingVariants(entries), known)
-    const drafted = await call(db, 'finish_scan', { p_scan: scanId, p_entries: fresh.slice(0, SCAN_LIMITS.keep), p_pages: pages.length })
+    const drafted = await jobCall('finish_scan', { p_scan: scanId, p_entries: fresh.slice(0, SCAN_LIMITS.keep), p_pages: pages.length })
     return { started: true, drafted, mode, pages: pages.length, skipped: skipped.length }
   } catch (error) {
     const message = error?.scanFailure || error instanceof HttpError ? error.message : 'We couldn’t finish reading your website. Please try again, or add your questions yourself.'
-    await db.rpc('fail_scan', { p_scan: scanId, p_error: message }).then(() => {}, () => {})
+    await beforeDeadline(() => db.rpc('fail_scan', { p_scan: scanId, p_error: message }), deadline + 5000).catch(() => {})
     if (!(error instanceof HttpError)) console.error('Website scan failed', scanId, error?.name || 'Error')
     return { started: true, failed: error?.code || 'SCAN_FAILED' }
   }

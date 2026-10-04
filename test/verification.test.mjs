@@ -147,7 +147,7 @@ test('once verified, the chat runs only on its own website', async () => {
   for (const [origin, site] of [['https://evil.example', null], [null, 'https://evil.example'], [null, null], ['https://evil.example', 'https://joescafe.com.au']])
     await assert.rejects(widgetFor({ db, slug: business.slug, origin, site }), error => error instanceof HttpError && error.status === 404, `${origin} ${site}`)
   const ask = site => visitorAction({ db, body: { business: business.slug, site, action: 'ask', question: 'Do you cater?' }, ip: '203.0.113.5', dependencies: { sendEnquiryEmail: async () => true } })
-  assert.deepEqual(await ask('https://joescafe.com.au'), { ok: true, sent: false })
+  assert.deepEqual(await ask('https://joescafe.com.au'), { ok: true, sent: false, notification: 'not_requested' })
   await assert.rejects(ask('https://evil.example'), error => error.status === 404)
   await assert.rejects(ask(undefined), error => error.status === 404)
 })

@@ -1,11 +1,22 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
+import { afterEach } from 'node:test'
+
+// Each test gets an independent real database. Release its WASM memory when
+// that test ends instead of retaining every database until the process exits.
+const openDatabases = new Set()
+afterEach(async () => {
+  const databases = [...openDatabases]
+  openDatabases.clear()
+  await Promise.all(databases.map(pg => pg.closed ? undefined : pg.close()))
+})
 
 // The real migrations, in a real Postgres (PGlite), with just enough of
 // Supabase around them: the three roles and an auth.users table.
 export async function database() {
   const pg = new PGlite()
+  openDatabases.add(pg)
   await pg.exec(`
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
     create schema auth;

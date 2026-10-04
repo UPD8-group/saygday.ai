@@ -67,7 +67,7 @@ export default function Questions() {
       <button role="tab" aria-selected={show === 'live'} onClick={() => setShow('live')}>Live <span>{live.length}</span></button>
     </div>
     {show === 'live' && clashes.length > 0 && <Notice kind="error">
-      {clashes.slice(0, 3).map(clash => <p key={`${clash.entry.id}-${clash.phrasing}`}>“{clash.phrasing}” (a way of asking “{clash.entry.question}”) finds the answer to “{clash.other.question}” instead. Edit one of them so each finds its own answer.</p>)}
+      {clashes.slice(0, 3).map(clash => <p key={`${clash.entry.id}-${clash.phrasing}`}>“{clash.phrasing}” (a way of asking “{clash.entry.question}”) also matches “{clash.other.question}”. Edit one of them so each question clearly finds its own answer.</p>)}
     </Notice>}
     {list.length === 0 ? <Empty icon="list" title={show === 'drafts' ? 'Nothing to check' : 'No live answers yet'}>
       <p>{show === 'drafts' ? 'You’ve checked everything from your website.' : 'Approve the questions from your website, or add your own.'}</p>

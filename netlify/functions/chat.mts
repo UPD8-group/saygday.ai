@@ -21,7 +21,9 @@ export default async (request: Request, context: Context) => {
       const origin = request.headers.get('origin')
       const widget = await widgetFor({ db, slug: url.searchParams.get('business'), seen: url.searchParams.get('seen') === '1',
         origin: origin && origin !== url.origin ? origin : null, site: url.searchParams.get('site') })
-      return json(200, widget, PUBLIC)
+      return json(200, widget, url.searchParams.get('fresh') === '1'
+        ? { ...PUBLIC, 'Cache-Control': 'no-store', 'Netlify-CDN-Cache-Control': 'no-store' }
+        : PUBLIC)
     }
     if (request.method !== 'POST') throw new HttpError(405, 'That request isn’t available.', 'METHOD_NOT_ALLOWED')
     const body = await readJson(request, 8192)

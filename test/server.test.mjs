@@ -89,10 +89,10 @@ test('the chat gets approved answers only; a question it couldn’t answer reach
 
   const sent = []
   const ask = (body, ip = '203.0.113.9') => visitorAction({ db, body: { business: business.slug, site: 'https://joescafe.com.au', ...body }, ip, dependencies: { sendEnquiryEmail: async ({ enquiry }) => { sent.push(enquiry); return true } } })
-  assert.deepEqual(await ask({ action: 'ask', question: 'Can I book the back room for a party?', email: 'Visitor@Example.com' }), { ok: true, sent: true })
+  assert.deepEqual(await ask({ action: 'ask', question: 'Can I book the back room for a party?', email: 'Visitor@Example.com' }), { ok: true, sent: true, notification: 'sent' })
   assert.equal(sent.length, 1)
   assert.equal(sent[0].notifyEmail, 'jo@joescafe.com.au'); assert.equal(sent[0].email, 'visitor@example.com')
-  assert.deepEqual(await ask({ action: 'ask', question: 'Do you sell gift cards?' }), { ok: true, sent: false })
+  assert.deepEqual(await ask({ action: 'ask', question: 'Do you sell gift cards?' }), { ok: true, sent: false, notification: 'not_requested' })
   assert.equal(sent.length, 1, 'no email is sent when the visitor left none')
   assert.deepEqual(await ask({ action: 'ask', question: 'Buy cheap pills', website: 'http://spam.example' }), { ok: true }, 'a bot filling the hidden field is ignored quietly')
   await assert.rejects(ask({ action: 'ask', question: 'Hello?', email: 'not-an-email' }), error => error.code === 'INVALID_EMAIL')

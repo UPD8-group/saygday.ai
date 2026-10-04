@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { tokenize, findAnswer, suggest, typeahead, smalltalk, respond, variantClashes } from '../shared/matcher.mjs'
+import { tokenize, findAnswer, suggest, typeahead, smalltalk, respond, variantClashes, isSameQuestion } from '../shared/matcher.mjs'
 
 // The first SayGday widget's matcher tests (test/matcher.test.mjs in the
 // earlier platform), carried over with its sample cafe, plus the parts this
@@ -25,7 +25,7 @@ test('tokenize drops stopwords and singularises', () => {
 // 2026, found writing SayGday's own answers: every "does it…" question shared
 // a word with every other one).
 test('“does” is a stopword even after singularising', () => {
-  assert.deepEqual(tokenize('Does it work on phones?'), ['work', 'contact'])
+  assert.deepEqual(tokenize('Does it work on phones?'), ['work', 'phone'], 'phones are not interchangeable with email or a contact number')
   const work = [{ question: 'Does it work on Wix?', answer: 'Yes.', variants: [] }, { question: 'Does it take bookings?', answer: 'No.', variants: [] }]
   assert.equal(findAnswer('does it work on squarespace', work), null, 'one shared “does” is not half a match')
 })
@@ -57,7 +57,8 @@ test('one-letter typos still find the answer', () => {
 test('short real words are never mistaken for typos', () => {
   const withOven = entries.concat([{ question: 'Is the pizza oven wood-fired?', answer: 'Yes, wood-fired.', variants: [] }])
   assert.equal(findAnswer('do you have a pizza oven', withOven).answer, 'Yes, wood-fired.')
-  assert.equal(findAnswer('can I change my booking', entries), bookings, '"change" never folds into price')
+  assert.equal(findAnswer('can I change my booking', entries), null, 'taking a booking does not establish whether an existing booking can be changed')
+  assert.ok(suggest('can I change my booking', entries).includes(bookings), 'the related approved booking question remains available to choose')
 })
 
 test('all-stopword questions fall back to the loose pass', () => {
@@ -123,4 +124,87 @@ test('a variant that finds another answer is reported before it can show the wro
   assert.equal(clashes.length, 1)
   assert.equal(clashes[0].phrasing, 'opening times')
   assert.equal(clashes[0].other, hours)
+  assert.equal(findAnswer('opening times', clashing), null, 'a shared exact variant is ambiguous, not decided by owner order')
+})
+
+test('an exact approved phrasing wins over a related shorter FAQ, regardless of order', () => {
+  const broad = { question: 'Do you offer delivery?', answer: 'Local delivery.', variants: ['delivery'] }
+  const specific = { question: 'Do you offer delivery to Perth?', answer: 'No.', variants: [] }
+  for (const list of [[broad, specific], [specific, broad]]) {
+    assert.equal(findAnswer('Do you offer delivery to Perth?', list), specific)
+    assert.equal(findAnswer('DO YOU OFFER DELIVERY TO PERTH!', list), specific)
+  }
+})
+
+test('new locations, dates, accessibility conditions and payment methods need confirmation', () => {
+  const shop = [
+    { question: 'Do you offer delivery?', answer: 'Yes. We deliver locally for $10.', variants: ['delivery'] },
+    { question: 'Do you accept returns?', answer: 'Yes, within 30 days with a receipt.', variants: ['returns', 'refund policy'] },
+    { question: 'Are you open on weekdays?', answer: 'Yes, Monday to Friday 9am to 5pm.', variants: ['opening hours'] },
+    { question: 'Do you have parking?', answer: 'Yes, there is free street parking.', variants: ['parking'] },
+    { question: 'Do you accept card payments?', answer: 'Yes, we accept Visa and Mastercard.', variants: ['payment options'] },
+  ]
+  assert.deepEqual(variantClashes(shop), [], 'the bug occurs even with no overlapping approved variants')
+  const questions = [
+    'Do you deliver to Perth?',
+    'Can I return an opened item without a receipt?',
+    'Are you open on Christmas Day?',
+    'Is your parking wheelchair accessible?',
+    'Can I pay with Afterpay?',
+    'Can I pay with EFTPOS?',
+    'Do you offer delivery and gift wrapping?',
+  ]
+  for (const question of questions) {
+    assert.equal(findAnswer(question, shop), null, question)
+    assert.notEqual(respond(question, shop).kind, 'answer', question)
+  }
+  assert.equal(findAnswer('Do you have parking?', shop), shop[3], 'plain approved questions still answer directly')
+})
+
+test('negation, numbers and distinct transaction types cannot be silently substituted', () => {
+  const rules = [
+    { question: 'Can I return shoes?', answer: 'Yes, unworn shoes only.', variants: [] },
+    { question: 'Can I book for 2?', answer: 'Yes.', variants: [] },
+    { question: 'Can I use a website I own?', answer: 'Yes.', variants: [] },
+    { question: 'Do you accept cash?', answer: 'Yes.', variants: [] },
+  ]
+  for (const question of ['Can I exchange shoes?', 'Can I book for 3?', 'Can I book?', 'Can I use a website I do not own?', 'Do you not accept cash?']) {
+    assert.equal(findAnswer(question, rules), null, question)
+  }
+  assert.equal(findAnswer('Can I book for 2?', rules), rules[1])
+  const negatives = [{ question: 'Are dogs not allowed?', answer: 'Correct, no dogs.', variants: [] }]
+  assert.equal(findAnswer('Are dogs allowed?', negatives), null, 'a negative approved question cannot supply a positive one')
+  const numbers = [{ question: 'Is the limit 200000?', answer: 'Yes.', variants: [] }]
+  assert.equal(findAnswer('Is the limit 200001?', numbers), null, 'numbers are not one-letter typos')
+})
+
+test('equally supported questions are suggested, never picked by list order', () => {
+  const ambiguous = [
+    { question: 'Does delivery cost extra?', answer: 'Yes.', variants: [] },
+    { question: 'Does delivery take a week?', answer: 'No.', variants: [] },
+  ]
+  for (const list of [ambiguous, [...ambiguous].reverse()]) {
+    assert.equal(findAnswer('delivery?', list), null)
+    const decision = respond('delivery?', list)
+    assert.equal(decision.kind, 'suggest')
+    assert.equal(decision.options.length, 2)
+  }
+})
+
+test('scan equivalence preserves all question details instead of treating overlap as duplication', () => {
+  assert.equal(isSameQuestion('Do you accept bookings?', 'Can you accept bookings?'), true, 'grammatical wrappers do not change the content')
+  assert.equal(isSameQuestion('What are your opening hours?', 'what are your opening hours!'), true)
+  for (const [a, b] of [
+    ['Do you deliver?', 'Do you deliver to Perth?'],
+    ['Are you open on weekdays?', 'Are you open on Christmas Day?'],
+    ['Do you accept returns?', 'Do you accept returns without a receipt?'],
+    ['Do you have parking?', 'Is your parking wheelchair accessible?'],
+    ['Do you accept card payments?', 'Can I pay with Afterpay?'],
+    ['Can I book for 2?', 'Can I book for 3?'],
+    ['Are dogs allowed?', 'Are dogs not allowed?'],
+    ['Do you accept bookings?', 'Can I accept bookings?'],
+    ['Are some options vegan?', 'Are all options vegan?'],
+    ['Do you ship from Sydney to Perth?', 'Do you ship from Perth to Sydney?'],
+    ['', ''],
+  ]) assert.equal(isSameQuestion(a, b), false, `${a} ≠ ${b}`)
 })

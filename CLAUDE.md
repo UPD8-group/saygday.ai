@@ -21,12 +21,23 @@ settings, which is how sign-in broke on saygday.ai before the move.
   until the owner approves it. **A re-scan brings only what is new** (the
   owner's end-to-end audit, 4 October 2026: a second scan drafted fifteen
   rewordings of questions just approved): the job reads the business's known
-  questions (`scan_known_questions`) and drops any draft the chat's own
-  matcher would already answer; and `createBusiness` asked twice returns the
+  questions (`scan_known_questions`) and drops only equivalent questions
+  with the same answer. Visitor matching is not duplicate detection: a
+  specific exception must still reach the owner for review. `createBusiness` asked twice returns the
   business it has and never starts a second scan.
 - **"Please drop an email"**: when the chat can't answer, the visitor leaves
   their email and the business gets the question by email (Reply-To is the
   visitor). Without an email the question still shows in the dashboard.
+  An enquiry and its email job are saved together; transient delivery
+  failures retry with the same provider idempotency key. Confirmations and
+  the dashboard distinguish saved, pending and sent (provider accepted).
+  Never queue old enquiries as part of a deployment. The inbox filters by
+  status before applying its page limit, so old unanswered questions remain
+  accessible.
+- **Already-open chats read the current approved answers before every new
+  reply.** The visitor's question stays in the browser. Refresh failure
+  pauses answers instead of falling back to stale content; an old question
+  button resolves its ID against current answers before displaying one.
 - The dashboard is simple, big and graphical: web address in → scan → check
   answers → add the chat button.
 - The Jay/James rule from the earlier platform still applies to public copy:

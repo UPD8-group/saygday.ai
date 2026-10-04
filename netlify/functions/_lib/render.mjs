@@ -19,6 +19,7 @@ import { lookup as dnsLookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { HttpError, env } from './runtime.mjs'
 import { isPublicAddress } from './safe-fetch.mjs'
+import { createEgressProxy, egressFlags } from './egress-proxy.mjs'
 
 export const CHROMIUM_PACK = 'https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar'
 const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 SayGdayWebsiteScan/2.0 (+https://saygday.ai)'
@@ -30,8 +31,9 @@ const fail = (message, code) => new HttpError(400, message, code)
 // The serverless build's flags, less the ones that switch off web security.
 export const safeFlags = flags => flags.filter(flag => !UNSAFE_FLAGS.has(flag))
 
-// One request's verdict: only public HTTPS on port 443, never media, and the
-// page itself only on the business's own website. Hosts are looked up once.
+// Page-level restrictions supplement the connection-level proxy. This check
+// is not the SSRF boundary: the proxy validates and pins EVERY TCP connection,
+// including worker and WebSocket traffic outside page request interception.
 export function requestPolicy({ origin, lookup = dnsLookup }) {
   const hosts = new Map()
   const publicHost = hostname => {
@@ -56,9 +58,24 @@ export function requestPolicy({ origin, lookup = dnsLookup }) {
 
 // A browser for one scan: opened on the first page that needs it, closed when
 // the scan has read the website.
-export function createRenderer({ read = env, lookup = dnsLookup, launch } = {}) {
+export function createRenderer({ read = env, lookup = dnsLookup, launch, proxyFactory = createEgressProxy } = {}) {
   let browser = null
-  const open = () => (browser ||= (launch || launchChromium)(read))
+  let proxy = null
+  let closed = false
+  const open = () => (browser ||= (async () => {
+    const activeProxy = await proxyFactory({ lookup })
+    if (closed) { await activeProxy.close(); throw fail('The browser reading has stopped.', 'WEBSITE_TIMEOUT') }
+    proxy = activeProxy
+    try {
+      const instance = await (launch || launchChromium)(read, activeProxy.url)
+      if (closed) { await instance.close(); throw fail('The browser reading has stopped.', 'WEBSITE_TIMEOUT') }
+      return instance
+    } catch (error) {
+      await activeProxy.close()
+      if (proxy === activeProxy) proxy = null
+      throw error
+    }
+  })())
   return {
     async render(url, { origin, deadline }) {
       const timeout = Math.max(1000, deadline - Date.now())
@@ -91,6 +108,11 @@ export function createRenderer({ read = env, lookup = dnsLookup, launch } = {}) 
       }
     },
     async close() {
+      closed = true
+      // Cut off all tunnels immediately, even if Chromium startup is stalled.
+      const activeProxy = proxy
+      proxy = null
+      await activeProxy?.close()
       if (!browser) return
       const opened = browser
       browser = null
@@ -99,7 +121,7 @@ export function createRenderer({ read = env, lookup = dnsLookup, launch } = {}) 
   }
 }
 
-async function launchChromium(read) {
+async function launchChromium(read, proxyUrl) {
   // The package unpacks the Amazon Linux 2023 libraries Chromium needs when it
   // recognises a Lambda runtime; a Netlify function is one.
   if (process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.AWS_EXECUTION_ENV) process.env.AWS_LAMBDA_JS_RUNTIME ??= `nodejs${process.versions.node.split('.')[0]}.x`
@@ -108,7 +130,7 @@ async function launchChromium(read) {
   chromium.setGraphicsMode = false
   return puppeteer.launch({
     executablePath: local || await chromium.executablePath(read('SAYGDAY_CHROMIUM_PACK') || CHROMIUM_PACK),
-    args: local ? ['--no-sandbox', '--disable-gpu', '--no-first-run'] : safeFlags(chromium.args),
+    args: [...(local ? ['--no-sandbox', '--disable-gpu', '--no-first-run'] : safeFlags(chromium.args)), ...egressFlags(proxyUrl)],
     headless: 'shell',
     defaultViewport: { width: 1280, height: 900 },
   })
