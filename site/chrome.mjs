@@ -51,10 +51,16 @@ export function head() {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;family=Caveat:wght@600&amp;display=swap">
+<script src="/theme.js"></script>
 <link rel="stylesheet" href="/src/site/site.css">
 <script type="module" src="/src/site/site.js"></script>
-<noscript><style>.more { display: block !important; } .next.more { display: flex !important; } .phone-next__more { display: none !important; }</style></noscript>`
+<noscript><style>.more { display: block !important; } .next.more { display: flex !important; } .phone-next__more { display: none !important; } .theme { display: none !important; }</style></noscript>`
 }
+
+// Day or night (owner, 4 October 2026): the button in the bar shows a moon
+// while it is day and a sun while it is night; src/site/site.js swaps them.
+const MOON = '<svg class="theme__moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
+const SUN = '<svg class="theme__sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
 
 const CHEVRON = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4.5 7l4.5 4.5L13.5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
@@ -88,6 +94,7 @@ export function bar(slug) {
   <div class="wrap bar__inner">
     <a class="logo" href="/"><span class="logo__mark" aria-hidden="true"></span><span class="logo__word">SayGday<span>.ai</span></span></a>
     <a class="bar__cta" href="/login">Try it free</a>
+    <button class="theme" id="theme" type="button" aria-label="Switch to dark mode">${MOON}${SUN}</button>
     <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu"><span class="burger__lines"></span></button>
   </div>
 </div>

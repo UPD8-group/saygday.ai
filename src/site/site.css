@@ -25,12 +25,20 @@
   --gutter: clamp(20px, 5.4vw, 40px);
   --max: 1180px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #101a16; --card: #17241f; --ink: #edf3ef; --muted: #a6b5ad; --line: #2b3b34; --danger: #f2948b;
-    --green: #3d6b5a; --green-ink: #9fd0ba; --mint: #1d2f28; --gold: #f3c969; --gold-soft: #2c2715;
-    color-scheme: dark;
-  }
+/* Night. Day is the design the owner approved and what every reader gets
+   first; the button in the bar swaps to this and public/theme.js remembers
+   the choice (owner, 4 October 2026, after his desktop, set to dark, showed
+   him a different site from his phone: "let's do both… an icon at the very
+   top that allows people to swap between nighttime and daytime"). The panels
+   keep their places here: the ground is the darkest, a panel sits a clear
+   step above it, mint and cream keep their tints, and a card inside a panel
+   still takes the opposite fill. The system's own dark setting is not read:
+   one look by default, the other by choice. */
+:root[data-theme="dark"] {
+  --paper: #0c1511; --card: #1c2b25; --mint-deep: #15322a; --cream: #2f2a1a;
+  --ink: #edf3ef; --muted: #aab9b1; --line: #33453b; --danger: #f2948b;
+  --green: #3d6b5a; --green-ink: #9fd0ba; --mint: #24372f; --gold: #f3c969; --gold-soft: #2c2715;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -544,7 +552,6 @@ body.menu-open [data-saygday] { display: none; }
    the opposite fill, so a box never sits on a box of the same colour. The
    photo, the words on it and the green Next block are untouched. ---- */
 :root { --paper: #ede9df; --card: #ffffff; --mint-deep: #e2eee7; --cream: #fbf2dc; }
-@media (prefers-color-scheme: dark) { :root { --paper: #0d1612; --card: #17241f; --mint-deep: #1a2c24; --cream: #272214; } }
 .panel { background: var(--card); border-radius: 28px; padding: clamp(26px, 4.6vw, 56px) clamp(20px, 4.6vw, 56px); box-shadow: 0 1px 2px rgba(20, 33, 28, .05), 0 22px 44px -30px rgba(20, 33, 28, .4); }
 .panel--mint { background: var(--mint-deep); }
 .panel--cream { background: var(--cream); }
@@ -588,3 +595,13 @@ body.menu-open [data-saygday] { display: none; }
 @media (max-width: 600px) {
   .hero__photo, .photo-head__img { --photo: var(--photo-phone, var(--photo-wide)); }
 }
+
+/* ---- Day or night: the button in the bar, beside the menu. A moon while
+   it is day (press for night), a sun while it is night. Hidden without
+   JavaScript, since nothing could answer it. ---- */
+.theme { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid currentColor; background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.theme svg { width: 20px; height: 20px; }
+.theme__sun { display: none; }
+:root[data-theme="dark"] .theme__sun { display: block; }
+:root[data-theme="dark"] .theme__moon { display: none; }
+@media (max-width: 374px) { .theme { width: 40px; height: 40px; } .theme svg { width: 18px; height: 18px; } }

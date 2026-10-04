@@ -361,3 +361,32 @@ test('every photo has a phone copy, and a phone is sent it', async () => {
   assert.match(await read('netlify.toml'), /\[\[headers\]\]\n  for = "\/site\/\*"\n  \[headers\.values\]\n    Cache-Control = "public, max-age=604800"/, 'a phone keeps the photos for a week')
   assert.match(await read('package.json'), /"sharp": "\d/, 'the script’s encoder is a dev dependency')
 })
+
+// Day or night, the reader's choice (owner, 4 October 2026, after his desktop,
+// set to dark, showed him a different site from his phone: "let's do both…
+// an icon at the very top that allows people to swap between nighttime and
+// daytime"). Day is the design he approved and the default; the button in the
+// bar swaps to night and the choice is remembered in that browser.
+test('a reader can swap between day and night at the top of every page, and day is the default', async () => {
+  const css = await read('src/site/site.css')
+  assert.doesNotMatch(css, /prefers-color-scheme/, 'the system’s own setting is not read: day by default, night by choice')
+  assert.match(css, /^:root\[data-theme="dark"\] \{\n  --paper: #[0-9a-f]{6}; --card: #[0-9a-f]{6}; --mint-deep: #[0-9a-f]{6}; --cream: #[0-9a-f]{6};\n[\s\S]*?color-scheme: dark;\n\}/m, 'night sets the ground and all three panel fills, and tells the browser')
+  assert.match(css, /^\.theme \{ flex: none; width: 44px; height: 44px;/m, 'a 44px button')
+  assert.match(css, /^\.theme__sun \{ display: none; \}\n:root\[data-theme="dark"\] \.theme__sun \{ display: block; \}\n:root\[data-theme="dark"\] \.theme__moon \{ display: none; \}$/m, 'a moon by day, a sun by night')
+  const boot = await read('public/theme.js')
+  assert.match(boot, /localStorage\.getItem\('saygday-theme'\) === 'dark'\) document\.documentElement\.setAttribute\('data-theme', 'dark'\)/, 'the boot script applies a remembered night')
+  assert.doesNotMatch(boot, /fetch|import|XMLHttpRequest/, 'the boot script talks to no one')
+  const script = await read('src/site/site.js')
+  assert.match(script, /localStorage\.setItem\('saygday-theme', night \? 'dark' : 'light'\)/, 'the button remembers the choice')
+  assert.match(script, /'Switch to light mode' : 'Switch to dark mode'/, 'the button always names the other side')
+  for (const page of ALL) {
+    const html = await built(page)
+    const headEnd = html.indexOf('</head>')
+    assert.ok(html.indexOf('<script src="/theme.js"></script>') > -1 && html.indexOf('<script src="/theme.js"></script>') < html.indexOf('<link rel="stylesheet" href="/src/site/site.css">'), `${page.file}: the choice is applied before the stylesheet, so night never flashes day`)
+    assert.ok(html.indexOf('<script src="/theme.js">') < headEnd, `${page.file}: the boot script is in the head`)
+    assert.match(html, /<a class="bar__cta" href="\/login">Try it free<\/a>\n\s*<button class="theme" id="theme" type="button" aria-label="Switch to dark mode"><svg class="theme__moon"[^]*?<\/svg><svg class="theme__sun"[^]*?<\/svg><\/button>\n\s*<button class="burger"/, `${page.file}: the button sits in the bar, between Try it free and the menu`)
+    assert.match(html, /<noscript><style>[^<]*\.theme \{ display: none !important; \}/, `${page.file}: without JavaScript the button is not shown`)
+  }
+  assert.match(await read('netlify.toml'), /\[\[headers\]\]\n  for = "\/theme\.js"\n  \[headers\.values\]\n    Cache-Control = "public, max-age=300"/, 'the boot script is cached briefly, like widget.js')
+  assert.match(await read('netlify.toml'), /script-src 'self';/, 'the boot script is a file of the site’s own, as the content security policy requires')
+})

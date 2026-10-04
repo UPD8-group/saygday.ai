@@ -72,3 +72,21 @@ for (const button of document.querySelectorAll('[data-more]')) {
   const target = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)))
   if (target && bodies.some(body => body.contains(target))) { setMore(true); target.scrollIntoView() }
 }
+
+// Day or night (owner, 4 October 2026): the button in the bar swaps the
+// theme and remembers it in this browser; public/theme.js applies the
+// choice before the next page paints. Day is the default.
+const theme = document.getElementById('theme')
+if (theme) {
+  const root = document.documentElement
+  const isNight = () => root.getAttribute('data-theme') === 'dark'
+  const say = () => theme.setAttribute('aria-label', isNight() ? 'Switch to light mode' : 'Switch to dark mode')
+  theme.addEventListener('click', () => {
+    const night = !isNight()
+    if (night) root.setAttribute('data-theme', 'dark')
+    else root.removeAttribute('data-theme')
+    try { localStorage.setItem('saygday-theme', night ? 'dark' : 'light') } catch {}
+    say()
+  })
+  say()
+}

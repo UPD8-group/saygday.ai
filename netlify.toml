@@ -51,6 +51,12 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'none'"
     X-Robots-Tag = "noindex"
 
+# The day-or-night choice, applied before each page paints.
+[[headers]]
+  for = "/theme.js"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+
 [[headers]]
   for = "/widget.js"
   [headers.values]
