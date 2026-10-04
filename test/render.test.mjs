@@ -134,3 +134,33 @@ test('the background scan brings the browser, and Netlify ships it as packages',
   const renderer = createRenderer({ launch: async () => { throw new Error('never opened') } })
   await renderer.close()
 })
+
+test('the renderer launches behind its scan proxy and closes both resources', async () => {
+  const events = []
+  const page = { setDefaultTimeout() {}, async setUserAgent() {}, async setRequestInterception() {}, on() {},
+    async goto() { return {} }, async waitForNetworkIdle() {}, url() { return `${ORIGIN}/` },
+    async content() { return '<html><body>JavaScript-rendered business details</body></html>' } }
+  const renderer = createRenderer({
+    proxyFactory: async () => ({ url: 'http://127.0.0.1:12345', close: async () => { events.push('proxy closed') } }),
+    launch: async (_read, proxyUrl) => {
+      assert.equal(proxyUrl, 'http://127.0.0.1:12345')
+      return { createBrowserContext: async () => ({ newPage: async () => page, close: async () => { events.push('context closed') } }),
+        close: async () => { events.push('browser closed') } }
+    },
+  })
+  const result = await renderer.render(`${ORIGIN}/`, { origin: ORIGIN, deadline: Date.now() + 1000 })
+  assert.match(result.html, /JavaScript-rendered/)
+  await renderer.close()
+  assert.deepEqual(events, ['context closed', 'proxy closed', 'browser closed'])
+})
+
+test('a failed browser launch still shuts down the scan proxy', async () => {
+  let closed = 0
+  const renderer = createRenderer({
+    proxyFactory: async () => ({ url: 'http://127.0.0.1:12345', close: async () => { closed++ } }),
+    launch: async () => { throw new Error('local simulated startup failure') },
+  })
+  await assert.rejects(renderer.render(`${ORIGIN}/`, { origin: ORIGIN, deadline: Date.now() + 1000 }), /startup failure/)
+  await renderer.close()
+  assert.equal(closed, 1)
+})

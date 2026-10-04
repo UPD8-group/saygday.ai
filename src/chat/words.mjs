@@ -39,10 +39,18 @@ export function emailIn(text) {
   return found ? found[0].toLowerCase() : null
 }
 
-// The question an email address typed into the question box belongs to: the
-// latest one the chat offered to pass on and hasn't sent yet, or else the
-// typed message itself.
+// Only an address/contact-only reply belongs to the previous question. A
+// substantive follow-up is a new message and must reach the business in full;
+// it must not silently disappear behind an older pending question. Keep that
+// older offer available too, so no earlier enquiry is discarded or truncated.
+const CONTACT_WORDS = new Set('please pls my email address is at on you can could will message me reach contact reply send to thanks thank yes yep here it its this use'.split(' '))
+function contactOnly(typed) {
+  if (!emailIn(typed)) return false
+  const remainder = String(typed).replace(EMAIL_IN_TEXT, '').toLowerCase().replace(/[’']/g, '').match(/[a-z0-9]+/g) || []
+  return remainder.every(word => CONTACT_WORDS.has(word))
+}
 export function questionFor(messages, sent, typed) {
+  if (!contactOnly(typed)) return { question: typed, replaces: null }
   for (let index = messages.length - 1; index >= 0; index--) {
     const message = messages[index]
     if (message.kind === 'ask' && !sent.has(message.id)) return { question: message.question, replaces: message.id }

@@ -119,6 +119,8 @@
         // referrer by default.
         frame.setAttribute('referrerpolicy', 'origin')
         panel.appendChild(frame)
+      } else if (open) {
+        frame.contentWindow.postMessage({ source: 'saygday', type: 'refresh' }, origin)
       }
       panel.classList.toggle('is-open', open)
       button.classList.toggle('is-open', open)
@@ -128,7 +130,7 @@
     }
     button.addEventListener('click', function () { setOpen(!panel.classList.contains('is-open')) })
     window.addEventListener('message', function (event) {
-      if (event.origin === origin && event.data && event.data.source === 'saygday' && event.data.type === 'close') setOpen(false)
+      if (frame && event.source === frame.contentWindow && event.origin === origin && event.data && event.data.source === 'saygday' && event.data.type === 'close') setOpen(false)
     })
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && panel.classList.contains('is-open')) setOpen(false) })
     root.appendChild(panel)

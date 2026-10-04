@@ -40,20 +40,35 @@ export function enquiryEmail({ businessName, question, visitorEmail, publicUrl }
   return { subject, text, html }
 }
 
-export async function sendEnquiryEmail({ enquiry, configuration = emailConfiguration(), fetchImpl = fetch }) {
-  if (!configuration.configured || !enquiry?.email || !enquiry?.notifyEmail) return false
-  const { subject, text, html } = enquiryEmail({ businessName: enquiry.businessName, question: enquiry.question, visitorEmail: enquiry.email, publicUrl: configuration.publicUrl })
+export function enquiryNotificationMessage({ enquiry, configuration = emailConfiguration() }) {
+  // Queued messages freeze the public sender settings along with their
+  // recipient/content. Credentials remain server-only and may rotate.
+  const from = Object.hasOwn(enquiry || {}, 'sender') ? enquiry.sender : configuration.from
+  const publicUrl = enquiry?.publicUrl || configuration.publicUrl
+  const { subject, text, html } = enquiryEmail({ businessName: enquiry.businessName, question: enquiry.question, visitorEmail: enquiry.email, publicUrl })
+  return { from, to: [enquiry.notifyEmail], reply_to: enquiry.email, subject, text, html }
+}
+
+export async function sendEnquiryNotification({ enquiry, message, configuration = emailConfiguration(), fetchImpl = fetch }) {
+  if (!enquiry?.email || !enquiry?.notifyEmail) return { sent: false, retryable: false, code: 'EMAIL_NOT_CONFIGURED' }
+  const payload = message || enquiryNotificationMessage({ enquiry, configuration })
+  if (!configuration.configured || !payload.from)
+    return { sent: false, retryable: false, code: 'EMAIL_NOT_CONFIGURED' }
   try {
     const response = await fetchImpl('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${configuration.key}`, 'Content-Type': 'application/json', 'Idempotency-Key': `enquiry-${enquiry.id}` },
-      body: JSON.stringify({ from: configuration.from, to: [enquiry.notifyEmail], reply_to: enquiry.email, subject, text, html }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(6000),
     })
     if (!response.ok) console.error(`Enquiry email refused: ${response.status}`)
-    return response.ok
+    return { sent: response.ok, retryable: response.status === 429 || response.status >= 500,
+      code: response.ok ? null : `EMAIL_HTTP_${response.status}` }
   } catch {
     console.error('Enquiry email could not be sent')
-    return false
+    return { sent: false, retryable: true, code: 'EMAIL_NETWORK' }
   }
 }
+
+// Kept for callers that need only provider acceptance, not retry details.
+export async function sendEnquiryEmail(options) { return (await sendEnquiryNotification(options)).sent }

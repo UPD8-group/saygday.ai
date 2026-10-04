@@ -64,6 +64,21 @@ test('the address goes with the question the chat just offered to pass on', () =
   assert.deepEqual(questionFor(answeredSince, sent, 'Please message me jo@example.com'), { question: 'Please message me jo@example.com', replaces: null }, 'after an answer, the message is the question')
 })
 
+test('a message with an email preserves new question text instead of replacing it with an older enquiry', () => {
+  const offered = [{ id: 'old', from: 'bot', kind: 'ask', question: 'Can I get a refund?' }]
+  for (const typed of [
+    'Actually I need help installing it on Shopify. Please email jo@example.com',
+    'We have 12 guests and need an accessible entrance. jo@example.com',
+    'Please cancel my booking. My email is jo@example.com',
+  ]) assert.deepEqual(questionFor(offered, new Set(), typed), { question: typed, replaces: null }, 'new content and the earlier pending offer both survive')
+  for (const typed of ['jo@example.com', 'Please message me jo@example.com', 'my email address is jo@example.com', 'reach me at jo@example.com, thanks']) {
+    assert.deepEqual(questionFor(offered, new Set(), typed), { question: 'Can I get a refund?', replaces: 'old' }, 'contact-only replies still attach to the pending enquiry')
+  }
+  const suggested = [{ id: 's', from: 'bot', kind: 'suggest', question: 'Can I get a refund?', options: [] }]
+  const typed = 'Does it work with Xero? Email jo@example.com'
+  assert.deepEqual(questionFor(suggested, new Set(), typed), { question: typed, replaces: null })
+})
+
 test('the owner names who signs off; the chat gets the name; an empty name takes it off', async () => {
   const pg = await database()
   const person = await user(pg, 'sam@cornerpantry.com.au')
@@ -83,7 +98,8 @@ test('the owner names who signs off; the chat gets the name; an empty name takes
 
 test('the chat, its styles and the dashboard all play their part', async () => {
   const chat = await read('src/chat/Chat.jsx')
-  assert.match(chat, /const email = emailIn\(question\)\n\s*if \(email\) \{[\s\S]*?\n\s*\}\n\s*const decision = respond\(question, faqs, context\)/, 'an email address is caught before any matching')
+  assert.match(chat, /const email = emailIn\(question\)\n\s*if \(email\) \{[\s\S]*?questionFor\(messages, sent, question\)[\s\S]*?return add\([\s\S]*?\n\s*\}/, 'an email address creates its handoff before any matching')
+  assert.ok(chat.indexOf('const email = emailIn(question)') < chat.indexOf('const decision = respond(question, faqs, context)'), 'freshness checks must not move question matching ahead of the email branch')
   assert.match(chat, /<div className="handoff__field">[\s\S]*?type="email"[\s\S]*?<button type="submit" className="chat__ask"[^>]*>\{state === 'sending' \? 'Sending…' : 'Send'\}<\/button>/, 'the email field and Send side by side')
   assert.match(chat, /<p className="handoff__to">\{ARROW\}\{words\.inbox\}<\/p>/)
   assert.match(chat, /const \[email, setEmail\] = useState\(message\.email \|\| ''\)/, 'a typed address arrives filled in')

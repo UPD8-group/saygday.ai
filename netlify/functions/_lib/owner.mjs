@@ -99,7 +99,15 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
       if (signedBy !== null) business = await call(db, 'set_signed_by', { p_user, p_signed_by: signedBy })
       return { business }
     }
-    case 'listEnquiries': return { enquiries: await call(db, 'list_enquiries', { p_user }) }
+    case 'listEnquiries': {
+      const status = body.status ?? 'new'
+      if (!['new', 'done'].includes(status)) throw new HttpError(400, 'Choose new or done questions.', 'INVALID')
+      const cursor = body.cursor
+      if (cursor != null && (typeof cursor !== 'object' || Array.isArray(cursor) || typeof cursor.createdAt !== 'string'
+        || !Number.isFinite(Date.parse(cursor.createdAt)))) throw new HttpError(400, 'Refresh the questions and try again.', 'INVALID')
+      return call(db, 'enquiries_page', { p_user, p_status: status, p_limit: 50,
+        p_before: cursor?.createdAt ?? null, p_before_id: cursor ? id(cursor.id) : null })
+    }
     case 'setEnquiry': {
       if (!['new', 'done'].includes(body.status)) throw new HttpError(400, 'That change isn’t available.', 'INVALID')
       return { updated: await call(db, 'set_enquiry', { p_user, p_id: id(body.id), p_status: body.status }) }
