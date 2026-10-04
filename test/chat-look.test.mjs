@@ -108,7 +108,7 @@ test('the chat, its styles and the dashboard all play their part', async () => {
   assert.match(css, /\.msg--answer \{ background: var\(--c-mint\);/)
   assert.match(css, /\.msg--handoff \{ background: var\(--c-gold-soft\); border: 1px dashed var\(--c-gold\); \}/)
   const button = await read('src/app/ChatButton.jsx')
-  assert.match(button, /request\('updateBusiness', \{ character, greeting, signedBy: signedBy\.trim\(\) \}\)/)
+  assert.match(button, /request\('updateBusiness', \{ character, buttonColour: colour, greeting, signedBy: signedBy\.trim\(\) \}\)/)
   assert.match(button, /signedBy: signedBy\.trim\(\), faqs: live/, 'the preview names who answers as it’s typed')
   assert.doesNotMatch(button, /written on every answer|like a signature/, 'the dashboard doesn’t promise a signature the chat no longer shows')
 })

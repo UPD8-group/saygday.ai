@@ -44,6 +44,18 @@
     'dot': '<circle cx="12" cy="12" r="6.4" fill="currentColor" stroke="none"/>',
     'ring-dot': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>'
   }
+  function buttonColour(value) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : '#31584a'
+  }
+  function buttonInk(value) {
+    var colour = buttonColour(value)
+    var channels = [1, 3, 5].map(function (index) {
+      var channel = parseInt(colour.slice(index, index + 2), 16) / 255
+      return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4)
+    })
+    var luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+    return luminance > 0.179 ? '#000000' : '#ffffff'
+  }
   function plainSvg(key) {
     return '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PLAIN.hasOwnProperty(key) ? PLAIN[key] : PLAIN.bubble) + '</svg>'
   }
@@ -59,7 +71,7 @@
       ':host{all:initial}' +
       '.sg-button{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:64px;height:64px;border-radius:50%;border:0;padding:0;cursor:pointer;' +
       'background:#31584a;color:#fff;display:grid;place-items:center;box-shadow:0 10px 28px rgba(20,33,28,.28);transition:transform .15s ease}' +
-      '.sg-button:hover{transform:scale(1.05)}.sg-button:focus-visible{outline:3px solid #f3c969;outline-offset:3px}' +
+      '.sg-button:hover{transform:scale(1.05)}.sg-button:focus-visible{outline:3px solid #000;outline-offset:4px;box-shadow:0 0 0 4px #fff}' +
       '.sg-button img{width:64px;height:64px;border-radius:50%;display:block;background:#fff}' +
       '.sg-button.is-open img{display:none}.sg-close{display:none}.sg-button.is-open .sg-close{display:block}.sg-button.is-open .sg-bubble{display:none}' +
       '.sg-panel{position:fixed;right:20px;bottom:96px;z-index:2147483000;width:380px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);' +
@@ -88,6 +100,8 @@
       image.alt = ''
       button.appendChild(image)
     } else {
+      button.style.background = buttonColour(config.buttonColour)
+      button.style.color = buttonInk(config.buttonColour)
       var bubble = document.createElement('span')
       bubble.className = 'sg-bubble'
       bubble.innerHTML = plainSvg(config.character)

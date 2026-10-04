@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { respond, typeahead } from '../../shared/matcher.mjs'
 import { characterFor, characterImage, plainSvg } from '../../shared/characters.mjs'
+import { buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { EMAIL, chatWords, emailIn, questionFor } from './words.mjs'
 import { currentFaq, handoffConfirmation } from './widget-reader.mjs'
 
@@ -15,12 +16,12 @@ const key = () => `m${++counter}`
 const TICK = <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
 const ARROW = <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 9h11m-4-4.5L14.5 9 10 13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
 
-export function Avatar({ character, size = 40 }) {
+export function Avatar({ character, size = 40, colour }) {
   const found = characterFor(character)
   if (found) return <img className="chat-avatar" src={characterImage(found.key)} alt="" width={size} height={size} />
   // A plain button: one of the shapes in shared/characters.mjs (fixed markup,
   // never anything a business or visitor typed).
-  return <span className="chat-avatar chat-avatar--bubble" style={{ width: size, height: size }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: plainSvg(character, Math.round(size * 0.5)) }} />
+  return <span className="chat-avatar chat-avatar--bubble" style={{ width: size, height: size, background: buttonColour(colour), color: buttonInk(colour) }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: plainSvg(character, Math.round(size * 0.5)) }} />
 }
 
 export default function Chat({ widget, preview = false, api = {}, onClose }) {
@@ -111,7 +112,7 @@ export default function Chat({ widget, preview = false, api = {}, onClose }) {
   const shared = { widget, words, starters, showAnswer, add, preview, api, replaced, onSent: id => setSent(current => new Set(current).add(id)) }
   return <div className="chat" aria-label={`Questions for ${widget?.name || 'this business'}`}>
     <header className="chat__head">
-      <Avatar character={widget?.character} />
+      <Avatar character={widget?.character} colour={widget?.buttonColour} />
       <div className="chat__title"><strong>{widget?.name}</strong><span>{words.subtitle}</span></div>
       {onClose && <button type="button" className="chat__close" onClick={onClose} aria-label="Close chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg></button>}
     </header>

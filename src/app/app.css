@@ -273,3 +273,7 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .websites li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .websites li:first-child { border-top: 0; }
 .websites li > span:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+
+.button-colour { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.button-colour input[type="color"] { width: 64px; height: 44px; cursor: pointer; }
+.preview__launcher:focus-visible { outline: 3px solid #000; outline-offset: 4px; box-shadow: 0 0 0 4px #fff; }

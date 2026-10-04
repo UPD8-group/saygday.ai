@@ -10,6 +10,7 @@ Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
    `supabase/migrations/`, oldest first, → Run. A later change is a later
    file: 20261004130000_many_businesses_per_owner.sql (one sign-in, many
    businesses) must be run on a project set up before 4 October 2026.
+   For simple button colours, also run `20261004132908_simple_button_colour.sql` before deploying the updated dashboard and functions. Existing buttons keep SayGday green until their owner saves a colour.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email

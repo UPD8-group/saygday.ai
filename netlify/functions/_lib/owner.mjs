@@ -13,6 +13,7 @@
 import { HttpError, call, rateLimit, requireUser } from './runtime.mjs'
 import { startScan } from './scan.mjs'
 import { checkWebsite } from './verify-website.mjs'
+import { validButtonColour } from '../../../shared/button-colour.mjs'
 import { CHARACTER_KEYS } from '../../../shared/characters.mjs'
 
 const text = (value, { max, min = 0, field }) => {
@@ -102,12 +103,14 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
     case 'approveAll': return { approved: await call(db, 'approve_all', { p_user, p_business }), faqs: await call(db, 'list_faqs', { p_user, p_business }) }
     case 'updateBusiness': {
       if (body.character !== undefined && !CHARACTER_KEYS.includes(body.character)) throw new HttpError(400, 'Choose one of the looks on the list.', 'INVALID')
+      if (body.buttonColour !== undefined && !validButtonColour(body.buttonColour)) throw new HttpError(400, 'Choose a colour using six hex digits, like #31584a.', 'INVALID')
       const notifyEmail = text(body.notifyEmail, { max: 254, field: 'email address' })
       if (notifyEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(notifyEmail)) throw new HttpError(400, 'Enter an email address, like you@yourbusiness.com.au', 'INVALID')
       // Who signs off the answers: a name, or an empty string to take it off.
       const signedBy = text(body.signedBy, { max: 40, field: 'name' })
       let business = await call(db, 'update_business', {
         p_user, p_business, p_name: text(body.name, { max: 120, min: 1, field: 'business name' }), p_notify_email: notifyEmail,
+        p_button_colour: body.buttonColour === undefined ? null : body.buttonColour.toLowerCase(),
         p_character: body.character ?? null, p_greeting: text(body.greeting, { max: 200, min: 1, field: 'greeting' }),
       })
       if (signedBy !== null) business = await call(db, 'set_signed_by', { p_user, p_business, p_signed_by: signedBy })
