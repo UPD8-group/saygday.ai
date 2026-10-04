@@ -2,6 +2,14 @@ import { StrictMode, useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import Chat from './Chat.jsx'
 import { createWidgetReader } from './widget-reader.mjs'
+// Outfit, self-hosted (bundled by Vite). The chat window opens inside other
+// businesses' websites; a font fetched from Google would send every one of
+// their visitors' internet addresses to Google the moment the chat opened
+// (hear.is, the first business, keeps its pages Google-free and noticed).
+import '@fontsource/outfit/400.css'
+import '@fontsource/outfit/500.css'
+import '@fontsource/outfit/600.css'
+import '@fontsource/outfit/700.css'
 import './chat.css'
 
 // The page inside the chat window on a business's website (chat.html,

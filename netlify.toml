@@ -44,11 +44,12 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
 # The chat window opens inside any business's website, so it may be framed
-# anywhere. It talks only to SayGday.
+# anywhere. It talks only to SayGday: its typeface is bundled, so no font
+# request reaches Google from a business's visitors (4 October 2026).
 [[headers]]
   for = "/chat.html"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'none'"
     X-Robots-Tag = "noindex"
 
 # The day-or-night choice, applied before each page paints.

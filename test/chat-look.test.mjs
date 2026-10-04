@@ -112,3 +112,18 @@ test('the chat, its styles and the dashboard all play their part', async () => {
   assert.match(button, /signedBy: signedBy\.trim\(\), faqs: live/, 'the preview names who answers as it’s typed')
   assert.doesNotMatch(button, /written on every answer|like a signature/, 'the dashboard doesn’t promise a signature the chat no longer shows')
 })
+
+// The chat window opens inside other businesses' websites (4 October 2026,
+// hear.is's Google-free sweep caught it): nothing it loads may reach a third
+// party. Its typeface is bundled, and its content security policy no longer
+// lets a font or stylesheet come from Google.
+test('the chat window fetches nothing from Google: its typeface is bundled', async () => {
+  const chat = await read('chat.html')
+  assert.doesNotMatch(chat, /googleapis|gstatic/, 'chat.html loads no Google stylesheet')
+  const main = await read('src/chat/main.jsx')
+  for (const weight of [400, 500, 600, 700]) assert.match(main, new RegExp(`import '@fontsource/outfit/${weight}\\.css'`))
+  const toml = await read('netlify.toml')
+  const chatPolicy = /for = "\/chat\.html"[\s\S]*?Content-Security-Policy = "([^"]+)"/.exec(toml)?.[1] ?? ''
+  assert.ok(chatPolicy, 'the chat window has its own policy')
+  assert.doesNotMatch(chatPolicy, /googleapis|gstatic/, 'and it allows no Google host')
+})
