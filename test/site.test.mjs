@@ -34,6 +34,23 @@ test('every page is built at an address of its own, with a title, a description 
   }
 })
 
+// Below the photo, every page is rooms, not a run (owner, 4 October 2026,
+// after his daughter read the site): the parts of a page sit in light panels
+// that take turns, white, mint, cream, on a darker, warmer ground.
+test('below its photo, every page on the way sits in light panels that take turns', async () => {
+  const css = await read('src/site/site.css')
+  assert.match(css, /^\.panel \{ background: var\(--card\);/m, 'a panel is a light box')
+  assert.match(css, /^\.panel--mint \{ background: var\(--mint-deep\); \}/m)
+  assert.match(css, /^\.panel--cream \{ background: var\(--cream\); \}/m)
+  assert.match(css, /^:root \{ --paper: #ede9df; --card: #ffffff;/m, 'white panels on a darker, warmer ground')
+  for (const slug of JOURNEY.filter(slug => slug && slug !== 'story')) {
+    const main = mainOf(await built(named(slug)))
+    const panels = main.match(/class="[^"]*\bpanel\b[^"]*"/g) || []
+    assert.ok(panels.length >= 1, `${slug}: its parts sit in panels`)
+    if (panels.length > 1) assert.ok(panels.some(value => /panel--(mint|cream)/.test(value)), `${slug}: the panels take turns`)
+  }
+})
+
 test('a page missing one of its shared parts doesn’t build', () => {
   assert.throws(() => composePage('<!-- site:head --><!-- site:bar -->', 'pricing'), /site:foot/)
   assert.throws(() => composePage('<!-- site:head --><!-- site:bar --><!-- site:bar --><!-- site:foot -->', 'pricing'), /site:bar/)
