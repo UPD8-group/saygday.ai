@@ -53,6 +53,10 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
     case 'createBusiness': {
       const website = websiteFrom(body.website)
       const name = text(body.name, { max: 120, field: 'business name' }) || null
+      // One business per account: a second request (a double tap, a reload
+      // mid-request) gets the business it already has, and no second scan.
+      const existing = await call(db, 'my_business', { p_user })
+      if (existing) return { business: existing, scan: await call(db, 'latest_scan', { p_user }) }
       const business = await call(db, 'create_business', { p_user, p_email: user.email, p_website: website, p_name: name })
       const scan = await (dependencies.startScan || startScan)({ db, user, website: business.website, origin })
       return { business: await call(db, 'my_business', { p_user }), scan }

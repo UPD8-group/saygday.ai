@@ -18,7 +18,12 @@ settings, which is how sign-in broke on saygday.ai before the move.
   25 questions and answers, each cited from the website's own pages; an answer
   whose numbers, prices, times or contact details aren't in the cited text
   becomes the cited text word for word. Nothing a scan writes is published
-  until the owner approves it.
+  until the owner approves it. **A re-scan brings only what is new** (the
+  owner's end-to-end audit, 4 October 2026: a second scan drafted fifteen
+  rewordings of questions just approved): the job reads the business's known
+  questions (`scan_known_questions`) and drops any draft the chat's own
+  matcher would already answer; and `createBusiness` asked twice returns the
+  business it has and never starts a second scan.
 - **"Please drop an email"**: when the chat can't answer, the visitor leaves
   their email and the business gets the question by email (Reply-To is the
   visitor). Without an email the question still shows in the dashboard.

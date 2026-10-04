@@ -321,6 +321,15 @@ export function withoutClashingVariants(entries) {
   }) }))
 }
 
+// A second scan of the same website drafts the same questions in new words.
+// Any draft the chat would already answer from the business's known questions
+// (approved, the owner's own, or a draft the owner has edited) is dropped, so
+// a re-scan only ever brings what is new.
+export function withoutKnownQuestions(entries, known) {
+  if (!Array.isArray(known) || !known.length) return entries
+  return entries.filter(entry => !findAnswer(entry.question, known))
+}
+
 // ---- The job ------------------------------------------------------------------------------
 
 const scanFailed = message => Object.assign(new HttpError(409, message, 'SCAN_FAILED'), { scanFailure: true })
@@ -348,7 +357,9 @@ export async function runScan({ db, scanId, configuration = scanConfiguration(),
     }
     if (!entries.length) throw scanFailed('We couldn’t find questions and answers on your website’s public pages. You can still add them yourself.')
     await call(db, 'scan_stage', { p_scan: scanId, p_stage: 'Saving your questions' })
-    const drafted = await call(db, 'finish_scan', { p_scan: scanId, p_entries: withoutClashingVariants(entries).slice(0, SCAN_LIMITS.keep), p_pages: pages.length })
+    const known = await call(db, 'scan_known_questions', { p_scan: scanId })
+    const fresh = withoutKnownQuestions(withoutClashingVariants(entries), known)
+    const drafted = await call(db, 'finish_scan', { p_scan: scanId, p_entries: fresh.slice(0, SCAN_LIMITS.keep), p_pages: pages.length })
     return { started: true, drafted, mode, pages: pages.length, skipped: skipped.length }
   } catch (error) {
     const message = error?.scanFailure || error instanceof HttpError ? error.message : 'We couldn’t finish reading your website. Please try again, or add your questions yourself.'
