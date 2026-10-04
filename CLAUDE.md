@@ -161,6 +161,18 @@ settings, which is how sign-in broke on saygday.ai before the move.
   variants and run it. Writing those found `does` singularised to `doe` and
   slipping past the stopwords (like `this` → `thi`); `doe` is a stopword now.
 
+- **The chat window fetches nothing from Google** (4 October 2026, caught by
+  hear.is's Google-free sweep the day its Privacy statement went to name
+  SayGday). chat.html opens inside other businesses' websites, and it was
+  loading Outfit from fonts.googleapis.com, so every visitor who opened a
+  chat sent their internet address to Google from the business's own site.
+  The typeface is bundled now (`@fontsource/outfit`, imported in
+  src/chat/main.jsx), and chat.html's content security policy allows no
+  Google host. The dashboard (app.html) and the public site still load
+  Outfit and Caveat from Google; they are SayGday's own pages, not a
+  client's, and moving them is a separate decision. Locked by
+  test/chat-look.test.mjs.
+
 - **The chat wears the front page's example card** (owner, 3 October 2026:
   "Can we make it look like the one on the front screen? It just looks
   awesome, especially when somebody wants to inquire and add the email
