@@ -68,7 +68,6 @@ export default function Chat({ widget, preview = false, api = {}, onClose }) {
     } finally {
       reading.current = false
       setBusy(false)
-      setBusy(false)
     }
   }
 
@@ -126,7 +125,7 @@ export default function Chat({ widget, preview = false, api = {}, onClose }) {
     {readError && <p className="msg__error" role="alert" style={{ padding: '0 20px' }}>{readError}</p>}
     <form className="chat__form" onSubmit={submit} aria-busy={busy}>
       {suggestions.length > 0 && <ul className="chat__suggest" aria-label="Matching questions">
-        {suggestions.map(faq => <li key={faq.id}><button type="button" onClick={() => showAnswer(faq, faq.question)}>{faq.question}</button></li>)}
+        {suggestions.map(faq => <li key={faq.id}><button type="button" onClick={() => showAnswer(faq, faq.question)}>{faq.question}</button>)}</li>)}
       </ul>}
       <label className="visually-hidden" htmlFor="chat-question">Type your question</label>
       <input id="chat-question" ref={input} value={text} readOnly={busy} onChange={event => setText(event.target.value.slice(0, 500))} placeholder="Type your question…" autoComplete="off" enterKeyHint="send" />
