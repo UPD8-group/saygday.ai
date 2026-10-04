@@ -79,7 +79,7 @@ test('every link and photo on the site goes somewhere real', async () => {
     for (const [, href] of html.matchAll(/href="([^"]*)"/g)) {
       if (href === '#main' || href.startsWith('/favicon') || href.startsWith('/src/') || href.startsWith('https://fonts.')) continue
       if (href.startsWith('/site/')) { assert.ok(await exists(`public${href}`), `${page.file}: ${href} (preloaded) exists`); continue }
-      if (href.startsWith('https://')) { assert.match(href, /^https:\/\/unsplash\.com\//, `${page.file}: ${href} is a photo credit`); continue }
+      if (href.startsWith('https://')) { assert.ok(href === 'https://oo.studio/' || /^https:\/\/unsplash\.com\//.test(href), `${page.file}: ${href} is a photo or studio credit`); continue }
       assert.ok(addresses.has(href), `${page.file}: ${href} is one of the site’s pages`)
     }
     for (const [, src] of html.matchAll(/(?:src="|url\(')(\/(?:site|characters)\/[^"')]+)/g)) {
