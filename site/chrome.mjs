@@ -123,8 +123,22 @@ ${OWN_BUTTON}`
 // A page's source with the shared parts filled in. Every marker must be there
 // exactly once: a page missing its footer is a mistake, not a choice. (The
 // phone block belongs only on the pages read in order; see JOURNEY.)
+// The photo a page opens on is a CSS background, which a browser only asks
+// for once the stylesheet has arrived and the page is laid out. These two
+// lines in the head start it with the first request instead, the phone copy
+// up to 600 px wide and the original beyond (the same split as site.css).
+export function photoPreloads(html) {
+  const wide = html.match(/--photo-wide: url\('([^']+)'\)/)?.[1]
+  const phone = html.match(/--photo-phone: url\('([^']+)'\)/)?.[1]
+  if (!wide) return ''
+  return [
+    phone && `<link rel="preload" as="image" href="${phone}" media="(max-width: 600px)" fetchpriority="high">`,
+    `<link rel="preload" as="image" href="${wide}" media="${phone ? '(min-width: 601px)' : 'all'}" fetchpriority="high">`,
+  ].filter(Boolean).join('\n')
+}
+
 export function composePage(html, slug) {
-  const parts = { head: head(), bar: bar(slug), foot: foot(), 'phone-next': phoneNext(slug) }
+  const parts = { head: head() + photoPreloads(html).replace(/^(.)/, '\n$1'), bar: bar(slug), foot: foot(), 'phone-next': phoneNext(slug) }
   let out = html
   for (const [name, content] of Object.entries(parts)) {
     const marker = `<!-- site:${name} -->`

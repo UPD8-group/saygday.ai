@@ -65,6 +65,15 @@
     Cache-Control = "public, max-age=86400"
     Cross-Origin-Resource-Policy = "cross-origin"
 
+# The photos the website opens on. They change rarely and a changed photo
+# gets a new name, so a phone keeps them for a week instead of asking after
+# every one on every visit (Netlify's default is max-age=0).
+[[headers]]
+  for = "/site/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+
 [[headers]]
   for = "/assets/*"
   [headers.values]

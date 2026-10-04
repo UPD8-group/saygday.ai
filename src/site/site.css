@@ -44,7 +44,7 @@ a { color: inherit; }
 
 /* ---- Hero: full screen ---- */
 .hero { position: relative; min-height: 100svh; color: var(--on-photo); display: grid; grid-template-rows: auto 1fr auto; isolation: isolate; overflow: hidden; }
-.hero__photo { --photo: url("/site/home-cafe-owner.webp"); position: absolute; inset: 0; z-index: -2; background: #1b2620 46% 30% / cover no-repeat var(--photo); transform: scale(1.04); }
+.hero__photo { position: absolute; inset: 0; z-index: -2; background: #1b2620 46% 30% / cover no-repeat var(--photo); transform: scale(1.04); }
 /* Wide screens: the photo is a touch bigger and pinned left, so his face sits between the headline and the example chat. */
 @media (min-width: 901px) { .hero__photo { background-size: 118% auto; background-position: 0% 30%; } }
 /* Phones: the photo starts below the words, so his face shows between the buttons and the example chat. */
@@ -575,3 +575,16 @@ body.menu-open [data-saygday] { display: none; }
    panel drops the margin it carried for sitting under a heading, so a panel
    never reads top-heavy (the Getting started steps, live on 4 October). */
 .panel > :first-child { margin-top: 0; }
+
+/* ---- The photos, in the size a phone needs (owner, 4 October 2026: "the
+   images are loading way too slow… compress them all so they load faster on
+   mobile"). Every photo element names two copies of its photo, --photo-wide
+   (the original, 1400–2000 px) and --photo-phone (1100 px, lighter; written
+   by scripts/site-photos.mjs), and the rules above keep reading --photo: up to
+   600 px wide that is the phone copy, beyond it the original. A page that
+   names no phone copy still shows its photo. ---- */
+.hero__photo, .photo-head__img { --photo: var(--photo-wide); }
+.photo-head__img:not(.photo-head__img--lift) { background-image: var(--photo); }
+@media (max-width: 600px) {
+  .hero__photo, .photo-head__img { --photo: var(--photo-phone, var(--photo-wide)); }
+}

@@ -193,6 +193,21 @@ settings, which is how sign-in broke on saygday.ai before the move.
   untouched; Our story, Contact and the legal pages are reading pages and keep
   their layout on the new ground.
 
+- **A phone gets a phone-sized photo** (owner, 4 October 2026, on his phone:
+  "the images are loading way too slow… compress them all so they load faster
+  on mobile"). Every page opens on a photo, and a phone was downloading the
+  original (1400–2000 px, up to 240 KB) to show a 390 px slice of it.
+  `scripts/site-photos.mjs` (sharp, a dev dependency) writes
+  `public/site/<name>-phone.webp` beside each original, 1100 px wide at a
+  lower quality, and never rewrites an original. Each photo element names
+  both (`--photo-wide`, `--photo-phone`; the Story page's `<img>` has a
+  `<picture>` source), site.css reads the phone copy up to 600 px wide and the
+  original beyond, `composePage` preloads the right one from the head so it
+  starts with the first request instead of after the stylesheet, and Netlify
+  caches `/site/*` for a week. A new or changed photo gets a NEW NAME (the
+  week-long cache) and a run of the script; test/site.test.mjs fails on a
+  photo without its phone copy or a phone copy wider than 1100 px.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.
