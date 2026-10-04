@@ -1,6 +1,6 @@
 /* SayGday dashboard. Big, plain and friendly: one clear thing per screen. */
 :root {
-  --ink: #14211c; --muted: #56655e; --line: #d8dfda; --paper: #f6f4ee; --white: #fffefa;
+  --ink: #14211c; --muted: #56655e; --line: #d8dfda; --paper: #ede9df; --white: #ffffff;
   --green: #31584a; --green-dark: #213f34; --mint: #e3eee8; --gold: #f3c969; --gold-soft: #fdf3dc;
   --red: #a3322b; --red-soft: #fbeceb;
   --radius: 22px; --shadow: 0 1px 2px rgba(20,33,28,.06), 0 10px 30px rgba(20,33,28,.07);
