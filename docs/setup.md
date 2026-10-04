@@ -6,8 +6,10 @@ Everything here is a one-off. It takes about fifteen minutes.
 
 Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
 
-1. **Run the migration.** SQL editor → paste
-   `supabase/migrations/20261002100000_saygday.sql` → Run.
+1. **Run the migrations.** SQL editor → paste each file in
+   `supabase/migrations/`, oldest first, → Run. A later change is a later
+   file: 20261004130000_many_businesses_per_owner.sql (one sign-in, many
+   businesses) must be run on a project set up before 4 October 2026.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email

@@ -28,14 +28,14 @@ test('a web address is taken however the owner types it, and the scan starts at 
 
 test('the owner’s journey: website in, scan started, answers managed, look chosen', async () => {
   const { act, scans } = await owner()
-  assert.deepEqual(await act({ action: 'me' }), { email: 'jo@joescafe.com.au', business: null, scan: null })
+  assert.deepEqual(await act({ action: 'me' }), { email: 'jo@joescafe.com.au', businesses: [], business: null, scan: null })
   const created = await act({ action: 'createBusiness', website: 'www.joescafe.com.au' })
   assert.equal(created.business.website, 'https://www.joescafe.com.au')
   assert.equal(created.business.notifyEmail, 'jo@joescafe.com.au', 'questions go to the sign-in email unless changed')
   assert.deepEqual(scans, ['https://www.joescafe.com.au'], 'the scan starts straight away')
-  const again = await act({ action: 'createBusiness', website: 'elsewhere.com.au' })
-  assert.equal(again.business.id, created.business.id, 'one business per account, whatever the second request says')
-  assert.deepEqual(scans, ['https://www.joescafe.com.au'], 'and a second tap never starts a second scan')
+  const again = await act({ action: 'createBusiness', website: 'www.joescafe.com.au' })
+  assert.equal(again.business.id, created.business.id, 'the same website again (a double tap) is the business it has')
+  assert.deepEqual(scans, ['https://www.joescafe.com.au'], 'and never starts a second scan')
 
   const faq = (await act({ action: 'saveFaq', question: 'Do you have parking?', answer: 'Free street parking out front.', variants: ['where can i park'] })).faq
   assert.equal(faq.status, 'approved')
@@ -124,4 +124,37 @@ test('the enquiry email lets the owner reply straight to the visitor, and never 
   assert.equal(calls[0].body.reply_to, 'visitor@example.com')
   assert.equal(calls[0].headers['Idempotency-Key'], 'enquiry-e1')
   assert.equal(await sendEnquiryEmail({ enquiry, configuration: { configured: true, key: 'k', from: 'x', publicUrl: 'https://saygday.ai' }, fetchImpl: async () => { throw new Error('down') } }), false)
+})
+
+// ONE SIGN-IN, MANY BUSINESSES (owner, 4 October 2026: hello@oo.studio builds
+// websites for clients and holds each one's chat). Every request names the
+// business it is for; with several, an unnamed request is refused, so two tabs
+// on two businesses can never edit each other's answers.
+test('one sign-in, many businesses: each request names the business it is for', async () => {
+  const { act, scans } = await owner()
+  const first = (await act({ action: 'createBusiness', website: 'joescafe.com.au' })).business
+  const second = (await act({ action: 'createBusiness', website: 'joesbar.com.au', name: 'Joe’s Bar' })).business
+  assert.notEqual(second.id, first.id, 'a different website is another business')
+  assert.deepEqual(scans, ['https://joescafe.com.au', 'https://joesbar.com.au'], 'each new website gets its own scan')
+  const me = await act({ action: 'me', business: second.id })
+  assert.deepEqual(me.businesses.map(item => item.slug), ['joescafe', 'joesbar'])
+  assert.equal(me.business.id, second.id, 'me answers for the business the request named')
+  assert.equal((await act({ action: 'me' })).business.id, first.id, 'and for the first when none is named')
+  await refused(act({ action: 'listFaqs' }), 409, 'CHOOSE_BUSINESS')
+  const faq = (await act({ action: 'saveFaq', business: second.id, question: 'Do you take bookings?', answer: 'Yes, call us.' })).faq
+  assert.equal((await act({ action: 'listFaqs', business: second.id })).faqs.length, 1)
+  assert.equal((await act({ action: 'listFaqs', business: first.id })).faqs.length, 0, 'answers stay with their business')
+  assert.equal((await act({ action: 'deleteFaq', business: first.id, id: faq.id })).deleted, false, 'named the other business, it cannot touch them')
+  assert.equal((await act({ action: 'updateBusiness', business: first.id, name: 'Joe’s Cafe' })).business.name, 'Joe’s Cafe')
+  assert.equal((await act({ action: 'me', business: second.id })).business.name, 'Joe’s Bar', 'a rename stays with its business')
+  const rescan = await act({ action: 'startScan', business: second.id })
+  assert.equal(rescan.business.id, second.id)
+  assert.equal(scans.at(-1), 'https://joesbar.com.au', 'a scan asked for one business reads that business’s website')
+  await refused(act({ action: 'listFaqs', business: '00000000-0000-4000-8000-000000000000' }), 409, 'NO_BUSINESS')
+  await refused(act({ action: 'listFaqs', business: 'nope' }), 400, 'INVALID_ID')
+})
+
+test('a database still waiting for its latest migration says so', () => {
+  assert.throws(() => rpcResult({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.my_businesses(p_user) in the schema cache' } }),
+    error => error instanceof HttpError && error.status === 503 && error.code === 'DATABASE_UPDATING')
 })

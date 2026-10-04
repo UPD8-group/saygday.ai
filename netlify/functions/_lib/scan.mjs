@@ -68,9 +68,11 @@ export function verifyScanTrigger(body, secret) {
   return timingSafeEqual(Buffer.from(signScan(body.scanId, secret), 'hex'), Buffer.from(body.signature, 'hex'))
 }
 
-export async function startScan({ db, user, website, origin, configuration = scanConfiguration(), fetchImpl = fetch }) {
+// `business` names which of the owner's businesses the scan is for; a
+// sign-in with one business may leave it out.
+export async function startScan({ db, user, website, origin, business = null, configuration = scanConfiguration(), fetchImpl = fetch }) {
   if (!validSecret(configuration.secret) || !origin) throw new HttpError(503, 'Website scanning is still being connected. Please try again soon.', 'SCAN_NOT_CONFIGURED')
-  const scan = await call(db, 'start_scan', { p_user: user.id, p_website: website })
+  const scan = await call(db, 'start_scan', { p_user: user.id, p_website: website, p_business: business })
   if (!scan.started) return scan
   let accepted = false
   try {

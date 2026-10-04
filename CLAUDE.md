@@ -23,8 +23,9 @@ settings, which is how sign-in broke on saygday.ai before the move.
   rewordings of questions just approved): the job reads the business's known
   questions (`scan_known_questions`) and drops only equivalent questions
   with the same answer. Visitor matching is not duplicate detection: a
-  specific exception must still reach the owner for review. `createBusiness` asked twice returns the
-  business it has and never starts a second scan.
+  specific exception must still reach the owner for review. `createBusiness` asked twice FOR THE SAME WEBSITE returns the
+  business it has and never starts a second scan (a different website is
+  another business under the same sign-in; the bullet below).
 - **"Please drop an email"**: when the chat can't answer, the visitor leaves
   their email and the business gets the question by email (Reply-To is the
   visitor). Without an email the question still shows in the dashboard.
@@ -40,6 +41,26 @@ settings, which is how sign-in broke on saygday.ai before the move.
   button resolves its ID against current answers before displaying one.
 - The dashboard is simple, big and graphical: web address in → scan → check
   answers → add the chat button.
+
+- **One sign-in, many businesses** (owner, 4 October 2026: "it's important that
+  hello@oo.studio has the ability to manage and add many different profiles —
+  I'll use this as a feature when building websites for new clients"). Until
+  then a business WAS its owner: `businesses.owner_id` was unique and every
+  owner function found "the business" from the signed-in user alone.
+  Migration 20261004130000 lifts the constraint and gives every owner function
+  a `p_business` beside `p_user`, resolved in ONE place (`owned_business`): a
+  sign-in with one business needn't name it, a sign-in with several must
+  (`CHOOSE_BUSINESS` otherwise), and someone else's business reads as no
+  business at all. The dashboard API (`_lib/owner.mjs`) takes `business` on
+  every request and `me` returns `businesses` (all of them, `my_businesses`)
+  beside the one named; the dashboard names the business being worked on on
+  every request (remembered by slug in localStorage and `?business=`), shows a
+  switcher in the bar once there are two, and adds the next one at `/app/add`
+  (Settings lists them). `createBusiness` for a website the sign-in already
+  has is still the business it has, no second scan. The browser still never
+  picks whose data it reads: it can only name a business it owns. Locked by
+  test/database.test.mjs and test/server.test.mjs. The migration is run by
+  hand in the SQL editor like the others (docs/setup.md).
 - The Jay/James rule from the earlier platform still applies to public copy:
   the site names James, never Jay.
 

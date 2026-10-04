@@ -2,9 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { database, rpcClient, user } from './helpers/database.mjs'
 
-// The whole data model against the real migration: one business per owner,
-// owners only ever see their own rows, the chat only ever sees approved
-// answers, and the browser roles can touch nothing.
+// The whole data model against the real migrations: one sign-in may hold many
+// businesses (owner, 4 October 2026) and every owner function names the one it
+// is for, owners only ever see their own rows, the chat only ever sees
+// approved answers, and the browser roles can touch nothing.
 async function setup() {
   const pg = await database()
   const db = rpcClient(pg)
@@ -23,7 +24,7 @@ const verified = async (call, business) => {
   return business
 }
 
-test('one business per owner, named from the website until the owner names it', async () => {
+test('one sign-in, many businesses: named from the website until the owner names it, the same website twice is one business', async () => {
   const { pg, call } = await setup()
   const owner = await user(pg, 'jo@joescafe.com.au')
   const business = await call('create_business', { p_user: owner.id, p_email: 'Jo@JoesCafe.com.au', p_website: 'https://www.joes-cafe.com.au/' })
@@ -32,9 +33,26 @@ test('one business per owner, named from the website until the owner names it', 
   assert.equal(business.website, 'https://www.joes-cafe.com.au')
   assert.equal(business.notifyEmail, 'jo@joescafe.com.au')
   assert.equal(business.character, 'bubble')
-  const again = await call('create_business', { p_user: owner.id, p_email: 'other@example.com', p_website: 'https://other.com.au', p_name: 'Other' })
-  assert.equal(again.id, business.id, 'calling again returns the same business')
+  const again = await call('create_business', { p_user: owner.id, p_email: 'other@example.com', p_website: 'https://www.joes-cafe.com.au' })
+  assert.equal(again.id, business.id, 'the same website again (a double tap) is the business it already has')
   assert.equal(again.website, 'https://www.joes-cafe.com.au')
+  // A different website is another business under the same sign-in (a studio
+  // building websites for its clients, owner 4 October 2026).
+  const other = await call('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://other.com.au', p_name: 'Other' })
+  assert.notEqual(other.id, business.id)
+  assert.deepEqual((await call('my_businesses', { p_user: owner.id })).map(item => item.slug), ['joes-cafe', 'other'], 'oldest first')
+  // With several, every owner function must name one, and is scoped to it.
+  await rejects(call('list_faqs', { p_user: owner.id }), /CHOOSE_BUSINESS/)
+  await rejects(call('my_business', { p_user: owner.id }), /CHOOSE_BUSINESS/)
+  assert.equal((await call('my_business', { p_user: owner.id, p_business: other.id })).slug, 'other')
+  const faq = await call('save_faq', { p_user: owner.id, p_business: other.id, p_id: null, p_question: 'Do you deliver?', p_answer: 'Yes, within 10 km.' })
+  assert.equal((await call('list_faqs', { p_user: owner.id, p_business: other.id })).length, 1)
+  assert.equal((await call('list_faqs', { p_user: owner.id, p_business: business.id })).length, 0, 'answers stay with their business')
+  assert.equal(await call('delete_faq', { p_user: owner.id, p_business: business.id, p_id: faq.id }), false, 'named the other business, it cannot touch them')
+  assert.equal((await call('update_business', { p_user: owner.id, p_business: other.id, p_name: 'Other Place' })).name, 'Other Place')
+  assert.equal((await call('my_business', { p_user: owner.id, p_business: business.id })).name, 'Joes Cafe', 'and a rename stays with its business')
+  // Someone else's business reads as no business at all.
+  await rejects(call('list_faqs', { p_user: (await user(pg)).id, p_business: other.id }), /NO_BUSINESS/)
 
   const second = await user(pg)
   const twin = await call('create_business', { p_user: second.id, p_email: second.email, p_website: 'https://joes-cafe.net', p_name: 'Joe’s Other Cafe' })
