@@ -108,6 +108,16 @@ test('rendered billing controls honour server capability flags and explain price
   assert.doesNotMatch(ending, /Upgrade —/)
 })
 
+test('billing explains that the free period starts at the first successful ownership verification', () => {
+  const start = /Your free period starts when we first verify that you own your website\./
+  assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)
+  const html = render({ state: 'trial_not_started', accessAllowed: false, checkoutAvailable: false })
+  assert.match(html, /Your free period hasn’t started/)
+  assert.match(html, start)
+  assert.match(html, /First 14 days free\. No card required to start\./)
+  assert.match(html, /You choose whether to subscribe\./)
+})
+
 test('dashboard notice links directly to billing without hiding owner tools', () => {
   const html = renderToStaticMarkup(React.createElement(StaticRouter, { location: '/app' }, React.createElement(BillingNotice, { billing: { state: 'past_due', accessAllowed: false } })))
   assert.match(html, /href="\/app\/settings#billing"/)

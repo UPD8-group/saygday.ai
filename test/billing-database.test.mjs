@@ -31,17 +31,17 @@ const paidState = () => ({ stripe_customer_id: 'cus_owned123', stripe_subscripti
   subscription_status: 'active', price_valid: true, cancel_at_period_end: false,
   current_period_end: new Date(Date.now() + 86400000).toISOString(), synced_at: new Date().toISOString() })
 
-test('billing migration is inert; enabling requires an explicit policy and gives existing businesses a fresh 14 days', async () => {
+test('billing migration records the chosen verification policy, stays inert, and protects already-verified businesses on activation', async () => {
   const { pg, business, account, call } = await setup()
   const before = await account()
   assert.equal(before.enabled, false)
-  assert.equal(before.trial_start_policy, null)
+  assert.equal(before.trial_start_policy, 'website_verified')
   assert.equal(before.trial_started_at, null)
   assert.equal(before.access_allowed, true)
   assert.ok(await call('widget', { p_slug: business.slug }))
-  await assert.rejects(pg.exec('update public.billing_settings set enabled=true where singleton'), /BILLING_POLICY_REQUIRED/)
-  await pg.query("update public.billing_accounts set account_created_at=now()-interval '90 days', business_created_at=now()-interval '89 days' where business_id=$1", [business.id])
-  await activate(pg, 'business_created')
+  await assert.rejects(pg.exec('update public.billing_settings set trial_start_policy=null, enabled=true where singleton'), /BILLING_POLICY_REQUIRED/)
+  await pg.query("update public.billing_accounts set first_website_verified_at=now()-interval '89 days' where business_id=$1", [business.id])
+  await pg.exec('update public.billing_settings set enabled=true where singleton')
   const after = await account()
   const settings = (await pg.query('select activated_at from public.billing_settings')).rows[0]
   assert.equal(new Date(after.trial_started_at).getTime(), new Date(settings.activated_at).getTime())
@@ -52,6 +52,35 @@ test('billing migration is inert; enabling requires an explicit policy and gives
   await assert.rejects(pg.exec("update public.billing_settings set trial_start_policy='account_created'"), /BILLING_POLICY_IMMUTABLE/)
   await pg.exec('update public.billing_settings set enabled=false; update public.billing_settings set enabled=true;')
   assert.equal((await account()).trial_ends_at, after.trial_ends_at)
+})
+
+test('the selected policy never starts on signup, website entry or scans; first successful verification starts exactly 14 days', async () => {
+  const pg = await database()
+  await pg.exec('update public.billing_settings set enabled=true where singleton')
+  const owner = await user(pg)
+  await pg.exec('set role service_role')
+  const db = rpcClient(pg)
+  const invoke = async (name, args) => {
+    const { data, error } = await db.rpc(name, args)
+    assert.equal(error, null, name)
+    return data
+  }
+  assert.equal(await invoke('my_business', { p_user: owner.id }), null)
+  const business = await invoke('create_business', { p_user: owner.id, p_email: owner.email, p_website: 'https://verifiedtrial.com.au' })
+  const account = () => invoke('billing_owner', { p_user: owner.id })
+  assert.equal((await account()).trial_start_policy, 'website_verified')
+  assert.equal((await account()).trial_started_at, null)
+  await invoke('start_scan', { p_user: owner.id, p_website: business.website })
+  assert.equal((await account()).trial_started_at, null, 'drafting answers does not consume the trial')
+  assert.equal((await account()).access_allowed, false, 'unverified public chat remains unavailable')
+  await invoke('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'button' })
+  const verified = await account()
+  assert.equal(verified.trial_started_at, verified.first_website_verified_at)
+  assert.equal(new Date(verified.trial_ends_at) - new Date(verified.trial_started_at), 14 * 86400000)
+  assert.equal(verified.access_allowed, true)
+  await invoke('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'dns' })
+  assert.equal((await account()).trial_ends_at, verified.trial_ends_at, 'a second verification cannot reset the clock')
+  await pg.exec('reset role')
 })
 
 test('verification policy permits setup, starts once on proof, and survives domain replacement without a fresh trial', async () => {

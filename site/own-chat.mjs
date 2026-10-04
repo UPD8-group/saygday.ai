@@ -96,7 +96,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes. Your first 14 days are free, and you don’t need a card to start, so you can try it on your own website first. After that, SayGday is A$30 a month.',
+    answer: 'Yes. Your first 14 days are free, and you don’t need a card to start. Your free period starts when we first verify that you own your website. After that, choose whether to subscribe for A$30 a month.',
     variants: ['Can I try it for free?', 'Is SayGday free?', 'Free trial', 'How long is the free trial?', 'Can I try before I buy?', 'What happens after the free days?', 'Do I need a credit card to start?', 'Do I need a card to sign up?'],
   },
   {

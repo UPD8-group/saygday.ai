@@ -1,5 +1,5 @@
--- Server-owned billing. This migration is deliberately inert until the owner
--- chooses a trial start policy and an operator enables billing_settings.
+-- Server-owned billing. The owner chose first successful website ownership
+-- verification on 4 October 2026. Rollout remains inert until configured and enabled.
 -- Never provision Stripe objects or expire an existing business in a migration.
 begin;
 
@@ -15,7 +15,7 @@ create table public.billing_settings (
   activated_at timestamptz,
   check (not enabled or (trial_start_policy is not null and activated_at is not null))
 );
-insert into public.billing_settings(singleton) values (true);
+insert into public.billing_settings(singleton, trial_start_policy) values (true, 'website_verified');
 
 create table public.billing_accounts (
   business_id uuid primary key references public.businesses(id) on delete cascade,

@@ -1,7 +1,8 @@
 # Going live
 
 The application setup is below. Stripe billing has a separate staged rollout
-in [billing.md](billing.md), including one trial-start decision before activation.
+in [billing.md](billing.md). The owner chose first successful website ownership
+verification as the trial start on 4 October 2026.
 
 ## 1. The database (Supabase, Sydney)
 
@@ -73,9 +74,13 @@ test and production contexts. Do not use `VITE_` for any Stripe setting.
 port, path, query or fragment. It supplies fixed Checkout/portal return URLs;
 the request Host header and browser input are never used for redirects.
 
-The database starts with `billing_settings.enabled = false` and no trial-start
-policy. Existing service continues while it is disabled. Configuration alone
-does not enable charging or decide when the free period starts. The runbook
+The database starts with `billing_settings.enabled = false` and
+`trial_start_policy = 'website_verified'`. Existing service continues while
+it is disabled. After activation, the 14 days begin at first successful website
+ownership verification; signup, adding a website and scans do not start them.
+Already-verified businesses receive a full 14 days from activation. Retry or
+domain changes never reset the original verification or trial dates.
+Configuration alone does not enable charging. The runbook
 contains the exact activation procedure, webhook event list, reconciliation
 limits, smoke checks and paid-subscription rollback considerations. Missing
 Stripe configuration after activation disables upgrades; it does not grant

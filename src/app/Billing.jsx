@@ -49,7 +49,7 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
 
   return <section className="card billing" id="billing" aria-labelledby="billing-title">
     <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">A$30 <span>/ month AUD</span></span></div>
-    <p className="small">First 14 days free. No card required to start. You choose whether to subscribe.</p>
+    <p className="small">First 14 days free. No card required to start. Your free period starts when we first verify that you own your website. You choose whether to subscribe.</p>
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>
     </div>

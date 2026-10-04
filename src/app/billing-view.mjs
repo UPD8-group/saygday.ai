@@ -21,7 +21,7 @@ export function billingView(value) {
   const pause = allowed ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
     setup_pending: ['Billing is being set up', 'Paid upgrades will be available here once billing is ready. No payment is taken automatically.'],
-    trial_not_started: ['Your free period hasn’t started', 'Your first 14 days are free. No card is required to start.'],
+    trial_not_started: ['Your free period hasn’t started', 'Your first 14 days are free. Your free period starts when we first verify that you own your website. No card is required to start.'],
     trial: ['Your free period is running', `Your 14 free days${trialEnd ? ` end on ${trialEnd}` : ' are in progress'}.${trialPlan}`],
     trial_ending: ['Your free period is nearly over', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is nearly over'}.${subscribedTrial ? trialPlan : ' Upgrade will be available when it ends, so you keep all of your free time. No payment is taken automatically.'}`],
     trial_expired: ['Your free period has ended', 'Upgrade to keep your customer chat running for A$30 a month (AUD).'],

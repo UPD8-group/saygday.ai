@@ -10,31 +10,26 @@ current approved answers, word for word. Website scans remain the only AI
 operation. A paused subscription hides the public chat; the owner can still
 sign in, read and edit saved information, and manage billing.
 
-## One product decision before activation
+## Trial starts when website ownership is verified
 
-The existing source and approved public copy do not say when the 14-day clock
-starts. Select exactly one event before enabling billing:
+**Owner decision, 4 October 2026:** the 14-day clock begins at the first
+successful verification that the business owns its website. Signing up,
+adding a website and scanning it do not start the clock. No card is required.
+The stored policy is `website_verified`.
 
-| Event | What the owner experiences |
-|---|---|
-| First account creation | Time spent before adding a website counts towards the 14 days. |
-| First business creation | The clock starts when the owner submits their first website. |
-| First successful website verification | Time starts once SayGday has checked the website belongs to the business. |
+The billing migration seeds that policy but starts disabled, so applying it
+cannot begin a trial, take payment, or switch off an existing chat. Keep
+billing disabled until Stripe configuration and rollout testing are complete.
 
-There is no default. Do not infer a decision from `businesses.created_at`,
-the public “Start your free 14 days” button, or an existing verification date.
-The billing migration starts disabled so applying it cannot begin a trial,
-take payment, or switch off an existing chat. Keep billing disabled until
-Stripe configuration, testing and this choice are complete.
+Businesses already verified before billing activation receive a full 14 days
+from activation. An unverified business starts its full period when its
+website is first verified. This migration safeguard prevents a historical
+verification date from immediately expiring existing service.
 
-Existing businesses whose chosen event has already happened receive a full
-14 days from billing activation. A business still waiting for that event
-(for example, an unverified website under the verification policy) starts
-its full period when the event happens. This is a migration safeguard:
-historical creation or verification dates must not immediately expire their
-service. New businesses follow the chosen event.
-Repeated sign-in, rescanning, changing a website or verifying it again must
-not create another free period. Stored trial dates use the server clock;
+The original first-verification timestamp is retained after retries and
+website changes. A replacement website must prove ownership again, but
+neither that check nor repeated sign-in or rescanning creates another free
+period. Once started, trial dates are immutable and use the server clock;
 changing a browser's date cannot extend access.
 
 ## Stripe account and fixed price
@@ -97,22 +92,15 @@ the owner from their verified bearer token and looks up the matching business.
 Only server-owned customer mappings can select a Stripe account. Checkout
 and portal URLs must resolve to the expected Stripe host.
 
-After recording the product choice and finishing the isolated test setup,
-an operator can activate billing in the Supabase SQL editor or another trusted
-database session. This is deliberately **not** a browser setting. Replace the
-placeholder with exactly one policy from the table; the placeholder is invalid
-SQL policy data and cannot accidentally pick a default.
-
-| Chosen event | `trial_start_policy` |
-|---|---|
-| Account creation | `account_created` |
-| Business creation | `business_created` |
-| First website verification | `website_verified` |
+After finishing Stripe configuration and the isolated rollout tests, an
+operator can activate billing in the Supabase SQL editor or another trusted
+database session. This is deliberately **not** a browser setting. The
+activation uses the owner's recorded first-verification policy:
 
 ```sql
--- Run only after the owner has selected a policy and rollout checks pass.
+-- Run only after Stripe configuration and rollout checks pass.
 update public.billing_settings
-set trial_start_policy = '<chosen policy>', enabled = true
+set trial_start_policy = 'website_verified', enabled = true
 where singleton = true
 returning enabled, trial_start_policy, activated_at;
 ```
@@ -152,7 +140,7 @@ through the portal during this time.
 An owner who never opts in is never charged. At trial expiry their public chat
 pauses until a verified paid subscription is active. The dashboard and saved
 answers/enquiries remain accessible. Website rescans require entitlement once
-the trial has begun; setup can still scan before a verification-based trial.
+the trial has begun; setup can still scan before first website verification.
 
 Checkout persists its operation before calling Stripe, uses stable provider
 idempotency keys and serialises concurrent work with a database lease. A lost
@@ -247,15 +235,14 @@ fresh isolated database, run all migrations in filename order.
 3. Configure the test Price, portal, function environment and webhook. Deploy
    this branch's functions and frontend together. Confirm existing chats and
    no-card onboarding continue working while rollout is disabled.
-4. Activate the isolated test database to exercise each supported trial-start
-   policy and the matrix below. Use a fresh test database for each immutable
-   policy. Confirm the activation time and that existing businesses receive
-   their complete 14-day period. Record the owner's selected policy before
-   the separate production activation; tests do not select it on their behalf.
+4. Activate the isolated test database with `website_verified` and exercise
+   the matrix below. Confirm that signup, website addition and scans leave
+   the trial unstarted, first verification starts it once, and already-verified
+   businesses receive a complete 14-day period from activation.
 5. Repeat configuration using live-mode resources on the existing `saygdayai`
    Netlify project. Apply migrations before deploying code that needs them.
    Keep live activation separate from the code deployment and disabled until
-   the isolated test checks pass and the trial-start choice is recorded.
+   Stripe configuration and the isolated test checks pass.
 6. Verify production webhook delivery, scheduled reconciliation, Settings,
    portal return and a signed-in account's billing state. Do not run a real
    paid Checkout just to test without the payer's explicit agreement.
@@ -272,8 +259,8 @@ documented declined/authentication-required cards for those paths.
 
 | Check | Expected result |
 |---|---|
-| New owner, no card | Normal setup and the chosen 14-day trial start; no unsolicited Stripe customer or charge. |
-| Existing business at activation | A complete new 14-day window; no retroactive charge. |
+| New owner, no card | Signup, website addition and scans do not start the trial; first successful website verification starts 14 days, with no unsolicited Stripe customer or charge. |
+| Existing business at activation | Already-verified businesses receive a complete 14-day window; unverified businesses wait for verification. No retroactive charge. |
 | Double-click Upgrade / repeat request | One reusable Checkout attempt and no second subscription. |
 | Upgrade before trial expiry | Every remaining free day is preserved; no replacement 14-day period. |
 | Upgrade after expiry | Checkout states A$30/month AUD; public access resumes only after server verification. |
@@ -288,7 +275,7 @@ documented declined/authentication-required cards for those paths.
 | Stripe unavailable / webhook delivery delayed | No access is created from an unverified return; existing access follows the bounded freshness rule. |
 | Database unavailable | Public chat and paid state fail closed; dashboard shows that status cannot be checked. |
 | Trial or paid-through boundary | Public answers, answer counts and new enquiries stop when entitlement ends; owner data remains readable. |
-| Website changed / second verification | Website ownership must be re-established; trial dates do not reset. |
+| Website changed / second verification | Website ownership must be re-established; the original first-verification timestamp and trial dates do not reset. |
 | Cross-owner request | A signed-in owner cannot inspect, upgrade or open a portal for another business. |
 | Already-open visitor chat | The next answer refresh cannot reuse old approved answers after billing access is lost. |
 
@@ -304,7 +291,7 @@ smoke checks:
 
 | Test file | Boundary exercised |
 |---|---|
-| `test/billing-database.test.mjs` | Real migrations in PGlite: inert rollout, all trial policies, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
+| `test/billing-database.test.mjs` | Real migrations in PGlite: inert rollout, first-verification trial start, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
 | `test/billing-server.test.mjs` | Real Stripe SDK signed fixture generation and verification, with mocked provider API responses and real PGlite state: tampered/stale signatures, ownership, retries, event replay/order, concurrency, exact pricing and bounded outage recovery. |
 | `test/billing-ui.test.mjs` | Dashboard state copy, server capability flags, safe redirects, refresh behaviour and return-query handling. |
 | Existing matcher, widget and server suites | Approved answers remain exact; failed refresh cannot reuse stale answers; ownership and enquiry handling remain enforced. |
