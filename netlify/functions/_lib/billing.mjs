@@ -2,7 +2,7 @@
 // Database account leases fence every writer; webhook receipts and snapshots
 // commit together. Events request a fresh read, never apply an old event body.
 import Stripe from 'stripe'
-import { randomUUID } from 'node:crypto'
+import { randomInt, randomUUID } from 'node:crypto'
 import { call, env, HttpError } from './runtime.mjs'
 
 export const STRIPE_API_VERSION = '2026-09-30.endive'
@@ -14,7 +14,8 @@ const SUPPORTED_EVENTS = new Set(['checkout.session.completed', 'checkout.sessio
   'customer.subscription.paused', 'customer.subscription.resumed', 'customer.subscription.trial_will_end', 'invoice.paid',
   'invoice.payment_succeeded', 'invoice.payment_failed', 'invoice.payment_action_required', 'invoice.voided', 'invoice.marked_uncollectible'])
 const seconds = value => Math.floor(Date.parse(value || '') / 1000)
-const iso = value => Number.isFinite(value) && value > 0 ? new Date(value * 1000).toISOString() : null
+const stripeTimestamp = value => Number.isSafeInteger(value) && value > 0 && Number.isFinite(new Date(value * 1000).getTime())
+const iso = value => stripeTimestamp(value) ? new Date(value * 1000).toISOString() : null
 const objectId = value => typeof value === 'string' ? value : value?.id
 const unavailable = () => new HttpError(503, 'Billing is temporarily unavailable. Please try again shortly.', 'BILLING_UNAVAILABLE')
 const busy = () => new HttpError(409, 'We’re updating your billing. Please try again in a moment.', 'BILLING_BUSY')
@@ -119,12 +120,20 @@ export async function subscriptionSnapshot(stripe, account, configuration) {
   const paid = invoice && typeof invoice === 'object' && invoice.status === 'paid' && invoice.currency === 'aud'
     && invoice.amount_paid === 3000 && invoice.total === 3000
   const trialMatches = sub.status !== 'trialing' || (Number.isFinite(seconds(account.trial_ends_at)) && sub.trial_end === seconds(account.trial_ends_at))
+  // The portal can set cancel_at with cancel_at_period_end=false (including
+  // flexible subscriptions). Keep the earlier of that date and paid time;
+  // a cancellation date never supplies a missing paid period or extends it.
+  const hasCancelAt = sub.cancel_at != null
+  const validCancelAt = !hasCancelAt || stripeTimestamp(sub.cancel_at)
+  const cancelAt = hasCancelAt && validCancelAt ? sub.cancel_at : null
+  const periodEnd = stripeTimestamp(item?.current_period_end) ? item.current_period_end : null
+  const accessEnd = periodEnd === null || !validCancelAt ? null : cancelAt === null ? periodEnd : Math.min(periodEnd, cancelAt)
   const valid = live.length <= 1 && sub.items?.data?.length === 1 && !sub.items?.has_more && item.quantity === 1
     && exactPrice(item.price, configuration) && sub.collection_method === 'charge_automatically'
     && !sub.pause_collection && !sub.pending_update && !sub.discounts?.length && !sub.default_tax_rates?.length
-    && !item.discounts?.length && !item.tax_rates?.length && trialMatches && (sub.status !== 'active' || paid)
+    && !item.discounts?.length && !item.tax_rates?.length && trialMatches && validCancelAt && periodEnd !== null && (sub.status !== 'active' || paid)
   return { stripe_subscription_id: sub.id, subscription_status: KNOWN_STATUS.has(sub.status) ? sub.status : 'unpaid',
-    price_valid: !!valid, current_period_end: iso(item?.current_period_end), cancel_at_period_end: !!sub.cancel_at_period_end, synced_at: true }
+    price_valid: !!valid, current_period_end: iso(accessEnd), cancel_at_period_end: sub.cancel_at_period_end === true || cancelAt !== null, synced_at: true }
 }
 
 export async function reconcileAccount({ db, account, stripe, configuration = billingConfiguration(), event = null }) {
@@ -230,7 +239,12 @@ export async function billingCheckout({ db, user, configuration = billingConfigu
         throw new HttpError(409, 'Your free time is still running. Choose the monthly plan once it ends.', 'TRIAL_ENDING')
       const key = `sg-checkout-${randomUUID()}`
       const params = { mode: 'subscription', customer: account.stripe_customer_id,
-        line_items: [{ price: configuration.priceId, quantity: 1 }], payment_method_types: ['card'],
+        line_items: [{ price: configuration.priceId, quantity: 1 }],
+        // Account defaults may enable Stripe's merchant-of-record service,
+        // which requires localised prices and tax. Keep this fixed AUD offer
+        // in direct billing; payment methods follow the Dashboard settings.
+        managed_payments: { enabled: false },
+        integration_identifier: `saygday-monthly-${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
         allow_promotion_codes: false, automatic_tax: { enabled: false }, adaptive_pricing: { enabled: false },
         client_reference_id: account.business_id, metadata: { saygday_checkout_key: key },
         success_url: `${configuration.publicUrl}/app/settings?checkout=success`, cancel_url: `${configuration.publicUrl}/app/settings?checkout=canceled`,

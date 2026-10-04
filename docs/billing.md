@@ -10,6 +10,9 @@ current approved answers, word for word. Website scans remain the only AI
 operation. A paused subscription hides the public chat; the owner can still
 sign in, read and edit saved information, and manage billing.
 
+For the configured sandbox resources, connected checks and remaining setup,
+see the [4 October 2026 sandbox record](billing-sandbox-2026-10-04.md).
+
 ## Trial starts when website ownership is verified
 
 **Owner decision, 4 October 2026:** the 14-day clock begins at the first
@@ -56,12 +59,35 @@ quantity, customer ID, subscription ID or return URL supplied by the browser
 as authority. Do not edit the price or portal configuration to add taxes,
 discounts or a second plan without implementing and testing that change.
 
+Each Checkout request explicitly sets `managed_payments.enabled=false`.
+Some Stripe accounts enable Managed Payments by default; that merchant-of-record
+service requires its own tax and localised pricing, which conflicts with this
+direct A$30 AUD offer. The per-session opt-out preserves the offer without
+changing account-wide settings. See Stripe's
+[Managed Payments Checkout documentation](https://docs.stripe.com/payments/managed-payments/update-checkout).
+
+Checkout uses dynamic payment methods from the Stripe Dashboard; it does not
+hardcode `payment_method_types`. Configure the methods appropriate for the
+business there. Delayed methods do not grant access on Checkout completion:
+signed completion, asynchronous success/failure and invoice events always
+reconcile the current subscription and its paid invoice. Each saved Checkout
+operation also includes an integration label ending in eight random letters;
+retries reuse the label and all other original parameters with the same
+idempotency key.
+
 Create a dedicated Stripe customer portal configuration. Enable payment
 method updates, invoice history and cancellation **at the end of the billing
 period**, with cancellation proration set to `none`. Disable plan changes,
 quantity changes, customer detail updates, subscription pausing and
 cancellation retention discounts. An owner can cancel future renewal while keeping any remaining
 paid access. Removing the widget code does not cancel a subscription.
+
+Stripe can represent a portal cancellation with an explicit `cancel_at`
+timestamp while `cancel_at_period_end` remains false, including flexible
+subscriptions. Reconciliation recognises either form as scheduled cancellation.
+Stored access ends at the earlier of the paid item's period end and that
+timestamp. A cancellation date never extends paid time or substitutes for a
+missing paid period; malformed dates fail closed.
 
 ## Configuration and activation
 

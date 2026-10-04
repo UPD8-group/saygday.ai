@@ -24,7 +24,7 @@ function fakeStripe() {
   const calls = [], sessions = [], customerResults = new Map(), sessionResults = new Map()
   const sdk = new Stripe('sk_test_example', { apiVersion: STRIPE_API_VERSION })
   const state = { subscriptions: [], failList: false, loseSession: false, loseCustomer: false, sessionPages: false, subscriptionPages: false,
-    price: price(), portal: portal(), calls, sessions }
+    managedPaymentsDefault: false, failCheckoutBeforeCreate: false, price: price(), portal: portal(), calls, sessions }
   state.client = {
     webhooks: sdk.webhooks,
     prices: { retrieve: async id => { calls.push(['price', id]); return state.price } },
@@ -41,6 +41,9 @@ function fakeStripe() {
       retrieve: async id => { calls.push(['retrieve', id]); return sessions.find(session => session.id === id) },
       create: async (params, options) => {
         calls.push(['checkout', structuredClone(params), options])
+        if ((params.managed_payments?.enabled ?? state.managedPaymentsDefault) && params.adaptive_pricing)
+          throw Error('adaptive_pricing is not supported with Managed Payments; set managed_payments[enabled]=false')
+        if (state.failCheckoutBeforeCreate) { state.failCheckoutBeforeCreate = false; throw Error('Checkout unavailable before creation') }
         if (!sessionResults.has(options.idempotencyKey)) {
           const session = { id: `cs_test_${sessionResults.size}`, mode: 'subscription', status: 'open', customer: params.customer,
             livemode: false, expires_at: params.expires_at, metadata: params.metadata, url: 'https://checkout.stripe.com/c/pay/example' }
@@ -115,7 +118,10 @@ test('Checkout is authenticated and ignores every client customer, price, user, 
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
   assert.equal(params.success_url, 'https://saygday.ai/app/settings?checkout=success')
   assert.equal(params.subscription_data.trial_end, Math.floor(Date.parse((await s.account()).trial_ends_at) / 1000))
-  assert.equal(params.allow_promotion_codes, false); assert.deepEqual(params.payment_method_types, ['card'])
+  assert.equal(params.allow_promotion_codes, false)
+  assert.equal('payment_method_types' in params, false, 'Stripe dynamically selects eligible Dashboard-enabled methods')
+  assert.deepEqual(params.managed_payments, { enabled: false })
+  assert.match(params.integration_identifier, /^saygday-monthly-[a-z]{8}$/)
   await refused(ownerAction({ request: new Request('https://saygday.ai/api/app'), db: s.db, body: { action: 'billingCheckout' } }), 'AUTH_REQUIRED')
 })
 
@@ -151,6 +157,54 @@ test('lost customer and Checkout responses recover durable operations without du
   assert.equal(customerCalls[0][2].idempotencyKey, customerCalls[1][2].idempotencyKey)
   assert.equal(s.stripe.calls.filter(([name]) => name === 'checkout').length, 1, 'lookup recovers the session even without its response')
   assert.equal((await s.account()).stripe_customer_id, 'cus_owner')
+})
+
+test('Checkout overrides Managed Payments defaults while retaining the exact direct AUD monthly offer', async () => {
+  const s = await setup({ expired: true, customer: true })
+  s.stripe.managedPaymentsDefault = true
+  await billingCheckout(s.args)
+  const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
+  assert.deepEqual(params.managed_payments, { enabled: false })
+  assert.deepEqual(params.adaptive_pricing, { enabled: false })
+  assert.deepEqual(params.automatic_tax, { enabled: false })
+  assert.deepEqual(params.line_items, [{ price: configuration.priceId, quantity: 1 }])
+  assert.equal('payment_method_types' in params, false)
+  assert.equal(s.stripe.managedPaymentsDefault, true, 'the per-session opt-out does not change account defaults')
+})
+
+test('the Checkout integration label and Managed Payments opt-out survive retries with identical idempotency parameters', async () => {
+  const s = await setup({ expired: true, customer: true })
+  s.stripe.failCheckoutBeforeCreate = true
+  await assert.rejects(billingCheckout(s.args), /Checkout unavailable before creation/)
+  const saved = (await s.account()).checkout
+  assert.match(saved.params.integration_identifier, /^saygday-monthly-[a-z]{8}$/)
+  assert.deepEqual(saved.params.managed_payments, { enabled: false })
+  await billingCheckout(s.args)
+  const attempts = s.stripe.calls.filter(([name]) => name === 'checkout')
+  assert.equal(attempts.length, 2)
+  assert.deepEqual(attempts[1], attempts[0], 'the integration identifier is generated once and saved before the first request')
+  assert.equal(s.stripe.sessions.length, 1)
+})
+
+test('dynamic delayed-payment events cannot grant access until Stripe confirms the exact paid invoice', async () => {
+  const s = await setup({ expired: true, customer: true })
+  s.stripe.subscriptions = [subscription({ latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
+  for (const [id, type, payment_status] of [
+    ['evt_checkoutPending', 'checkout.session.completed', 'unpaid'],
+    ['evt_asyncEarly', 'checkout.session.async_payment_succeeded', 'paid'],
+  ]) {
+    const payload = event({ id, type, data: { object: { customer: 'cus_owner', payment_status } } })
+    await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, payload) })
+    assert.equal(publicBilling(await s.account(), configuration).accessAllowed, false, 'event claims cannot replace the current invoice read')
+  }
+  s.stripe.subscriptions = [subscription()]
+  const paid = event({ id: 'evt_asyncPaid', type: 'checkout.session.async_payment_succeeded', data: { object: { customer: 'cus_owner', payment_status: 'paid' } } })
+  await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, paid) })
+  assert.equal(publicBilling(await s.account(), configuration).accessAllowed, true)
+  s.stripe.subscriptions = [subscription({ status: 'past_due', latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
+  const failed = event({ id: 'evt_asyncFailed', type: 'checkout.session.async_payment_failed', data: { object: { customer: 'cus_owner', payment_status: 'unpaid' } } })
+  await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, failed) })
+  assert.equal(publicBilling(await s.account(), configuration).accessAllowed, false)
 })
 
 test('unfinished customer creation older than Stripe idempotency retention blocks instead of making another customer', async () => {
@@ -214,6 +268,63 @@ test('snapshot validates paid invoice, exact quantity, price, currency, period, 
   assert.equal((await subscriptionSnapshot(stripe.client, account, configuration)).price_valid, false)
   stripe.subscriptionPages = true
   await refused(subscriptionSnapshot(stripe.client, account, configuration), 'BILLING_UNAVAILABLE')
+})
+
+test('flexible portal cancel_at is a scheduled cancellation even when cancel_at_period_end is false', async () => {
+  const stripe = fakeStripe(), account = { enabled: true, stripe_customer_id: 'cus_owner' }
+  // Shape observed in the connected sandbox portal: paid monthly service,
+  // active status, explicit cancellation timestamp, legacy boolean false.
+  const periodEnd = 1793777402, clock = periodEnd - 86400
+  stripe.subscriptions = [subscription({ billing_mode: { type: 'flexible' }, cancel_at_period_end: false, cancel_at: periodEnd,
+    items: { data: [{ quantity: 1, price: price(), current_period_end: periodEnd }] } })]
+  const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+  assert.equal(snapshot.subscription_status, 'active')
+  assert.equal(snapshot.cancel_at_period_end, true)
+  assert.equal(snapshot.current_period_end, new Date(periodEnd * 1000).toISOString())
+  const billing = publicBilling({ ...account, ...snapshot, synced_at: new Date(clock * 1000).toISOString() }, configuration, clock * 1000)
+  assert.equal(billing.state, 'canceling')
+  assert.equal(billing.cancelAtPeriodEnd, true)
+  assert.equal(billing.accessAllowed, true)
+})
+
+test('explicit cancellation caps paid access at the earlier date and never extends an ended period', async () => {
+  const stripe = fakeStripe(), clock = now(), periodEnd = clock + 86400
+  const account = { enabled: true, stripe_customer_id: 'cus_owner', synced_at: new Date(clock * 1000).toISOString() }
+  for (const [cancelAt, expectedEnd, allowed] of [[clock + 3600, clock + 3600, true], [clock + 172800, periodEnd, true], [clock - 1, clock - 1, false]]) {
+    stripe.subscriptions = [subscription({ cancel_at: cancelAt, cancel_at_period_end: false,
+      items: { data: [{ quantity: 1, price: price(), current_period_end: periodEnd }] } })]
+    const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+    assert.equal(snapshot.current_period_end, new Date(expectedEnd * 1000).toISOString())
+    assert.equal(snapshot.cancel_at_period_end, true)
+    assert.equal(publicBilling({ ...account, ...snapshot, synced_at: account.synced_at }, configuration, clock * 1000).accessAllowed, allowed)
+  }
+  stripe.subscriptions = [subscription({ cancel_at: periodEnd, items: { data: [{ quantity: 1, price: price(), current_period_end: clock - 1 }] } })]
+  const expired = await subscriptionSnapshot(stripe.client, account, configuration)
+  assert.equal(publicBilling({ ...account, ...expired, synced_at: account.synced_at }, configuration, clock * 1000).accessAllowed, false)
+})
+
+test('malformed cancellation dates and missing paid periods fail closed without throwing or inventing entitlement', async () => {
+  const stripe = fakeStripe(), clock = now(), periodEnd = clock + 86400
+  const account = { enabled: true, stripe_customer_id: 'cus_owner' }
+  for (const cancelAt of [String(periodEnd), 0, -1, false, {}, [], NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER]) {
+    stripe.subscriptions = [subscription({ cancel_at: cancelAt })]
+    const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+    assert.equal(snapshot.price_valid, false, `cancel_at=${String(cancelAt)}`)
+    assert.equal(snapshot.current_period_end, null)
+    assert.equal(publicBilling({ ...account, ...snapshot, synced_at: new Date(clock * 1000).toISOString() }, configuration, clock * 1000).accessAllowed, false)
+  }
+  for (const paidEnd of [undefined, null, String(periodEnd), 0, Infinity, Number.MAX_SAFE_INTEGER]) {
+    stripe.subscriptions = [subscription({ cancel_at: periodEnd, items: { data: [{ quantity: 1, price: price(), current_period_end: paidEnd }] } })]
+    const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+    assert.equal(snapshot.current_period_end, null, 'a valid cancellation date cannot stand in for missing paid time')
+    assert.equal(snapshot.price_valid, false)
+  }
+  for (const cancelAt of [undefined, null]) {
+    stripe.subscriptions = [subscription({ cancel_at: cancelAt, cancel_at_period_end: true })]
+    const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+    assert.equal(snapshot.price_valid, true)
+    assert.equal(snapshot.cancel_at_period_end, true, 'classic period-end cancellation remains supported')
+  }
 })
 
 test('a manually extended Stripe trial cannot extend local access or masquerade as the agreed upgrade', async () => {
