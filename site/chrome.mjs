@@ -122,6 +122,15 @@ export function foot() {
       <nav class="foot__links" aria-label="More from SayGday"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/login">Log in</a></nav>
     </div>
     <p class="foot__country">SayGday.ai acknowledges the Traditional Owners of the lands on which we work. We pay our respects to Elders past and present. We recognise their connection to our land, and we thank them for their contribution to our industry.</p>
+    <div class="foot__credit">
+      <a class="oo-credit" href="https://oo.studio/" target="_blank" rel="noopener noreferrer" aria-label="Site by oo.studio (opens in a new tab)">
+        <span>Site by</span><strong>oo.studio</strong>
+        <svg width="24" height="16" viewBox="0 0 36 24" aria-hidden="true" focusable="false">
+          <path class="oo-loop" pathLength="100" d="M8 12 C8 7.5, 14.5 7.5, 18 12 C21.5 16.5, 28 16.5, 28 12 C28 7.5, 21.5 7.5, 18 12 C14.5 16.5, 8 16.5, 8 12 Z"/>
+          <path class="oo-light" pathLength="100" d="M8 12 C8 7.5, 14.5 7.5, 18 12 C21.5 16.5, 28 16.5, 28 12 C28 7.5, 21.5 7.5, 18 12 C14.5 16.5, 8 16.5, 8 12 Z"/>
+        </svg>
+      </a>
+    </div>
   </div>
 </footer>
 ${OWN_BUTTON}`
