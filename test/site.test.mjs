@@ -78,6 +78,7 @@ test('every link and photo on the site goes somewhere real', async () => {
     const html = await built(page)
     for (const [, href] of html.matchAll(/href="([^"]*)"/g)) {
       if (href === '#main' || href.startsWith('/favicon') || href.startsWith('/src/') || href.startsWith('https://fonts.')) continue
+      if (href.startsWith('/site/')) { assert.ok(await exists(`public${href}`), `${page.file}: ${href} (preloaded) exists`); continue }
       if (href.startsWith('https://')) { assert.match(href, /^https:\/\/unsplash\.com\//, `${page.file}: ${href} is a photo credit`); continue }
       assert.ok(addresses.has(href), `${page.file}: ${href} is one of the site’s pages`)
     }
@@ -309,4 +310,54 @@ test('on a phone each page is its short version first: a big button on, and Lear
   const script = await read('src/site/site.js')
   assert.match(script, /label\.textContent = open \? 'Show less' : 'Learn more'/)
   assert.match(script, /for \(const body of bodies\) body\.classList\.toggle\('is-open', open\)/)
+})
+
+// A phone gets a phone-sized photo (owner, 4 October 2026, on his phone:
+// "the images are loading way too slow… compress them all so they load
+// faster on mobile"). Every photo has an 1100 px copy beside it, each photo
+// element names both, the stylesheet reads the phone copy up to 600 px wide,
+// the head preloads the right one, and Netlify caches them for a week.
+const webpSize = buffer => {
+  const tag = buffer.toString('ascii', 12, 16)
+  if (tag === 'VP8 ') return { width: buffer.readUInt16LE(26) & 0x3fff, height: buffer.readUInt16LE(28) & 0x3fff }
+  if (tag === 'VP8L') { const bits = buffer.readUInt32LE(21); return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 } }
+  if (tag === 'VP8X') return { width: buffer.readUIntLE(24, 3) + 1, height: buffer.readUIntLE(27, 3) + 1 }
+  throw new Error('not a webp')
+}
+test('every photo has a phone copy, and a phone is sent it', async () => {
+  const PHONE_WIDTH = 1100
+  assert.match(await read('scripts/site-photos.mjs'), new RegExp(`export const PHONE_WIDTH = ${PHONE_WIDTH}\\b`), 'the script writes the width the site expects')
+  const photos = (await readdir(new URL('public/site/', root))).filter(file => file.endsWith('.webp'))
+  const originals = photos.filter(file => !file.endsWith('-phone.webp'))
+  assert.ok(originals.length >= 13, 'the photos are there')
+  for (const file of originals) {
+    const phone = file.replace(/\.webp$/, '-phone.webp')
+    assert.ok(photos.includes(phone), `${file} has its phone copy (node scripts/site-photos.mjs)`)
+    const [big, small] = await Promise.all([readFile(new URL(`public/site/${file}`, root)), readFile(new URL(`public/site/${phone}`, root))])
+    assert.equal(webpSize(small).width, Math.min(PHONE_WIDTH, webpSize(big).width), `${phone} is ${PHONE_WIDTH} px wide`)
+    assert.ok(small.length < big.length * 0.7, `${phone} is lighter than ${file}`)
+  }
+  for (const file of photos.filter(file => file.endsWith('-phone.webp'))) assert.ok(originals.includes(file.replace(/-phone\.webp$/, '.webp')), `${file} has an original`)
+  let namedPhotos = 0
+  for (const page of ALL) {
+    const html = await built(page)
+    for (const [, wide] of html.matchAll(/--photo-wide: url\('\/site\/([a-z-]+)\.webp'\)/g)) {
+      namedPhotos++
+      assert.ok(originals.includes(`${wide}.webp`), `${page.file}: /site/${wide}.webp exists`)
+      assert.match(html, new RegExp(`--photo-wide: url\\('/site/${wide}\\.webp'\\); --photo-phone: url\\('/site/${wide}-phone\\.webp'\\)`), `${page.file} names the phone copy beside the original`)
+      assert.match(html, new RegExp(`<link rel="preload" as="image" href="/site/${wide}-phone\\.webp" media="\\(max-width: 600px\\)" fetchpriority="high">\\n<link rel="preload" as="image" href="/site/${wide}\\.webp" media="\\(min-width: 601px\\)" fetchpriority="high">`), `${page.file} preloads the right copy from the head`)
+      assert.ok(html.indexOf('rel="preload"') < html.indexOf('<title>'), `${page.file}: the preload sits before the title, with the first requests`)
+    }
+    assert.doesNotMatch(html, /style="[^"]*(?:--photo:|background-image: url\('\/site\/)/, `${page.file}: no photo element bypasses the two copies`)
+  }
+  assert.equal(namedPhotos, 13, 'the front page, the eight pages on the way and the rest each open on a named photo')
+  const story = await built(named('story'))
+  assert.match(story, /<picture><source media="\(max-width: 600px\)" srcset="\/site\/story-james-luna-stormi-phone\.webp"><img src="\/site\/story-james-luna-stormi\.webp"/, 'the Story photo, an <img>, has its phone source')
+  const css = await read('src/site/site.css')
+  assert.match(css, /^\.hero__photo, \.photo-head__img \{ --photo: var\(--photo-wide\); \}$/m, 'wide screens read the original')
+  assert.match(css, /^\.photo-head__img:not\(\.photo-head__img--lift\) \{ background-image: var\(--photo\); \}$/m, 'the plain photo heads draw it')
+  assert.match(css, /@media \(max-width: 600px\) \{\n  \.hero__photo, \.photo-head__img \{ --photo: var\(--photo-phone, var\(--photo-wide\)\); \}\n\}/, 'a phone reads the phone copy, or the original when there is none')
+  assert.doesNotMatch(css, /--photo: url\(/, 'no photo is named in the stylesheet; each page names its own')
+  assert.match(await read('netlify.toml'), /\[\[headers\]\]\n  for = "\/site\/\*"\n  \[headers\.values\]\n    Cache-Control = "public, max-age=604800"/, 'a phone keeps the photos for a week')
+  assert.match(await read('package.json'), /"sharp": "\d/, 'the script’s encoder is a dev dependency')
 })
