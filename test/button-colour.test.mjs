@@ -55,7 +55,7 @@ async function renderWidget(config) {
     return node
   }
   const document = { body: createElement('body'), readyState: 'complete', createElement, addEventListener() {}, currentScript: { src: 'https://saygday.ai/widget.js', getAttribute: () => 'test-business', hasAttribute: () => false } }
-  vm.runInNewContext(await readFile(new URL('../public/widget.js', import.meta.url), 'utf8'), { document, window: { addEventListener() {} }, URL, location: { origin: 'https://test.com.au' }, fetch: async () => ({ ok: true, json: async () => config }), console })
+  vm.runInNewContext(await readFile(new URL('../public/widget.js', import.meta.url), 'utf8'), { document, window: { addEventListener() {}, setTimeout() { return 1 }, clearTimeout() {} }, URL, location: { origin: 'https://test.com.au' }, fetch: async () => ({ ok: true, json: async () => config }), console })
   await new Promise(resolve => setImmediate(resolve))
   return elements.find(node => node.className === 'sg-button')
 }

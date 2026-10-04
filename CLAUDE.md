@@ -150,9 +150,12 @@ settings, which is how sign-in broke on saygday.ai before the move.
   business's; `site/own-chat.mjs` is where they started (57, every fact one
   the site already states) and `scripts/own-chat-sql.mjs` loaded them
   without ever overwriting an edited answer. Every page carries the same line
-  a business pastes (`OWN_BUTTON` in site/chrome.mjs, with `data-pulse`: a gold
-  ring until the chat is first opened that visit, never under reduced motion),
-  so saygday.ai passes the ownership check every business does
+  a business pastes (`OWN_BUTTON` in site/chrome.mjs). All buttons now have a
+  faint ring for three pulses at the start of a visit, stopping immediately
+  when opened, never under reduced motion. Simple buttons use their saved
+  colour; animal buttons keep their artwork and use a gold ring. Existing
+  embed code works unchanged; `data-pulse="off"` disables the introduction.
+  SayGday.ai passes the ownership check every business does
   (`scripts/own-chat-verify.mjs` runs it; the button can't trigger it itself,
   because a same-site request carries no Origin, so widget.js also names the
   page it's on with `site=`, which the server reads only when there's no
