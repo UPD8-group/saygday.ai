@@ -178,6 +178,21 @@ settings, which is how sign-in broke on saygday.ai before the move.
   JavaScript a phone gets the whole page (a `<noscript>` style). Contact, the
   legal pages and sign-in are read whole. Locked by test/site.test.mjs.
 
+- **Below the photo, every page is rooms, not a run** (owner, 4 October
+  2026, after his daughter read the site: "the first image that we have on
+  each page looks amazing. But then when you scroll down… it's the same
+  colour, similar background colour to the text, it just is a bit too much…
+  break it up perhaps with boxes that have a light colour in it and the text
+  over the top"; "I'll leave the styling with you… I don't need to approve
+  anything"). The ground is a touch darker and warmer (`--paper`), every part
+  of a page below its photo sits in its own light panel (class `panel` in
+  site/*.html, styles at the end of src/site/site.css), and the panels take
+  turns: white, then `panel--mint`, then `panel--cream`. A card inside a panel
+  takes the opposite fill, so a box never sits on a box of its own colour. The
+  photo, the words on it, the phone's Next button and the green Next block are
+  untouched; Our story, Contact and the legal pages are reading pages and keep
+  their layout on the new ground.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.
