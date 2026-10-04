@@ -3,6 +3,8 @@ import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import { Button, Icon, Logo, Notice, Spinner, plural } from './ui.jsx'
 import { Avatar } from '../chat/Chat.jsx'
+import { BillingNotice } from './Billing.jsx'
+import { billingView, UNAVAILABLE_BILLING } from './billing-view.mjs'
 
 // The dashboard's shared state: the business, its latest website scan and its
 // questions and answers. Every screen reads and refreshes it here.
@@ -12,12 +14,34 @@ const SCANNING = ['queued', 'reading']
 
 export function DashboardProvider({ children }) {
   const { request, session } = useAuth()
-  const [state, setState] = useState({ loading: true, error: '', email: '', business: null, scan: null })
+  const [state, setState] = useState({ loading: true, error: '', email: '', business: null, scan: null, billing: null })
   const [faqs, setFaqs] = useState(null)
+  const [billingRefreshing, setBillingRefreshing] = useState(false)
+  const [billingError, setBillingError] = useState('')
+  const billingRequest = useRef(null)
+  const refreshBilling = useCallback(() => {
+    if (billingRequest.current) return billingRequest.current
+    setBillingRefreshing(true); setBillingError('')
+    billingRequest.current = (async () => {
+      try {
+        const result = await request('billingStatus')
+        const billing = result?.billing || UNAVAILABLE_BILLING
+        setState(current => ({ ...current, billing }))
+        return billing
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setState(current => ({ ...current, billing: { ...UNAVAILABLE_BILLING, portalAvailable: current.billing?.portalAvailable === true } }))
+          setBillingError(error.message)
+        }
+        return null
+      } finally { billingRequest.current = null; setBillingRefreshing(false) }
+    })()
+    return billingRequest.current
+  }, [request])
   const load = useCallback(async () => {
     try {
       const me = await request('me')
-      setState({ loading: false, error: '', ...me })
+      setState({ loading: false, error: '', ...me, billing: me.billing || UNAVAILABLE_BILLING })
       if (me.business) setFaqs((await request('listFaqs')).faqs)
       return me
     } catch (error) {
@@ -26,7 +50,22 @@ export function DashboardProvider({ children }) {
     }
   }, [request])
   useEffect(() => { if (session) load() }, [session, load])
-  const value = { ...state, faqs, setFaqs, setBusiness: business => setState(current => ({ ...current, business })), setScan: scan => setState(current => ({ ...current, scan })), reload: load, request }
+  useEffect(() => {
+    if (!state.business) return
+    const refreshVisible = () => { if (document.visibilityState !== 'hidden') refreshBilling() }
+    window.addEventListener('focus', refreshVisible)
+    document.addEventListener('visibilitychange', refreshVisible)
+    return () => { window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible) }
+  }, [Boolean(state.business), refreshBilling])
+  useEffect(() => {
+    // An open dashboard must recheck the server at a trial or paid-period
+    // boundary instead of continuing to claim that yesterday's chat is live.
+    const boundaries = [state.billing?.trialEndsAt, state.billing?.currentPeriodEnd].map(Date.parse).filter(value => Number.isFinite(value) && value > Date.now())
+    if (!boundaries.length) return
+    const timer = setTimeout(refreshBilling, Math.min(Math.max(1000, Math.min(...boundaries) - Date.now() + 1000), 2147483647))
+    return () => clearTimeout(timer)
+  }, [state.billing, refreshBilling])
+  const value = { ...state, faqs, setFaqs, setBusiness: business => setState(current => ({ ...current, business })), setScan: scan => setState(current => ({ ...current, scan })), reload: load, request, refreshBilling, billingRefreshing, billingError }
   return <Dash.Provider value={value}>{children}</Dash.Provider>
 }
 
@@ -57,14 +96,17 @@ export function Layout() {
       {dash.business && <span className="topbar__business"><Avatar character={dash.business.character} size={28} />{dash.business.name}</span>}
       <button type="button" className="text-button topbar__out" onClick={async () => { await signOut(); goToSignIn() }}>Sign out</button>
     </header>
-    {ready && <nav className="tabs" aria-label="Dashboard">
+    {dash.business && <nav className="tabs" aria-label="Dashboard">
       <NavLink end to="/app"><Icon name="home" size={18} />Home</NavLink>
+      {ready && <>
       <NavLink to="/app/questions"><Icon name="list" size={18} />Questions{drafts > 0 && <span className="badge">{drafts}</span>}</NavLink>
       <NavLink to="/app/asked"><Icon name="inbox" size={18} />Customers asked{asked > 0 && <span className="badge">{asked}</span>}</NavLink>
       <NavLink to="/app/button"><Icon name="chat" size={18} />Chat button</NavLink>
+      </>}
       <NavLink to="/app/settings"><Icon name="settings" size={18} />Settings</NavLink>
     </nav>}
     <main className="container">
+      {!dash.loading && dash.business && <BillingNotice billing={dash.billing} />}
       {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet />}
     </main>
   </div>
@@ -91,6 +133,7 @@ function Start() {
     try {
       const result = await dash.request('createBusiness', { website })
       dash.setBusiness(result.business); dash.setScan(result.scan); dash.setFaqs([])
+      await dash.refreshBilling()
     } catch (failure) { setError(failure.message) }
     finally { setBusy(false) }
   }
@@ -157,6 +200,8 @@ function Overview() {
   const seen = Boolean(business.buttonSeenAt)
   // The chat only runs once the website is proved to be the business's own.
   const verified = Boolean(business.websiteVerifiedAt)
+  const billing = billingView(dash.billing)
+  const available = verified && billing.accessAllowed
   async function rescan() {
     setBusy(true); setError('')
     try { const result = await dash.request('startScan'); dash.setBusiness(result.business); dash.setScan(result.scan) }
@@ -167,7 +212,8 @@ function Overview() {
     ? { tone: 'warn', title: 'We couldn’t read your website', text: scan.error || 'Please try again.', action: <><Button onClick={rescan} busy={busy} icon="refresh">Try again</Button><Button kind="ghost" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add questions myself</Button></> }
     : drafts > 0 ? { tone: 'gold', title: `${plural(drafts, 'question')} ${drafts === 1 ? 'is' : 'are'} waiting for you to check`, text: 'Nothing goes on your website until you approve it. Edit anything that isn’t quite right.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions')} iconAfter="arrow">Check them now</Button> }
     : !live ? { tone: 'gold', title: 'Add your first questions', text: 'Write the questions your customers ask, with your answers.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add a question</Button> }
-    : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, and your chat switches on once we’ve checked the website is yours.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
+    : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, then check that the website is yours. Billing in Settings shows whether your chat can run.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
+    : !billing.accessAllowed ? { tone: 'warn', title: billing.title, text: billing.description, action: <Button kind="dark" onClick={() => navigate('/app/settings#billing')} iconAfter="arrow">View billing</Button> }
     : !seen ? { tone: 'green', title: 'Your chat is switched on', text: `We checked ${business.website.replace(/^https:\/\//, '')} is yours. Your button shows the next time your website loads.`, action: null }
     : { tone: 'green', title: 'Your chat is live on your website', text: `Customers can see ${plural(live, 'answer')}. Questions it can’t answer come to Customers asked.`, action: null }
   return <div className="overview">
@@ -178,9 +224,9 @@ function Overview() {
       {next.action && <div className="next__actions">{next.action}</div>}
     </section>
     <div className="tiles">
-      <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`${verified ? 'live on your website' : 'ready to go live'}${drafts ? ` · ${drafts} to check` : ''}`} />
+      <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`${available ? 'live on your website' : 'approved answers saved'}${drafts ? ` · ${drafts} to check` : ''}`} />
       <Tile to="/app/asked" icon="inbox" title="Customers asked" big={business.counts?.newEnquiries || 0} label="new questions for you" />
-      <Tile to="/app/button" icon="chat" title="Chat button" big={verified ? 'Live' : 'Not yet'} label={verified ? 'on your website' : 'switched on'} />
+      <Tile to="/app/button" icon="chat" title="Chat button" big={available ? 'Live' : verified ? 'Paused' : 'Not yet'} label={available ? 'on your website' : verified ? 'check your billing' : 'switched on'} />
       <Tile to="/app/questions?show=live" icon="eye" title="Answers read" big={business.counts?.views || 0} label="times by customers" />
     </div>
   </div>
@@ -196,9 +242,10 @@ function Tile({ to, icon, title, big, label }) {
   </Link>
 }
 
-// The other screens need a business and a finished scan; before that, home.
-export function RequireBusiness({ children }) {
+// Billing remains reachable during a scan, including cancellation and payment
+// recovery. The other screens still wait for the scan to finish.
+export function RequireBusiness({ children, allowWhileScanning = false }) {
   const dash = useDash()
-  if (!dash.business || SCANNING.includes(dash.scan?.status)) return <Navigate to="/app" replace />
+  if (!dash.business || (!allowWhileScanning && SCANNING.includes(dash.scan?.status))) return <Navigate to="/app" replace />
   return children
 }

@@ -20,7 +20,7 @@ export async function database() {
   await pg.exec(`
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
     create schema auth;
-    create table auth.users(id uuid primary key, email text);
+    create table auth.users(id uuid primary key, email text, created_at timestamptz not null default now());
   `)
   const folder = new URL('../../supabase/migrations/', import.meta.url)
   for (const name of (await readdir(folder)).filter(file => file.endsWith('.sql')).sort())

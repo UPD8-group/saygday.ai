@@ -56,7 +56,7 @@ export default function Questions() {
       onSave={async fields => {
         await save({ ...fields, fromEnquiry: Boolean(adding.enquiry) })
         if (adding.enquiry) await dash.request('setEnquiry', { id: adding.enquiry, status: 'done' }).catch(() => {})
-        setAdding(null); setParams({}); setShow('live'); setNotice('Added. Your chat can answer it now.'); dash.reload()
+        setAdding(null); setParams({}); setShow('live'); setNotice('Added to your approved answers.'); dash.reload()
       }} />}
     {drafts.length > 0 && <section className="review card card--gold">
       <div><h2>{plural(drafts.length, 'question')} from your website to check</h2><p>Read each answer. Approve it, fix it, or remove it. Nothing shows on your website until you approve it.</p></div>
@@ -64,12 +64,12 @@ export default function Questions() {
     </section>}
     <div className="segmented" role="tablist" aria-label="Which questions">
       <button role="tab" aria-selected={show === 'drafts'} onClick={() => setShow('drafts')} disabled={!drafts.length}>To check <span>{drafts.length}</span></button>
-      <button role="tab" aria-selected={show === 'live'} onClick={() => setShow('live')}>Live <span>{live.length}</span></button>
+      <button role="tab" aria-selected={show === 'live'} onClick={() => setShow('live')}>Approved <span>{live.length}</span></button>
     </div>
     {show === 'live' && clashes.length > 0 && <Notice kind="error">
       {clashes.slice(0, 3).map(clash => <p key={`${clash.entry.id}-${clash.phrasing}`}>“{clash.phrasing}” (a way of asking “{clash.entry.question}”) also matches “{clash.other.question}”. Edit one of them so each question clearly finds its own answer.</p>)}
     </Notice>}
-    {list.length === 0 ? <Empty icon="list" title={show === 'drafts' ? 'Nothing to check' : 'No live answers yet'}>
+    {list.length === 0 ? <Empty icon="list" title={show === 'drafts' ? 'Nothing to check' : 'No approved answers yet'}>
       <p>{show === 'drafts' ? 'You’ve checked everything from your website.' : 'Approve the questions from your website, or add your own.'}</p>
     </Empty> : <ul className="faq-list">{list.map(faq => <FaqCard key={faq.id} faq={faq} featuredCount={live.filter(item => item.featured).length} onSave={fields => save(fields, faq)}
       onDelete={() => act(async () => { await dash.request('deleteFaq', { id: faq.id }); dash.setFaqs(current => current.filter(item => item.id !== faq.id)) })}

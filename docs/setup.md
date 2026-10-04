@@ -1,13 +1,20 @@
 # Going live
 
-Everything here is a one-off. It takes about fifteen minutes.
+The application setup is below. Stripe billing has a separate staged rollout
+in [billing.md](billing.md), including one trial-start decision before activation.
 
 ## 1. The database (Supabase, Sydney)
 
 Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
 
-1. **Run the migration.** SQL editor → paste
-   `supabase/migrations/20261002100000_saygday.sql` → Run.
+1. **Run pending migrations in filename order.** They are in
+   `supabase/migrations/`. Check the project's applied migration history first;
+   do not rerun migrations already applied. The Stripe migration
+   `20261004051312_stripe_billing.sql` is deliberately disabled on arrival:
+   applying it does not activate billing or expire existing businesses.
+   Its generated timestamp precedes the rescan migration already in this
+   repository; on an existing database apply only the pending billing file,
+   as explained in the billing runbook, without replaying applied migrations.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email
@@ -44,6 +51,35 @@ day's counts).
 
 3. Deploy. The website is at `/`; sign in at `/login` with your email and
    scan a website.
+
+## Stripe billing: configure before activating
+
+Follow [the billing runbook](billing.md) before offering paid Checkout.
+The plan stays **A$30/month AUD with 14 free days and no card to start**.
+Public answers still come exclusively from the business's approved answers.
+
+Add these environment variables in **Functions scope only**, with separate
+test and production contexts. Do not use `VITE_` for any Stripe setting.
+
+| Name | Value | Secret? |
+|---|---|---|
+| `SAYGDAY_STRIPE_MODE` | `test` for isolated tests; `live` for production | no |
+| `SAYGDAY_STRIPE_SECRET_KEY` | Matching Stripe secret API key | **yes** |
+| `SAYGDAY_STRIPE_PRICE_ID` | Price for `aud`, `3000` cents, every one month | no, server-owned |
+| `SAYGDAY_STRIPE_WEBHOOK_SECRET` | This environment's webhook signing secret (`whsec_…`) | **yes** |
+| `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration (`bpc_…`) | no, server-owned |
+
+`SAYGDAY_PUBLIC_URL` must be the canonical HTTPS origin, without credentials,
+port, path, query or fragment. It supplies fixed Checkout/portal return URLs;
+the request Host header and browser input are never used for redirects.
+
+The database starts with `billing_settings.enabled = false` and no trial-start
+policy. Existing service continues while it is disabled. Configuration alone
+does not enable charging or decide when the free period starts. The runbook
+contains the exact activation procedure, webhook event list, reconciliation
+limits, smoke checks and paid-subscription rollback considerations. Missing
+Stripe configuration after activation disables upgrades; it does not grant
+unlimited service.
 
 ## 3. Moving saygday.ai across
 

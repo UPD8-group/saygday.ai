@@ -65,6 +65,8 @@ const REFUSALS = {
   SLUG_UNAVAILABLE: [503, 'We couldn’t set up your business just now. Please try again.'],
   WEBSITE_TAKEN: [409, 'Another SayGday account has already proved it owns this website. If it’s yours, get in touch through our contact page.'],
   WEBSITE_CHANGED: [409, 'Your website address just changed. Check your website again.'],
+  BILLING_REQUIRED: [402, 'Your free period has ended or your subscription needs attention. Open Settings → Billing to continue scanning. Your saved answers and enquiries are still available.'],
+  BILLING_LEASE_LOST: [409, 'Your billing is being updated. Refresh billing status before trying again.'],
 }
 export function rpcResult({ data, error }) {
   if (!error) return data

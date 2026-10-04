@@ -235,6 +235,17 @@ settings, which is how sign-in broke on saygday.ai before the move.
 
 ## Hard rules
 
+- **Billing is server-owned.** `docs/billing.md` describes the Stripe rollout.
+  Keep A$30/month AUD and the original 14-day no-card free period. Neither
+  browser state nor a Checkout return URL grants service. Billing webhooks
+  verify the raw signature, reconcile current Stripe state under a fenced
+  database lease, and save state plus the event receipt atomically. All
+  visitor entry points enforce entitlement in the database; the owner can
+  still manage answers, enquiries and cancellation when service is paused.
+  The trial-start event is an unresolved product decision in this PR:
+  billing stays disabled until that decision and launch configuration are
+  explicitly supplied. Do not infer it from the existing marketing copy.
+
 - The Supabase service role key never appears in chat, logs or code.
 - The browser never reads a table: every table and function is revoked from
   `anon` and `authenticated` and granted to `service_role` only, and every

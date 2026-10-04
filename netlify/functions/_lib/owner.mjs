@@ -5,6 +5,7 @@ import { HttpError, call, rateLimit, requireUser } from './runtime.mjs'
 import { startScan } from './scan.mjs'
 import { checkWebsite } from './verify-website.mjs'
 import { CHARACTER_KEYS } from '../../../shared/characters.mjs'
+import { publicBilling, billingStatus, billingCheckout, billingPortal } from './billing.mjs'
 
 const text = (value, { max, min = 0, field }) => {
   if (value === undefined || value === null) return null
@@ -37,7 +38,7 @@ function variantsFrom(value) {
 }
 
 export const OWNER_ACTIONS = Object.freeze(['me', 'createBusiness', 'startScan', 'scanStatus', 'listFaqs', 'saveFaq', 'deleteFaq', 'approveAll',
-  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry', 'verifyWebsite'])
+  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry', 'verifyWebsite', 'billingStatus', 'billingCheckout', 'billingPortal'])
 
 export async function ownerAction({ request, db, body, origin, dependencies = {} }) {
   const user = await requireUser(request, db)
@@ -48,7 +49,20 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
   switch (action) {
     case 'me': {
       const business = await call(db, 'my_business', { p_user })
-      return { email: user.email, business, scan: business ? await call(db, 'latest_scan', { p_user }) : null }
+      return { email: user.email, business, scan: business ? await call(db, 'latest_scan', { p_user }) : null,
+        ...(business ? { billing: publicBilling(await call(db, 'billing_owner', { p_user }), dependencies.billing?.configuration) } : {}) }
+    }
+    case 'billingStatus': {
+      await rateLimit(db, 'billing-status', p_user, 30, 60)
+      return { billing: await billingStatus({ db, user, ...dependencies.billing }) }
+    }
+    case 'billingCheckout': {
+      await rateLimit(db, 'billing-checkout', p_user, 10, 60)
+      return billingCheckout({ db, user, ...dependencies.billing })
+    }
+    case 'billingPortal': {
+      await rateLimit(db, 'billing-portal', p_user, 10, 60)
+      return billingPortal({ db, user, ...dependencies.billing })
     }
     case 'createBusiness': {
       const website = websiteFrom(body.website)

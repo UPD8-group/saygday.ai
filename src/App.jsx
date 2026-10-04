@@ -14,7 +14,7 @@ export default function App() {
         <Route path="questions" element={<RequireBusiness><Questions /></RequireBusiness>} />
         <Route path="asked" element={<RequireBusiness><Asked /></RequireBusiness>} />
         <Route path="button" element={<RequireBusiness><ChatButton /></RequireBusiness>} />
-        <Route path="settings" element={<RequireBusiness><Settings /></RequireBusiness>} />
+        <Route path="settings" element={<RequireBusiness allowWhileScanning><Settings /></RequireBusiness>} />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/app" replace />} />
