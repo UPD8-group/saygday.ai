@@ -570,3 +570,8 @@ body.menu-open [data-saygday] { display: none; }
   .wrap > .panel + .phone-next { margin-top: 28px; }
   .panel .title:not(.gs-title) { font-size: 30px; }
 }
+
+/* A panel's top padding is its breathing room: the grid or card that opens a
+   panel drops the margin it carried for sitting under a heading, so a panel
+   never reads top-heavy (the Getting started steps, live on 4 October). */
+.panel > :first-child { margin-top: 0; }
