@@ -4,6 +4,7 @@ import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
 import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
+import { PRIVACY_PARAGRAPH } from './privacy-paragraph.mjs'
 
 const PLATFORMS = [
   { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website. The button appears in the bottom-right corner.'] },
@@ -84,6 +85,7 @@ export default function ChatButton() {
   const [saved, setSaved] = useState('')
   const [platform, setPlatform] = useState('any')
   const [copied, setCopied] = useState(false)
+  const [copiedParagraph, setCopiedParagraph] = useState(false)
   const [open, setOpen] = useState(true)
   useEffect(() => { document.title = 'Chat button · SayGday' }, [])
   const code = `<script src="${location.origin}/widget.js" data-business="${business.slug}" defer></script>`
@@ -101,6 +103,10 @@ export default function ChatButton() {
   async function copy() {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2500) }
     catch { document.getElementById('install-code')?.select() }
+  }
+  async function copyParagraph() {
+    try { await navigator.clipboard.writeText(PRIVACY_PARAGRAPH); setCopiedParagraph(true); setTimeout(() => setCopiedParagraph(false), 2500) }
+    catch { document.getElementById('privacy-paragraph')?.select() }
   }
   return <div className="button-page">
     <div className="section-head"><div><h1>Your chat button</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>
@@ -132,6 +138,12 @@ export default function ChatButton() {
           <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map(step => <li key={step}>{step}</li>)}</ol>
         </section>
         <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />
+        <section className="card tell-customers">
+          <h2>4. Tell your customers</h2>
+          <p>Most privacy policies list the services a website uses. Here is a paragraph you can paste into yours. It says exactly what the chat button sends and keeps, in plain words.</p>
+          <div className="code code--prose"><textarea id="privacy-paragraph" readOnly value={PRIVACY_PARAGRAPH} rows={9} aria-label="A paragraph for your privacy policy" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copyParagraph} icon={copiedParagraph ? 'check' : 'copy'}>{copiedParagraph ? 'Copied' : 'Copy'}</Button></div>
+          <p className="small">Our own privacy page says the same in more detail: <a href="https://saygday.ai/privacy" target="_blank" rel="noreferrer">saygday.ai/privacy</a>.</p>
+        </section>
       </div>
       <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>
