@@ -33,6 +33,9 @@ test('the owner’s journey: website in, scan started, answers managed, look cho
   assert.equal(created.business.website, 'https://www.joescafe.com.au')
   assert.equal(created.business.notifyEmail, 'jo@joescafe.com.au', 'questions go to the sign-in email unless changed')
   assert.deepEqual(scans, ['https://www.joescafe.com.au'], 'the scan starts straight away')
+  const again = await act({ action: 'createBusiness', website: 'elsewhere.com.au' })
+  assert.equal(again.business.id, created.business.id, 'one business per account, whatever the second request says')
+  assert.deepEqual(scans, ['https://www.joescafe.com.au'], 'and a second tap never starts a second scan')
 
   const faq = (await act({ action: 'saveFaq', question: 'Do you have parking?', answer: 'Free street parking out front.', variants: ['where can i park'] })).faq
   assert.equal(faq.status, 'approved')

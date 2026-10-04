@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { database, rpcClient, user } from './helpers/database.mjs'
 import { extractPublicPage } from '../netlify/functions/_lib/safe-fetch.mjs'
-import { buildScanRequest, cleanVariants, crawlWebsite, readScanReply, runScan, scanConfiguration, scanSecret, signScan, startScan, verifyScanTrigger, withoutClashingVariants, groundedAnswer } from '../netlify/functions/_lib/scan.mjs'
+import { buildScanRequest, cleanVariants, crawlWebsite, readScanReply, runScan, scanConfiguration, scanSecret, signScan, startScan, verifyScanTrigger, withoutClashingVariants, withoutKnownQuestions, groundedAnswer } from '../netlify/functions/_lib/scan.mjs'
 
 // A small cafe website, as the scan would fetch it.
 const SITE = {
@@ -155,6 +155,31 @@ test('a scan from start to drafts in the dashboard', async () => {
   const status = (await db.rpc('latest_scan', { p_user: owner.id })).data
   assert.deepEqual([status.status, status.drafted, status.pages], ['done', 2, 3])
   assert.deepEqual(await runScan({ db, scanId: scan.id, configuration: { ai: false }, fetchPage }), { started: false }, 'a scan runs once')
+})
+
+// The owner's own audit, 4 October 2026: a second scan drafted fifteen
+// rewordings of questions just approved. Now a re-scan brings only the new.
+test('a second scan of the same website drafts only what the chat can’t already answer', async () => {
+  const { db, owner, scan } = await business()
+  const pagesOf = params => params.messages[0].content.filter(block => block.type === 'document').map(block => ({ text: block.source.data, title: block.title }))
+  const clientWith = items => ({ beta: { messages: { stream: params => ({ finalMessage: async () => reply(items, { pages: pagesOf(params) }) }) } } })
+  const first = await runScan({ db, scanId: scan.id, configuration: { ai: true, key: 'k', model: 'claude-opus-5-5' }, fetchPage, client: clientWith([
+    { question: 'When are you open?', answer: 'Monday to Friday 7am to 3pm, Saturday 8am to 2pm, closed Sundays.', cite: 'We are open Monday to Friday 7am to 3pm and Saturday 8am to 2pm. Closed Sundays.', also: 'opening hours; trading hours' },
+    { question: 'Where are you?', answer: '12 Lonsdale Street, Braddon ACT 2612.', cite: 'Find us at 12 Lonsdale Street, Braddon ACT 2612.', also: 'address; location' },
+  ]) })
+  assert.equal(first.drafted, 2)
+  assert.equal((await db.rpc('approve_all', { p_user: owner.id })).data, 2)
+
+  const again = (await db.rpc('start_scan', { p_user: owner.id, p_website: 'https://joescafe.com.au' })).data
+  const second = await runScan({ db, scanId: again.id, configuration: { ai: true, key: 'k', model: 'claude-opus-5-5' }, fetchPage, client: clientWith([
+    { question: 'What are your opening hours?', answer: 'Weekdays 7am to 3pm and Saturdays 8am to 2pm.', cite: 'We are open Monday to Friday 7am to 3pm and Saturday 8am to 2pm. Closed Sundays.', also: 'when are you open' },
+    { question: 'What’s your address?', answer: '12 Lonsdale Street, Braddon.', cite: 'Find us at 12 Lonsdale Street, Braddon ACT 2612.', also: 'where are you' },
+    { question: 'Do you have parking?', answer: 'Free street parking out front.', cite: 'Free street parking out front.', also: 'where can I park' },
+  ]) })
+  assert.equal(second.drafted, 1, 'the two rewordings are dropped; parking is new')
+  const faqs = (await db.rpc('list_faqs', { p_user: owner.id })).data
+  assert.deepEqual(faqs.map(faq => [faq.question, faq.status]), [['Do you have parking?', 'draft'], ['When are you open?', 'approved'], ['Where are you?', 'approved']])
+  assert.deepEqual(withoutKnownQuestions([{ question: 'Is there parking?' }], []), [{ question: 'Is there parking?' }], 'nothing known: everything is new')
 })
 
 test('without the AI, drafts come straight from the website’s own sentences', async () => {

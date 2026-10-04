@@ -110,10 +110,12 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .hero { padding: clamp(28px, 5vw, 56px); }
 .hero h1 { font-size: clamp(36px, 6vw, 64px); color: #fff; }
 .hero__form { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
-.url-input { flex: 1 1 340px; display: flex; align-items: center; background: #fff; border-radius: 16px; padding: 0 0 0 18px; border: 3px solid transparent; }
+.url-input { flex: 1 1 340px; min-width: 0; display: flex; align-items: center; background: #fff; border-radius: 16px; padding: 0 0 0 18px; border: 3px solid transparent; }
 .url-input:focus-within { border-color: var(--gold); }
 .url-input span { color: var(--muted); font-size: 19px; }
-.url-input input { flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: 21px; padding: 16px 16px 16px 2px; background: transparent; color: var(--ink); }
+/* width: 0 so the box's own size never counts the input's default twenty
+   characters: on a phone that pushed the box out past the card's edge. */
+.url-input input { flex: 1; width: 0; min-width: 0; border: 0; outline: none; font: inherit; font-size: 21px; padding: 16px 16px 16px 2px; background: transparent; color: var(--ink); }
 .url-input--light { border: 2px solid var(--line); }
 .url-input--light input { font-size: 17px; padding: 12px 14px 12px 2px; }
 .url-input--light span { font-size: 17px; }
@@ -256,5 +258,10 @@ textarea.input { resize: vertical; line-height: 1.5; }
   .topbar .topbar__out { margin-left: auto; }
   .hero__form .btn { width: 100%; }
   .code { flex-direction: column; }
+  .code textarea { min-height: 5.2em; }
+  /* Five tabs don't fit a phone in one row; a row that scrolls sideways cut
+     "Customers asked" to "Custom" with nothing to say more was there. */
+  .tabs { flex-wrap: wrap; padding: 10px 14px 0; }
+  .tabs a { padding: 9px 13px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
