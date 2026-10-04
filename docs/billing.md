@@ -273,8 +273,51 @@ fresh isolated database, run all migrations in filename order.
    portal return and a signed-in account's billing state. Do not run a real
    paid Checkout just to test without the payer's explicit agreement.
 
-This document describes deployment; this PR does not configure Stripe,
-apply production migrations, activate billing or deploy the live site.
+The code and migrations do not activate billing automatically. Sandbox
+configuration and test evidence are recorded separately; no production
+migration or live deployment is implied.
+
+## Testing on the existing deploy preview
+
+Use the existing `saygdayai` project's Deploy Preview for this PR, with an
+isolated Supabase branch and Stripe sandbox. Do not create another Netlify
+project or change production-context values. Apply and verify the branch's
+migrations before connecting the preview; a failed branch migration is a
+setup blocker, never a reason to fall back to the production database.
+
+Set environment overrides in the **deploy-preview context**:
+
+| Setting | Scope and preview value |
+|---|---|
+| `VITE_SAYGDAY_SUPABASE_URL` | Builds: the isolated branch's HTTPS project origin. |
+| `VITE_SAYGDAY_SUPABASE_PUBLISHABLE_KEY` | Builds: that same branch's browser-safe publishable key. |
+| `SAYGDAY_SUPABASE_URL` and `SAYGDAY_SUPABASE_SERVICE_ROLE_KEY` | Functions: the same isolated branch and its server-only service role key. |
+| `SAYGDAY_STRIPE_*` | Functions: `SAYGDAY_STRIPE_MODE=test` and this sandbox's matching key, Price, portal configuration and webhook signing secret. |
+| `SAYGDAY_PUBLIC_URL` | Functions: this preview's exact HTTPS origin, for example `https://deploy-preview-29--saygdayai.netlify.app`. |
+
+Verify the browser and server Supabase settings identify the same branch.
+Keep server keys in Functions scope; the build plugin does not read them.
+Configure the sandbox webhook destination at the preview's
+`/api/stripe/webhook` endpoint and use its signing secret. Rebuild after
+changing build-scope settings so the browser bundle and policy agree.
+
+`plugins/preview-csp` runs only for `deploy-preview`. It replaces the
+production Supabase origin in the global CSP's `connect-src` with the exact
+configured public branch origin, using Netlify's supported in-memory
+`netlifyConfig.headers` build hook. Missing, malformed or production project
+URLs fail the preview build. It changes no source files, other CSP directives,
+embedded-chat headers or production/branch-deploy policies. The browser needs
+no wildcard Supabase permission and no Stripe script permission.
+
+Netlify automatically runs scheduled functions only on published production
+deployments. A preview therefore does not exercise automatic five-minute
+billing reconciliation. Use **Functions → billing-reconcile → Run now** on
+the preview for a manual check, then confirm the automatic schedule separately
+when production rollout is authorised. Signed webhooks and authenticated
+billing-status refreshes remain available for preview tests.
+
+See Netlify's [build plugin configuration API](https://docs.netlify.com/extend/develop-and-share/develop-build-plugins/#netlifyconfig)
+and [scheduled function testing](https://docs.netlify.com/build/functions/scheduled-functions/).
 
 ## Test-mode acceptance matrix
 

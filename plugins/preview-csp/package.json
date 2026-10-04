@@ -1,0 +1,6 @@
+{
+  "name": "netlify-plugin-saygday-preview-csp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module"
+}
