@@ -532,3 +532,41 @@ body.menu-open [data-saygday] { display: none; }
 .next a.next__on:hover { background: #fff; }
 @media (min-width: 601px) { .hero__actions .btn { min-height: 60px; padding: 0 30px; font-size: 18px; } }
 @media (max-width: 600px) { .next { padding: 26px 22px; } .next__links, .next .btn, .next a.next__on { width: 100%; justify-content: center; } .next a.next__on { padding: 0 18px; text-align: center; } }
+
+/* ---- Below the photo: rooms, not a run (owner, 4 October 2026, after his
+   daughter read the site: "the first image that we have on each page looks
+   amazing, but then when you scroll down… it's the same colour, similar
+   background colour to the text, it just is a bit too much… break it up
+   perhaps with boxes that have a light colour in it and the text over the
+   top"). So the ground is a touch darker and warmer, every part of a page
+   below its photo sits in its own light panel (class "panel" in site/*.html),
+   and the panels take turns: white, mint, cream. Cards inside a panel take
+   the opposite fill, so a box never sits on a box of the same colour. The
+   photo, the words on it and the green Next block are untouched. ---- */
+:root { --paper: #ede9df; --card: #ffffff; --mint-deep: #e2eee7; --cream: #fbf2dc; }
+@media (prefers-color-scheme: dark) { :root { --paper: #0d1612; --card: #17241f; --mint-deep: #1a2c24; --cream: #272214; } }
+.panel { background: var(--card); border-radius: 28px; padding: clamp(26px, 4.6vw, 56px) clamp(20px, 4.6vw, 56px); box-shadow: 0 1px 2px rgba(20, 33, 28, .05), 0 22px 44px -30px rgba(20, 33, 28, .4); }
+.panel--mint { background: var(--mint-deep); }
+.panel--cream { background: var(--cream); }
+/* Panels sit close together: the colour change does the separating now. */
+.page__part.panel, .panel + .next, .panel + .page__part { margin-top: clamp(18px, 2.6vw, 28px); }
+.panel .title:not(.gs-title) { font-size: clamp(30px, 4.2vw, 50px); }
+.panel .intro { color: var(--ink); opacity: .82; }
+/* A card inside a panel takes the other fill: paper on white, white on a colour. */
+.panel .step, .panel .party:not(.party--middle), .panel .isnt__col:not(.isnt__col--is), .panel .gets__col:not(.gets__col--customers),
+.panel .draft, .panel .pair .proof, .panel .moment .proof, .panel .price-card { background: var(--paper); }
+.panel--mint .step, .panel--mint .party:not(.party--middle), .panel--mint .isnt__col:not(.isnt__col--is), .panel--mint .gets__col:not(.gets__col--customers),
+.panel--mint .draft, .panel--mint .pair .proof, .panel--mint .price-card, .panel--mint .mob img,
+.panel--cream .step, .panel--cream .party:not(.party--middle), .panel--cream .isnt__col:not(.isnt__col--is), .panel--cream .draft, .panel--cream .pair .proof { background: var(--card); }
+.panel--mint .isnt__col--is, .panel--mint .gets__col--customers { background: var(--card); border-color: var(--line); }
+.panel--mint .vow q, .panel--mint .legal__short { background: var(--card); }
+.panel .vow { border-top-color: rgba(20, 33, 28, .22); }
+.panel .ticks, .panel .qa { border-top-color: rgba(20, 33, 28, .22); }
+.moment.panel .proof { box-shadow: none; }
+@media (max-width: 600px) {
+  .panel { border-radius: 22px; padding: 24px 18px 26px; }
+  .page__part.panel, .panel + .next, .panel + .page__part { margin-top: 14px; }
+  .page--photo .photo-head { margin-bottom: 22px; }
+  .wrap > .panel + .phone-next { margin-top: 28px; }
+  .panel .title:not(.gs-title) { font-size: 30px; }
+}
