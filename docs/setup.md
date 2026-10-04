@@ -6,43 +6,14 @@ Everything here is a one-off. It takes about fifteen minutes.
 
 Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
 
-1. **Run the migrations.** SQL editor → paste every file in
-   `supabase/migrations/`, oldest first, one at a time → Run.
+1. **Run the migration.** SQL editor → paste
+   `supabase/migrations/20261002100000_saygday.sql` → Run.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email
    templates, SMTP settings and Site URL aren't used, so they can stay as they
    are. The sending domain (`saygday.ai`) must show as **Verified** in Resend →
    Domains, or no sign-in code can be sent.
-
-### If the database is ever lost
-
-It happened on 3 October 2026: two Supabase projects were both called
-SayGday, and the live one was deleted by mistake. Everything needed to rebuild
-it is in this repo; what is lost is the data (sign-in accounts, businesses set
-up since, customers' questions). The rebuild, about half an hour:
-
-1. Supabase → New project in the `oo studio` organisation, region Sydney
-   (`ap-southeast-2`). Let it generate the database password.
-2. SQL editor → paste every file in `supabase/migrations/`, oldest first, one
-   at a time → Run.
-3. Netlify → `saygdayai` → Environment variables: set `SAYGDAY_SUPABASE_URL`
-   and `VITE_SAYGDAY_SUPABASE_URL` to the new project's URL,
-   `VITE_SAYGDAY_SUPABASE_PUBLISHABLE_KEY` to its `sb_publishable_…` key, and
-   `SAYGDAY_SUPABASE_SERVICE_ROLE_KEY` (production context) to its
-   `service_role` key.
-4. Change the project ref in `netlify.toml` (the `connect-src` of the
-   Content-Security-Policy), `.env.example` and this file; merge. The deploy
-   picks up the new settings.
-5. Sign in once at `/login` (the owner's account is new again), then run
-   `node scripts/own-chat-sql.mjs <owner-user-id>` and paste its output into
-   the SQL editor: SayGday's own chat answers are back. Then
-   `node scripts/own-chat-verify.mjs` and run the one line it prints, which
-   switches the G'day button on.
-
-Name projects so they can't be confused: the old platform's project was
-`saygdayAI`, the new one `saygday.ai`. Delete nothing until the SQL editor's
-project switcher shows the name you mean.
 
 ## 2. The website (Netlify)
 
