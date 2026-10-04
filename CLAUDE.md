@@ -193,6 +193,20 @@ settings, which is how sign-in broke on saygday.ai before the move.
   untouched; Our story, Contact and the legal pages are reading pages and keep
   their layout on the new ground.
 
+- **Day or night is the reader's choice, and day is the default** (owner, 4
+  October 2026, after his desktop, set to dark, showed him a different site
+  from his phone: "let's do both… an icon at the very top that allows people
+  to swap between nighttime and daytime"). The public site no longer reads
+  the system's dark setting: every reader gets the approved light design
+  first, and a moon button in the bar (between Try it free and the menu)
+  swaps to night, a sun swaps back, and `public/theme.js` (a plain script of
+  the site's own, before the stylesheet, so a remembered night never flashes
+  day; the content security policy allows no inline script) applies the
+  choice from localStorage on the next page. Night is `:root[data-theme="dark"]`
+  in site.css, redesigned so the panels still read as boxes: the ground the
+  darkest, a panel a clear step above it, mint and cream tinted. The
+  dashboard and the chat window stay light. Locked by test/site.test.mjs.
+
 - **A phone gets a phone-sized photo** (owner, 4 October 2026, on his phone:
   "the images are loading way too slow… compress them all so they load faster
   on mobile"). Every page opens on a photo, and a phone was downloading the
