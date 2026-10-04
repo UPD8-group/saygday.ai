@@ -24,6 +24,7 @@ test('dashboard renders the saved colour in its picker, all simple swatches and 
   globalThis.__colourPreviewDash = { business: { slug: 'test-cafe', name: 'Test Cafe', character: 'plus', greeting: 'Hello', buttonColour: '#ffcc00' }, faqs: [] }
   try {
     const simple = render()
+    assert.match(simple, /<footer class="chat__foot">Made in Australia by <a href="https:\/\/saygday.ai" target="_blank" rel="noopener">SayGday.ai<\/a><\/footer>/)
     assert.match(simple, /type="color"[^>]*value="#ffcc00"/)
     assert.match(simple, /class="preview__launcher" style="background:#ffcc00;color:#000000"/)
     assert.equal((simple.match(/background:#ffcc00;color:#000000/g) || []).length, 14, 'twelve swatches, chat avatar and launcher')

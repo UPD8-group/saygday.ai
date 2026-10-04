@@ -132,7 +132,7 @@ export default function Chat({ widget, preview = false, api = {}, onClose }) {
       <input id="chat-question" ref={input} value={text} readOnly={busy} onChange={event => setText(event.target.value.slice(0, 500))} placeholder="Type your question…" autoComplete="off" enterKeyHint="send" />
       <button type="submit" className="chat__send" disabled={busy || !text.trim()} aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
     </form>
-    <footer className="chat__foot"><a href="https://saygday.ai" target="_blank" rel="noopener">Made with SayGday.ai</a></footer>
+    <footer className="chat__foot">Made in Australia by <a href="https://saygday.ai" target="_blank" rel="noopener">SayGday.ai</a></footer>
   </div>
 }
 
