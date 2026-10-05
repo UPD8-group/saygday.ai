@@ -283,6 +283,32 @@ settings, which is how sign-in broke on saygday.ai before the move.
   week-long cache) and a run of the script; test/site.test.mjs fails on a
   photo without its phone copy or a phone copy wider than 1100 px.
 
+- **SayGday's own admin page, behind one password** (owner, 5 October 2026:
+  "I'm unable to see how many businesses have actually signed up… where they
+  might be up to in the 14-day free trial… I will put the password required to
+  access it in an [environment variable] on netlify… add extra that you feel
+  would be needed in order to provide insights into future VCs"). `/admin`
+  (`admin.html`, `src/admin/`) and `/api/admin` (`_lib/admin.mjs`). The
+  password is `SAYGDAY_ADMIN_PASSWORD` (12 characters or more, or the page
+  stays switched off), compared in constant time, ten tries an hour a
+  connection and fifty in all (scrambled keys, like every limit); the right one
+  gets a signed twelve-hour cookie (HttpOnly, Secure, SameSite=Strict, sent to
+  /api/admin only) that a new password revokes, and another website's page is
+  refused. The browser never holds the password; the page fetches nothing from
+  Google and is never indexed. The free 14 days run from when the website was
+  added (`src/admin/metrics.mjs`). Billing is by hand, so the owner marks each
+  business trial, paying, cancelled or ours/test (`businesses.plan`, every
+  change kept in `plan_changes`): revenue, trial to paid and paying month by
+  month count from that, and ours/test (the `saygday` business from the start)
+  counts in no total. Use by the day is `business_activity` (answers opened,
+  hours the button loaded: counts only, added by `faq_viewed` and
+  `button_seen`). Sign-ins come from Supabase Auth's admin API (the server's
+  database role can't read `auth.users`). The page sees every sign-in and
+  business but never a customer's question or email address: only when one came
+  in and whether the email reached the business. The CSV it downloads can't run
+  a formula. Locked by test/admin.test.mjs; migration 20261005100000 is run by
+  hand like the others.
+
 ## Hard rules
 
 - The Supabase service role key never appears in chat, logs or code.

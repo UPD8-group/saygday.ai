@@ -24,6 +24,12 @@ const PATHS = {
   shield: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z',
   sparkle: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6',
   phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z',
+  // The admin page's (src/admin/).
+  chart: 'M3 20h18M6 20v-8M11 20V5M16 20v-5M20.5 20V9',
+  users: 'M15.5 19v-1.4a3.6 3.6 0 00-3.6-3.6H7.1a3.6 3.6 0 00-3.6 3.6V19M9.5 10.8a3.4 3.4 0 100-6.8 3.4 3.4 0 000 6.8zM20.5 19v-1.4a3.6 3.6 0 00-2.6-3.45M15.4 4.1a3.4 3.4 0 010 6.6',
+  download: 'M12 4v11M7 10.5l5 5 5-5M5 20h14',
+  clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7.5V12l3.2 2',
+  alert: 'M12 4.5l8.5 15h-17zM12 10.5v4M12 17.4h.01',
 }
 export function Icon({ name, size = 22, className = '' }) {
   return <svg className={`icon ${className}`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={PATHS[name] || PATHS.chat} /></svg>

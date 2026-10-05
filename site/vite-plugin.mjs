@@ -2,7 +2,7 @@
 // (site/chrome.mjs) and publishes each page at the top of the site
 // (site/pricing.html as /pricing.html), which Netlify serves at /pricing with
 // no redirect. The dashboard is app.html, served
-// at /app; the chat window is chat.html.
+// at /app; the admin page is admin.html, at /admin; the chat window is chat.html.
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NOT_FOUND, PAGES, composePage } from './chrome.mjs'
@@ -25,6 +25,7 @@ function rewrite({ built }) {
     const tail = query ? `?${query}` : ''
     const clean = path.replace(/\/+$/, '') || '/'
     if (clean === '/app' || clean.startsWith('/app/')) req.url = `/app.html${tail}`
+    else if (clean === '/admin' || clean.startsWith('/admin/')) req.url = `/admin.html${tail}`
     else {
       const page = PAGES.find(item => `/${item.slug}` === clean || (item.slug === '' && clean === '/'))
       if (page) req.url = `/${built ? outputFor(page) : `site/${page.file}`}${tail}`
