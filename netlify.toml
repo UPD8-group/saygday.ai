@@ -27,6 +27,18 @@
   to = "/app.html"
   status = 200
 
+# SayGday's own admin page (src/admin/), behind the password the server
+# checks (SAYGDAY_ADMIN_PASSWORD, netlify/functions/_lib/admin.mjs).
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
 # The earlier platform's addresses, for when saygday.ai moves across.
 [[redirects]]
   from = "/about"
@@ -51,6 +63,23 @@
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors *; base-uri 'self'; form-action 'self'; object-src 'none'"
     X-Robots-Tag = "noindex"
+
+# The admin page is never listed by a search engine (and, like every page
+# but the chat window, never framed).
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
 
 # The day-or-night choice, applied before each page paints.
 [[headers]]

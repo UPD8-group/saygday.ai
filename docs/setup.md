@@ -11,6 +11,9 @@ Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
    file: 20261004130000_many_businesses_per_owner.sql (one sign-in, many
    businesses) must be run on a project set up before 4 October 2026.
    For simple button colours, also run `20261004132908_simple_button_colour.sql` before deploying the updated dashboard and functions. Existing buttons keep SayGday green until their owner saves a colour.
+   For the admin page (5 October 2026), run `20261005100000_admin_dashboard.sql`. It only adds: each business's plan,
+   day-by-day counts of answers read, and the admin page's summaries. SayGday's own `saygday` business starts as
+   "Ours / test", so it counts in no total.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email
@@ -38,6 +41,7 @@ one would serve the pages without these settings.
 | `RESEND_API_KEY` | your Resend key (sends sign-in codes and customers' questions) | **yes** |
 | `SAYGDAY_EMAIL_FROM` | `SayGday <hello@saygday.ai>` | no |
 | `SAYGDAY_PUBLIC_URL` | `https://saygday.ai` | no |
+| `SAYGDAY_ADMIN_PASSWORD` | a long passphrase of your own (at least 12 characters) for the admin page, `/admin` | **yes**, Functions scope only |
 
 Optional: `SAYGDAY_SCAN_MODEL` (defaults to `claude-opus-5-5`),
 `SAYGDAY_SCAN_SECRET` (defaults to a secret derived from the service key) and
@@ -48,7 +52,22 @@ day's counts).
 3. Deploy. The website is at `/`; sign in at `/login` with your email and
    scan a website.
 
-## 3. Moving saygday.ai across
+## 3. The admin page
+
+`https://saygday.ai/admin` shows every sign-in and business, where each business
+is in its free 14 days, and the numbers an investor asks for. It opens with
+`SAYGDAY_ADMIN_PASSWORD`; without it (or with one shorter than 12 characters) the
+page says it's switched off. Netlify uses a new or changed variable from the
+next deploy, so deploy again after setting it. Changing the password signs
+everyone out. It takes at most ten tries an hour from one connection (fifty
+in all); past that, signing in waits until the hour is up.
+
+Billing is by hand, so mark each business **Paying**, **Cancelled** or
+**Ours / test** on its page once you know: monthly revenue, trial to paid and
+the month-by-month chart count from that. Answers read and chats in use are
+counted day by day from the day the migration runs.
+
+## 4. Moving saygday.ai across
 
 The old platform still answers at saygday.ai. When the new one is ready:
 Netlify → the new project → Domain management → add `saygday.ai`, then remove
