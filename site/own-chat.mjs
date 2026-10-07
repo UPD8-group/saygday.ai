@@ -320,3 +320,4 @@ export const OWN_ANSWERS = Object.freeze([
     variants: ['Opening hours', 'What are your opening hours?', 'What time do you shut on Sat?', 'What time do you close?', 'Are you open on weekends?', 'Business hours'],
   },
 ].map(Object.freeze))
+

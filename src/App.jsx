@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './app/auth.jsx'
-import { DashboardProvider, Home, Layout, RequireBusiness, RequireSignIn } from './app/Dashboard.jsx'
+import { AddWebsite, DashboardProvider, Home, Layout, RequireBusiness, RequireSignIn } from './app/Dashboard.jsx'
 import Questions from './app/Questions.jsx'
 import Asked from './app/Asked.jsx'
 import ChatButton from './app/ChatButton.jsx'
@@ -11,6 +11,7 @@ export default function App() {
     <Routes>
       <Route path="/app" element={<RequireSignIn><DashboardProvider><Layout /></DashboardProvider></RequireSignIn>}>
         <Route index element={<Home />} />
+        <Route path="add" element={<AddWebsite />} />
         <Route path="questions" element={<RequireBusiness><Questions /></RequireBusiness>} />
         <Route path="asked" element={<RequireBusiness><Asked /></RequireBusiness>} />
         <Route path="button" element={<RequireBusiness><ChatButton /></RequireBusiness>} />
@@ -21,3 +22,4 @@ export default function App() {
     </Routes>
   </AuthProvider>
 }
+

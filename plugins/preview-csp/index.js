@@ -7,3 +7,4 @@ export function onPreBuild({ netlifyConfig, utils }) {
     utils.build.failBuild(error.message)
   }
 }
+

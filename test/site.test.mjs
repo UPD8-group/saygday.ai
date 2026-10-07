@@ -24,7 +24,7 @@ test('every page is built at an address of its own, with a title, a description 
   assert.equal(outputFor(NOT_FOUND), '404.html', 'Netlify shows 404.html for an address that doesn’t exist')
   const inputs = Object.values(siteInputs)
   for (const page of ALL) {
-    assert.ok(inputs.some(input => input.endsWith(`/site/${page.file}`)), `${page.file} is built`)
+    assert.ok(inputs.some(input => input.replaceAll('\\', '/').endsWith(`/site/${page.file}`)), `${page.file} is built`)
     const html = await built(page)
     assert.match(html, /<html lang="en-AU">/)
     assert.match(html, /<title>[^<]*SayGday[^<]*<\/title>/, `${page.file} has a title`)
@@ -79,7 +79,7 @@ test('every link and photo on the site goes somewhere real', async () => {
     for (const [, href] of html.matchAll(/href="([^"]*)"/g)) {
       if (href === '#main' || href.startsWith('/favicon') || href.startsWith('/src/') || href.startsWith('https://fonts.')) continue
       if (href.startsWith('/site/')) { assert.ok(await exists(`public${href}`), `${page.file}: ${href} (preloaded) exists`); continue }
-      if (href.startsWith('https://')) { assert.match(href, /^https:\/\/unsplash\.com\//, `${page.file}: ${href} is a photo credit`); continue }
+      if (href.startsWith('https://')) { assert.ok(href === 'https://oo.studio/' || /^https:\/\/unsplash\.com\//.test(href), `${page.file}: ${href} is a photo or studio credit`); continue }
       assert.ok(addresses.has(href), `${page.file}: ${href} is one of the site’s pages`)
     }
     for (const [, src] of html.matchAll(/(?:src="|url\(')(\/(?:site|characters)\/[^"')]+)/g)) {

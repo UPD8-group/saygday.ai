@@ -66,6 +66,8 @@ export function publicBilling(account, configuration = billingConfiguration(), n
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
   if (typeof account.enabled !== 'boolean') return { state: 'unavailable', accessAllowed: false, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
+  if (account.internal === true) return { state: 'internal', accessAllowed: true, trialEndsAt: null, currentPeriodEnd: null,
+    cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: !!(account.stripe_customer_id && configuration.portalReady), subscriptionScheduled: false }
   const current = Math.floor(now / 1000)
   const trial = seconds(account.trial_ends_at) > current
   // Recompute expiry in this response as well: a stale snapshot cannot grant
@@ -144,8 +146,8 @@ export async function reconcileAccount({ db, account, stripe, configuration = bi
   })
 }
 
-export async function billingStatus({ db, user, configuration = billingConfiguration(), stripe, now }) {
-  let account = await call(db, 'billing_owner', { p_user: user.id })
+export async function billingStatus({ db, user, business = null, configuration = billingConfiguration(), stripe, now }) {
+  let account = await call(db, 'billing_owner', { p_user: user.id, p_business: business })
   if (account?.stripe_customer_id && configuration.stripeReady) {
     try { account = (await reconcileAccount({ db, account, configuration, stripe })).account }
     catch { /* A known, unexpired local trial/paid window survives an outage. */ }
@@ -163,14 +165,14 @@ async function validatePortal(stripe, configuration) {
     throw unavailable()
 }
 
-export async function billingPortal({ db, user, configuration = billingConfiguration(), stripe }) {
+export async function billingPortal({ db, user, business = null, configuration = billingConfiguration(), stripe }) {
   if (!configuration.portalReady) throw unavailable()
-  const account = await call(db, 'billing_owner', { p_user: user.id })
+  const account = await call(db, 'billing_owner', { p_user: user.id, p_business: business })
   if (!account?.stripe_customer_id) throw new HttpError(409, 'Choose the monthly plan first.', 'NO_BILLING_CUSTOMER')
   const client = stripe || createStripe(configuration)
   await validatePortal(client, configuration)
   const session = await client.billingPortal.sessions.create({ customer: account.stripe_customer_id,
-    configuration: configuration.portalConfigurationId, return_url: `${configuration.publicUrl}/app/settings?billing=returned` })
+    configuration: configuration.portalConfigurationId, return_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&billing=returned` })
   return { url: stripeUrl(session.url, 'portal') }
 }
 
@@ -180,11 +182,11 @@ function validCheckout(session, account, configuration) {
   return session
 }
 
-export async function billingCheckout({ db, user, configuration = billingConfiguration(), stripe, now = Date.now() }) {
+export async function billingCheckout({ db, user, business = null, configuration = billingConfiguration(), stripe, now = Date.now() }) {
   if (!configuration.checkoutReady) throw unavailable()
-  const original = await call(db, 'billing_owner', { p_user: user.id })
+  const original = await call(db, 'billing_owner', { p_user: user.id, p_business: business })
   if (!original) throw new HttpError(409, 'Add your website first.', 'NO_BUSINESS')
-  if (!original.enabled || !original.trial_ends_at) throw new HttpError(409, 'Billing setup is still being completed.', 'BILLING_NOT_ENABLED')
+  if (original.internal || !original.enabled || !original.trial_ends_at) throw new HttpError(409, 'Billing setup is still being completed.', 'BILLING_NOT_ENABLED')
   const client = stripe || createStripe(configuration)
   return leaseFor(db, original, async (account, lease) => {
     const current = Math.floor(now / 1000)
@@ -247,7 +249,7 @@ export async function billingCheckout({ db, user, configuration = billingConfigu
         integration_identifier: `saygday-monthly-${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
         allow_promotion_codes: false, automatic_tax: { enabled: false }, adaptive_pricing: { enabled: false },
         client_reference_id: account.business_id, metadata: { saygday_checkout_key: key },
-        success_url: `${configuration.publicUrl}/app/settings?checkout=success`, cancel_url: `${configuration.publicUrl}/app/settings?checkout=canceled`,
+        success_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=success`, cancel_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=canceled`,
         expires_at: current + (remaining > 0 ? Math.min(86400, remaining - 48 * 3600) : 86400),
         subscription_data: { metadata: { saygday_business_id: account.business_id }, ...(remaining > 0 ? { trial_end: seconds(account.trial_ends_at) } : {}) } }
       operation = { key, created_at: now, params }
@@ -300,3 +302,4 @@ export async function reconcileBillingBatch({ db, configuration = billingConfigu
   }))
   return { processed, failed }
 }
+

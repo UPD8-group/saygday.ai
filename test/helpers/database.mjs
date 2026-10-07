@@ -25,6 +25,7 @@ export async function database() {
   const folder = new URL('../../supabase/migrations/', import.meta.url)
   for (const name of (await readdir(folder)).filter(file => file.endsWith('.sql')).sort())
     await pg.exec(await readFile(new URL(name, folder), 'utf8'))
+  await pg.exec(await readFile(new URL('../../supabase/billing-upgrade.sql', import.meta.url), 'utf8'))
   return pg
 }
 
@@ -56,3 +57,4 @@ export function rpcClient(pg, { user: signedIn = null } = {}) {
     },
   }
 }
+

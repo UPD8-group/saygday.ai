@@ -126,3 +126,4 @@ test('the Netlify build hook reads public preview configuration and stops unsafe
   assert.match(failures[0], /VITE_SAYGDAY_SUPABASE_URL/)
   assert.ok(!failures[0].includes('invalid-secret'))
 })
+

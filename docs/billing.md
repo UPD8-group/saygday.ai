@@ -1,5 +1,14 @@
 # Stripe billing
 
+## Current integration (8 October 2026)
+
+Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
+
+After all versioned migrations, apply supabase/billing-upgrade.sql in the same deployment transaction as the pending Stripe migration. This compatibility script restores billing checks alongside multi-business ownership, button colours and daily activity counts. It is idempotent and covered by the full database suite. Do not activate billing until live configuration and the end-to-end rehearsal pass.
+
+The isolated branch described in the historical sandbox record is no longer present (verified 8 October). Do not assume its old URL or credentials remain usable.
+
+
 SayGday has one plan: **A$30 each month, charged in AUD**, after **14 free
 days with no card required**. The application creates a Stripe customer only
 when an owner chooses to upgrade. Signing in, adding a business and trying
@@ -100,7 +109,7 @@ one Stripe account and mode consistently.
 | Variable | Purpose |
 |---|---|
 | `SAYGDAY_STRIPE_MODE` | Explicit `test` or `live`; must match the API key, events and resources. |
-| `SAYGDAY_STRIPE_SECRET_KEY` | Secret API key; never commit, print or expose through a `VITE_` variable. |
+| `SAYGDAY_STRIPE_SECRET_KEY` | Restricted API key with the required permissions; never commit, print or expose through a `VITE_` variable. |
 | `SAYGDAY_STRIPE_PRICE_ID` | The exact active monthly AUD 3000-cent Price. |
 | `SAYGDAY_STRIPE_WEBHOOK_SECRET` | Signing secret for this endpoint and mode, beginning `whsec_`. |
 | `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration, beginning `bpc_`. |
@@ -416,3 +425,4 @@ rewrites approved business answers.
 
 Stripe references: [webhook signatures and retries](https://docs.stripe.com/webhooks),
 [portal configuration](https://docs.stripe.com/customer-management/configure-portal).
+

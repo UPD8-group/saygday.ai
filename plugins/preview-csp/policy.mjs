@@ -35,3 +35,4 @@ export function applyPreviewCsp(netlifyConfig, env) {
     ? value.replace(PRODUCTION_ORIGIN, origin)
     : value).join(';')
 }
+

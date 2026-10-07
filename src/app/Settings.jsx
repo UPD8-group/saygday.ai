@@ -38,13 +38,24 @@ export default function Settings() {
     <div className="section-head"><div><h1>Settings</h1></div></div>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="success" onClose={() => setSaved('')}>{saved}</Notice>
-    <Billing billing={dash.billing} request={dash.request} refreshBilling={dash.refreshBilling} refreshing={dash.billingRefreshing} refreshError={dash.billingError} />
+    <Billing key={business.id} billing={dash.billing} request={dash.request} refreshBilling={dash.refreshBilling} refreshing={dash.billingRefreshing} refreshError={dash.billingError} />
     <form className="card" onSubmit={save}>
       <h2>Your business</h2>
       <Field label="Business name" hint="Shown at the top of your chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={name} maxLength={120} onChange={event => setName(event.target.value)} />}</Field>
       <Field label="Email for customers’ questions" hint="Where we send questions your chat couldn’t answer, when the customer leaves their email.">{(id, note) => <input id={id} aria-describedby={note} className="input" type="email" value={notifyEmail} maxLength={254} onChange={event => setNotifyEmail(event.target.value)} />}</Field>
       <Button type="submit" busy={busy === 'save'} disabled={!name.trim() || !notifyEmail.trim() || (name === business.name && notifyEmail === business.notifyEmail)}>Save</Button>
     </form>
+    <section className="card">
+      <h2>Your websites</h2>
+      <p>Each website has its own chat, answers and button, all under this sign-in. Switch between them here or at the top of the page.</p>
+      <ul className="websites">
+        {dash.businesses.map(item => <li key={item.id}>
+          <span><strong>{item.name}</strong><span className="small">{item.website?.replace(/^https:\/\//, '')}</span></span>
+          {item.id === business.id ? <span className="small">This one</span> : <Button kind="ghost" onClick={() => { dash.choose(item.slug); navigate('/app') }}>Switch</Button>}
+        </li>)}
+      </ul>
+      <Button kind="dark" onClick={() => navigate('/app/add')} icon="plus">Add another website</Button>
+    </section>
     <form className="card" onSubmit={rescan}>
       <h2>Scan your website again</h2>
       <p>Changed your website? We’ll read it again and add new questions for you to check. Your approved answers and the ones you’ve written stay exactly as they are.</p>
@@ -58,3 +69,4 @@ export default function Settings() {
     </section>
   </div>
 }
+

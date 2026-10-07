@@ -9,3 +9,4 @@ export default async (request: Request) => {
 }
 
 export const config = { path: '/api/stripe/webhook' }
+

@@ -3,9 +3,10 @@
  *
  *   <script src="https://saygday.ai/widget.js" data-business="joes-cafe" defer></script>
  *
- * Add data-pulse to the tag and a soft gold ring pulses around the button
- * until the visitor first opens the chat (never for anyone who asks their
- * device for less motion). saygday.ai's own chat does.
+ * A faint ring pulses three times when the button first appears on a visit,
+ * stopping immediately when the visitor opens the chat. Simple buttons use
+ * the business's colour; animal buttons use soft gold. Reduced motion is
+ * respected. Add data-pulse="off" to the tag to switch the pulse off.
  *
  * It draws a button in the bottom-right corner (the business's chosen
  * character, or a plain button). Tapping it opens the chat in a window
@@ -23,8 +24,9 @@
   try { origin = new URL(script.src).origin } catch (e) { return }
   if (!/^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$/.test(slug)) { console.warn('[SayGday] Add data-business="your-business" to the script tag.'); return }
   window.__saygdayButton = true
-  var pulse = script.hasAttribute('data-pulse')
+  var pulse = script.getAttribute('data-pulse') !== 'off'
   var OPENED = 'saygday-opened:' + slug
+  var PULSED = 'saygday-pulsed:' + slug
 
   var CHARACTERS = ['skippy', 'quigley', 'eddie', 'kiki', 'kip', 'penny', 'sully', 'wally']
   // The plain buttons: an exact copy of PLAIN_BUTTONS in shared/characters.mjs
@@ -44,6 +46,18 @@
     'dot': '<circle cx="12" cy="12" r="6.4" fill="currentColor" stroke="none"/>',
     'ring-dot': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>'
   }
+  function buttonColour(value) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : '#31584a'
+  }
+  function buttonInk(value) {
+    var colour = buttonColour(value)
+    var channels = [1, 3, 5].map(function (index) {
+      var channel = parseInt(colour.slice(index, index + 2), 16) / 255
+      return channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4)
+    })
+    var luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+    return luminance > 0.179 ? '#000000' : '#ffffff'
+  }
   function plainSvg(key) {
     return '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (PLAIN.hasOwnProperty(key) ? PLAIN[key] : PLAIN.bubble) + '</svg>'
   }
@@ -55,21 +69,23 @@
     host.setAttribute('data-saygday', '')
     var root = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host
     var style = document.createElement('style')
+    var pulseColour = CHARACTERS.indexOf(config.character) >= 0 ? '#f3c969' : buttonColour(config.buttonColour)
     style.textContent =
       ':host{all:initial}' +
       '.sg-button{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:64px;height:64px;border-radius:50%;border:0;padding:0;cursor:pointer;' +
-      'background:#31584a;color:#fff;display:grid;place-items:center;box-shadow:0 10px 28px rgba(20,33,28,.28);transition:transform .15s ease}' +
-      '.sg-button:hover{transform:scale(1.05)}.sg-button:focus-visible{outline:3px solid #f3c969;outline-offset:3px}' +
+      '--sg-pulse-colour:' + pulseColour + ';background:#31584a;color:#fff;display:grid;place-items:center;box-shadow:0 10px 28px rgba(20,33,28,.28);transition:transform .15s ease}' +
+      '.sg-button:hover{transform:scale(1.05)}.sg-button:focus-visible{outline:3px solid #000;outline-offset:4px;box-shadow:0 0 0 4px #fff}' +
       '.sg-button img{width:64px;height:64px;border-radius:50%;display:block;background:#fff}' +
       '.sg-button.is-open img{display:none}.sg-close{display:none}.sg-button.is-open .sg-close{display:block}.sg-button.is-open .sg-bubble{display:none}' +
       '.sg-panel{position:fixed;right:20px;bottom:96px;z-index:2147483000;width:380px;max-width:calc(100vw - 32px);height:600px;max-height:calc(100vh - 120px);' +
       'border:0;border-radius:20px;overflow:hidden;box-shadow:0 18px 48px rgba(20,33,28,.25);background:#fbfaf6;display:none}' +
       '.sg-panel.is-open{display:block}.sg-panel iframe{border:0;width:100%;height:100%;display:block}' +
       '@media (max-width:520px){.sg-panel{right:0;bottom:0;width:100vw;max-width:100vw;height:100%;max-height:100%;border-radius:0}.sg-button.is-open{display:none}}' +
-      '.sg-button.sg-pulse{animation:sg-pulse 2.8s ease-out infinite}' +
-      '@keyframes sg-pulse{0%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 0 rgba(243,201,105,.8)}' +
-      '70%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 18px rgba(243,201,105,0)}100%{box-shadow:0 10px 28px rgba(20,33,28,.28),0 0 0 0 rgba(243,201,105,0)}}' +
-      '@media (prefers-reduced-motion:reduce){.sg-button{transition:none}.sg-button.sg-pulse{animation:none}}'
+      '.sg-button::before{content:"";position:absolute;inset:-3px;border:2px solid var(--sg-pulse-colour);border-radius:50%;pointer-events:none;opacity:0}' +
+      '.sg-button.sg-pulse::before{animation:sg-pulse 3.2s ease-out 3}' +
+      '@keyframes sg-pulse{0%{opacity:0;transform:scale(1)}20%{opacity:.26}' +
+      '85%,100%{opacity:0;transform:scale(1.35)}}' +
+      '@media (prefers-reduced-motion:reduce){.sg-button{transition:none}.sg-button.sg-pulse::before{animation:none}}'
     root.appendChild(style)
 
     var panel = document.createElement('div')
@@ -88,15 +104,29 @@
       image.alt = ''
       button.appendChild(image)
     } else {
+      button.style.background = buttonColour(config.buttonColour)
+      button.style.color = buttonInk(config.buttonColour)
       var bubble = document.createElement('span')
       bubble.className = 'sg-bubble'
       bubble.innerHTML = plainSvg(config.character)
       button.appendChild(bubble)
     }
-    // The pulse stops for good once the chat has been opened on this visit.
+    // One gentle introduction per business per visit, including page changes.
     var pulsing = pulse
-    try { if (window.sessionStorage.getItem(OPENED)) pulsing = false } catch (e) { /* storage blocked: keep pulsing */ }
-    if (pulsing) button.classList.add('sg-pulse')
+    try { if (window.sessionStorage.getItem(OPENED) || window.sessionStorage.getItem(PULSED)) pulsing = false } catch (e) { /* storage blocked: still limited to three pulses */ }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) pulsing = false
+    var pulseTimer = null
+    function stopPulse() {
+      pulsing = false
+      button.classList.remove('sg-pulse')
+      if (pulseTimer !== null) { window.clearTimeout(pulseTimer); pulseTimer = null }
+    }
+    button.addEventListener('animationend', function (event) { if (event.animationName === 'sg-pulse') stopPulse() })
+    if (pulsing) {
+      button.classList.add('sg-pulse')
+      try { window.sessionStorage.setItem(PULSED, '1') } catch (e) { /* storage blocked */ }
+      pulseTimer = window.setTimeout(stopPulse, 9600)
+    }
     var close = document.createElement('span')
     close.className = 'sg-close'
     close.innerHTML = CLOSE
@@ -104,9 +134,8 @@
 
     var frame = null
     function setOpen(open) {
-      if (open && pulsing) {
-        pulsing = false
-        button.classList.remove('sg-pulse')
+      if (open) {
+        stopPulse()
         try { window.sessionStorage.setItem(OPENED, '1') } catch (e) { /* storage blocked */ }
       }
       if (open && !frame) {

@@ -108,7 +108,58 @@ test('the chat, its styles and the dashboard all play their part', async () => {
   assert.match(css, /\.msg--answer \{ background: var\(--c-mint\);/)
   assert.match(css, /\.msg--handoff \{ background: var\(--c-gold-soft\); border: 1px dashed var\(--c-gold\); \}/)
   const button = await read('src/app/ChatButton.jsx')
-  assert.match(button, /request\('updateBusiness', \{ character, greeting, signedBy: signedBy\.trim\(\) \}\)/)
+  assert.match(button, /request\('updateBusiness', \{ character, buttonColour: colour, greeting, signedBy: signedBy\.trim\(\) \}\)/)
   assert.match(button, /signedBy: signedBy\.trim\(\), faqs: live/, 'the preview names who answers as it’s typed')
   assert.doesNotMatch(button, /written on every answer|like a signature/, 'the dashboard doesn’t promise a signature the chat no longer shows')
+})
+
+// The chat window opens inside other businesses' websites (4 October 2026,
+// hear.is's Google-free sweep caught it): nothing it loads may reach a third
+// party. Its typeface is bundled, and its content security policy no longer
+// lets a font or stylesheet come from Google.
+test('the chat window fetches nothing from Google: its typeface is bundled', async () => {
+  const chat = await read('chat.html')
+  assert.doesNotMatch(chat, /googleapis|gstatic/, 'chat.html loads no Google stylesheet')
+  const main = await read('src/chat/main.jsx')
+  for (const weight of [400, 500, 600, 700]) assert.match(main, new RegExp(`import '@fontsource/outfit/${weight}\\.css'`))
+  const toml = await read('netlify.toml')
+  const chatPolicy = /for = "\/chat\.html"[\s\S]*?Content-Security-Policy = "([^"]+)"/.exec(toml)?.[1] ?? ''
+  assert.ok(chatPolicy, 'the chat window has its own policy')
+  assert.doesNotMatch(chatPolicy, /googleapis|gstatic/, 'and it allows no Google host')
+})
+
+// The dashboard hands every business a paragraph for its own privacy policy
+// (owner, 4 October 2026: "Ok add it please", after hear.is's Privacy
+// statement was written to name SayGday). Every sentence must stay true: the
+// facts it states are the ones site/privacy.html promises, so a change to
+// either shows up here.
+test('the chat button page hands out a privacy paragraph that matches the privacy page', async () => {
+  const { PRIVACY_PARAGRAPH: paragraph } = await import('../src/app/privacy-paragraph.mjs')
+  const privacy = await read('site/privacy.html')
+  const facts = [
+    [/business name of HEAR\.IS Pty Ltd in Canberra, Australia/, /business name of HEAR\.IS PTY LTD[^<]*Canberra, Australia/i],
+    [/sets no cookies/, /chat button on your website doesn’t use cookies/],
+    [/no AI answers you/, /we find answers on the customer’s own device/],
+    [/which answer you opened, not what you typed/, /count how often each answer is opened, not who opened it/],
+    [/keeps the question and any email address you give/, /we keep the question and the email address they give/],
+    [/Resend, an email service in the United States/, /<strong>Resend<\/strong> sends our emails, from the United States/],
+    [/Supabase in Sydney/, /<strong>Supabase<\/strong> stores our database, in Sydney/],
+    [/scrambled form of your internet address that it clears within a day/, /scrambled form that can’t be turned back into the address, and clear it within a day/],
+    [/within 30 days of us closing our SayGday account/, /delete your business, your answers and your customers’ questions within 30 days/],
+    [/saygday\.ai\/privacy/, /<title>Privacy · SayGday<\/title>/],
+  ]
+  for (const [said, promised] of facts) {
+    assert.match(paragraph, said, `the paragraph says ${said}`)
+    assert.match(privacy, promised, `and the privacy page promises ${promised}`)
+  }
+  assert.doesNotMatch(paragraph, /—|Google|\bAI\b(?! answers)/, 'plain words: no dashes, no Google, no AI beyond the denial')
+  assert.ok(paragraph.split('. ').length >= 6 && paragraph.length < 1200, 'one pasteable paragraph')
+  const button = await read('src/app/ChatButton.jsx')
+  assert.match(button, /import \{ PRIVACY_PARAGRAPH \} from '\.\/privacy-paragraph\.mjs'/)
+  assert.match(button, /<h2>4\. Tell your customers<\/h2>/, 'its own numbered card on the chat button page')
+  assert.match(button, /<textarea id="privacy-paragraph" readOnly value=\{PRIVACY_PARAGRAPH\}/, 'the paragraph itself, ready to select')
+  assert.match(button, /navigator\.clipboard\.writeText\(PRIVACY_PARAGRAPH\)/, 'and a Copy button')
+  assert.ok(button.indexOf('<SwitchOn ') < button.indexOf('tell-customers'), 'after Switch on, so the order of the cards is the order of the work')
+  const css = await read('src/app/app.css')
+  assert.match(css, /\.code--prose textarea \{ font: 400 15px\/1\.55 'Outfit'/, 'prose, not code, in the textarea')
 })

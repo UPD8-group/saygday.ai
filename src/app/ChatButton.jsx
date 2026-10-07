@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
-import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel } from '../../shared/characters.mjs'
+import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
+import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
+import { PRIVACY_PARAGRAPH } from './privacy-paragraph.mjs'
 import { billingView } from './billing-view.mjs'
 
 const PLATFORMS = [
@@ -78,6 +80,7 @@ export default function ChatButton() {
   const dash = useDash()
   const { business } = dash
   const [character, setCharacter] = useState(business.character)
+  const [colour, setColour] = useState(buttonColour(business.buttonColour))
   const [greeting, setGreeting] = useState(business.greeting)
   const [signedBy, setSignedBy] = useState(business.signedBy || '')
   const [busy, setBusy] = useState(false)
@@ -85,21 +88,28 @@ export default function ChatButton() {
   const [saved, setSaved] = useState('')
   const [platform, setPlatform] = useState('any')
   const [copied, setCopied] = useState(false)
+  const [copiedParagraph, setCopiedParagraph] = useState(false)
   const [open, setOpen] = useState(true)
   useEffect(() => { document.title = 'Chat button · SayGday' }, [])
   const code = `<script src="${location.origin}/widget.js" data-business="${business.slug}" defer></script>`
-  const changed = character !== business.character || greeting.trim() !== business.greeting || signedBy.trim() !== (business.signedBy || '')
+  const simple = !characterFor(character)
+  const launcherStyle = simple ? { background: colour, color: buttonInk(colour) } : undefined
+  const changed = colour !== buttonColour(business.buttonColour) || character !== business.character || greeting.trim() !== business.greeting || signedBy.trim() !== (business.signedBy || '')
   const live = (dash.faqs || []).filter(faq => faq.status === 'approved')
 
   async function save() {
     setBusy(true); setError(''); setSaved('')
-    try { const result = await dash.request('updateBusiness', { character, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); setSaved('Saved. Your chat button will use these settings.') }
+    try { const result = await dash.request('updateBusiness', { character, buttonColour: colour, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); setSaved('Saved. Your chat button shows this now.') }
     catch (failure) { setError(failure.message) }
     finally { setBusy(false) }
   }
   async function copy() {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2500) }
     catch { document.getElementById('install-code')?.select() }
+  }
+  async function copyParagraph() {
+    try { await navigator.clipboard.writeText(PRIVACY_PARAGRAPH); setCopiedParagraph(true); setTimeout(() => setCopiedParagraph(false), 2500) }
+    catch { document.getElementById('privacy-paragraph')?.select() }
   }
   return <div className="button-page">
     <div className="section-head"><div><h1>Your chat button</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>
@@ -114,9 +124,10 @@ export default function ChatButton() {
             </button>)}
             <p className="looks__title">Or keep it simple</p>
             {PLAIN_BUTTONS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look look--plain${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
-              <Avatar character={item.key} size={56} /><span>{item.name}</span>
+              <Avatar character={item.key} size={56} colour={colour} /><span>{item.name}</span>
             </button>)}
           </div>
+          {simple ? <Field label="Simple button colour" hint="Applies to any simple style. The icon adjusts automatically to stay readable.">{(id, note) => <div className="button-colour"><input id={id} type="color" value={colour} aria-describedby={note} onChange={event => setColour(event.target.value)} /><span>{colour.toUpperCase()}</span><Button kind="ghost" onClick={() => setColour(DEFAULT_BUTTON_COLOUR)} disabled={colour === DEFAULT_BUTTON_COLOUR}>Reset colour</Button></div>}</Field> : <p className="small">Animal character colours are fixed. Choose a simple button to customise its colour.</p>}
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
           <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
           <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
@@ -130,15 +141,21 @@ export default function ChatButton() {
           <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map(step => <li key={step}>{step}</li>)}</ol>
         </section>
         <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />
+        <section className="card tell-customers">
+          <h2>4. Tell your customers</h2>
+          <p>Most privacy policies list the services a website uses. Here is a paragraph you can paste into yours. It says exactly what the chat button sends and keeps, in plain words.</p>
+          <div className="code code--prose"><textarea id="privacy-paragraph" readOnly value={PRIVACY_PARAGRAPH} rows={9} aria-label="A paragraph for your privacy policy" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copyParagraph} icon={copiedParagraph ? 'check' : 'copy'}>{copiedParagraph ? 'Copied' : 'Copy'}</Button></div>
+          <p className="small">Our own privacy page says the same in more detail: <a href="https://saygday.ai/privacy" target="_blank" rel="noreferrer">saygday.ai/privacy</a>.</p>
+        </section>
       </div>
       <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>
         <div className="preview__site">
           <div className="preview__bar"><span /><span /><span /><em>{business.website?.replace(/^https:\/\//, '')}</em></div>
           <div className="preview__page" aria-hidden="true"><i /><i /><i /><i className="short" /></div>
-          {open && <div className="preview__panel"><Chat key={`${character}-${greeting}-${signedBy}-${live.length}`} widget={{ name: business.name, character, greeting: greeting.trim() || business.greeting, signedBy: signedBy.trim(), faqs: live, slug: business.slug }} preview onClose={() => setOpen(false)} /></div>}
-          <button type="button" className="preview__launcher" onClick={() => setOpen(value => !value)} aria-label={open ? 'Close the preview chat' : 'Open the preview chat'}>
-            {open ? <Icon name="close" size={24} /> : <Avatar character={character} size={56} />}
+          {open && <div className="preview__panel"><Chat key={`${character}-${greeting}-${signedBy}-${live.length}`} widget={{ name: business.name, character, buttonColour: colour, greeting: greeting.trim() || business.greeting, signedBy: signedBy.trim(), faqs: live, slug: business.slug }} preview onClose={() => setOpen(false)} /></div>}
+          <button type="button" className="preview__launcher" style={launcherStyle} onClick={() => setOpen(value => !value)} aria-label={open ? 'Close the preview chat' : 'Open the preview chat'}>
+            {open ? <Icon name="close" size={24} /> : <Avatar character={character} size={56} colour={colour} />}
           </button>
         </div>
         {live.length === 0 && <p className="small">Approve some questions and they’ll appear here.</p>}
@@ -146,3 +163,4 @@ export default function ChatButton() {
     </div>
   </div>
 }
+

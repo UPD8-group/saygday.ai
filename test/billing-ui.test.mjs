@@ -150,3 +150,4 @@ test('billing and cancellation remain reachable while a website scan is running'
   assert.match(dashboard, /\{dash\.business && <nav className="tabs"/)
   assert.match(dashboard, /<\/NavLink>\s*<\/>\}\s*<NavLink to="\/app\/settings">/, 'Settings stays visible outside the scan-gated editing links')
 })
+

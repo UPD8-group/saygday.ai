@@ -23,8 +23,9 @@ settings, which is how sign-in broke on saygday.ai before the move.
   rewordings of questions just approved): the job reads the business's known
   questions (`scan_known_questions`) and drops only equivalent questions
   with the same answer. Visitor matching is not duplicate detection: a
-  specific exception must still reach the owner for review. `createBusiness` asked twice returns the
-  business it has and never starts a second scan.
+  specific exception must still reach the owner for review. `createBusiness` asked twice FOR THE SAME WEBSITE returns the
+  business it has and never starts a second scan (a different website is
+  another business under the same sign-in; the bullet below).
 - **"Please drop an email"**: when the chat can't answer, the visitor leaves
   their email and the business gets the question by email (Reply-To is the
   visitor). Without an email the question still shows in the dashboard.
@@ -40,6 +41,26 @@ settings, which is how sign-in broke on saygday.ai before the move.
   button resolves its ID against current answers before displaying one.
 - The dashboard is simple, big and graphical: web address in → scan → check
   answers → add the chat button.
+
+- **One sign-in, many businesses** (owner, 4 October 2026: "it's important that
+  hello@oo.studio has the ability to manage and add many different profiles —
+  I'll use this as a feature when building websites for new clients"). Until
+  then a business WAS its owner: `businesses.owner_id` was unique and every
+  owner function found "the business" from the signed-in user alone.
+  Migration 20261004130000 lifts the constraint and gives every owner function
+  a `p_business` beside `p_user`, resolved in ONE place (`owned_business`): a
+  sign-in with one business needn't name it, a sign-in with several must
+  (`CHOOSE_BUSINESS` otherwise), and someone else's business reads as no
+  business at all. The dashboard API (`_lib/owner.mjs`) takes `business` on
+  every request and `me` returns `businesses` (all of them, `my_businesses`)
+  beside the one named; the dashboard names the business being worked on on
+  every request (remembered by slug in localStorage and `?business=`), shows a
+  switcher in the bar once there are two, and adds the next one at `/app/add`
+  (Settings lists them). `createBusiness` for a website the sign-in already
+  has is still the business it has, no second scan. The browser still never
+  picks whose data it reads: it can only name a business it owns. Locked by
+  test/database.test.mjs and test/server.test.mjs. The migration is run by
+  hand in the SQL editor like the others (docs/setup.md).
 - The Jay/James rule from the earlier platform still applies to public copy:
   the site names James, never Jay.
 
@@ -130,9 +151,12 @@ settings, which is how sign-in broke on saygday.ai before the move.
   business's; `site/own-chat.mjs` is where they started (57, every fact one
   the site already states) and `scripts/own-chat-sql.mjs` loaded them
   without ever overwriting an edited answer. Every page carries the same line
-  a business pastes (`OWN_BUTTON` in site/chrome.mjs, with `data-pulse`: a gold
-  ring until the chat is first opened that visit, never under reduced motion),
-  so saygday.ai passes the ownership check every business does
+  a business pastes (`OWN_BUTTON` in site/chrome.mjs). All buttons now have a
+  faint ring for three pulses at the start of a visit, stopping immediately
+  when opened, never under reduced motion. Simple buttons use their saved
+  colour; animal buttons keep their artwork and use a gold ring. Existing
+  embed code works unchanged; `data-pulse="off"` disables the introduction.
+  SayGday.ai passes the ownership check every business does
   (`scripts/own-chat-verify.mjs` runs it; the button can't trigger it itself,
   because a same-site request carries no Origin, so widget.js also names the
   page it's on with `site=`, which the server reads only when there's no
@@ -140,6 +164,32 @@ settings, which is how sign-in broke on saygday.ai before the move.
   140 questions the way visitors type them: change an answer's wording or
   variants and run it. Writing those found `does` singularised to `doe` and
   slipping past the stopwords (like `this` → `thi`); `doe` is a stopword now.
+
+- **The dashboard hands every business a paragraph for its privacy policy**
+  (owner, 4 October 2026: "Ok add it please", after hear.is's own Privacy
+  statement was written to name SayGday and he asked whether other platforms
+  do this). Most privacy policies list the services a website uses, and the
+  chat vendors a business already knows hand out wording for exactly that.
+  src/app/privacy-paragraph.mjs is the ONE paragraph, card "4. Tell your
+  customers" on the Chat button page (after Switch on), a textarea and Copy.
+  Every sentence is true for every business on SayGday and says the same as
+  site/privacy.html: what the settings request carries, no cookies, no AI,
+  matching in the browser, which answer was opened but never what was typed,
+  a sent question kept and emailed on through Resend (US), Supabase in
+  Sydney, the scrambled spam count cleared within a day, deletion within 30
+  days of the account closing. test/chat-look.test.mjs holds the paragraph
+  and the privacy page together fact by fact: change one, change both.
+- **The chat window fetches nothing from Google** (4 October 2026, caught by
+  hear.is's Google-free sweep the day its Privacy statement went to name
+  SayGday). chat.html opens inside other businesses' websites, and it was
+  loading Outfit from fonts.googleapis.com, so every visitor who opened a
+  chat sent their internet address to Google from the business's own site.
+  The typeface is bundled now (`@fontsource/outfit`, imported in
+  src/chat/main.jsx), and chat.html's content security policy allows no
+  Google host. The dashboard (app.html) and the public site still load
+  Outfit and Caveat from Google; they are SayGday's own pages, not a
+  client's, and moving them is a separate decision. Locked by
+  test/chat-look.test.mjs.
 
 - **The chat wears the front page's example card** (owner, 3 October 2026:
   "Can we make it look like the one on the front screen? It just looks
@@ -234,6 +284,32 @@ settings, which is how sign-in broke on saygday.ai before the move.
   week-long cache) and a run of the script; test/site.test.mjs fails on a
   photo without its phone copy or a phone copy wider than 1100 px.
 
+- **SayGday's own admin page, behind one password** (owner, 5 October 2026:
+  "I'm unable to see how many businesses have actually signed up… where they
+  might be up to in the 14-day free trial… I will put the password required to
+  access it in an [environment variable] on netlify… add extra that you feel
+  would be needed in order to provide insights into future VCs"). `/admin`
+  (`admin.html`, `src/admin/`) and `/api/admin` (`_lib/admin.mjs`). The
+  password is `SAYGDAY_ADMIN_PASSWORD` (12 characters or more, or the page
+  stays switched off), compared in constant time, ten tries an hour a
+  connection and fifty in all (scrambled keys, like every limit); the right one
+  gets a signed twelve-hour cookie (HttpOnly, Secure, SameSite=Strict, sent to
+  /api/admin only) that a new password revokes, and another website's page is
+  refused. The browser never holds the password; the page fetches nothing from
+  Google and is never indexed. The free 14 days run from when the website was
+  added (`src/admin/metrics.mjs`). Billing is by hand, so the owner marks each
+  business trial, paying, cancelled or ours/test (`businesses.plan`, every
+  change kept in `plan_changes`): revenue, trial to paid and paying month by
+  month count from that, and ours/test (the `saygday` business from the start)
+  counts in no total. Use by the day is `business_activity` (answers opened,
+  hours the button loaded: counts only, added by `faq_viewed` and
+  `button_seen`). Sign-ins come from Supabase Auth's admin API (the server's
+  database role can't read `auth.users`). The page sees every sign-in and
+  business but never a customer's question or email address: only when one came
+  in and whether the email reached the business. The CSV it downloads can't run
+  a formula. Locked by test/admin.test.mjs; migration 20261005100000 is run by
+  hand like the others.
+
 ## Hard rules
 
 - **Billing is server-owned.** `docs/billing.md` describes the Stripe rollout.
@@ -260,3 +336,4 @@ settings, which is how sign-in broke on saygday.ai before the move.
   their green is trusted. Run the sabotage with `npm test`, never
   `node --test test/` (that form fails every run and proves nothing).
 - Never `git add` while a sabotage script is running.
+

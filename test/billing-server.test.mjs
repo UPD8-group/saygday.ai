@@ -116,7 +116,7 @@ test('Checkout is authenticated and ignores every client customer, price, user, 
   assert.equal(result.url, 'https://checkout.stripe.com/c/pay/example')
   const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
-  assert.equal(params.success_url, 'https://saygday.ai/app/settings?checkout=success')
+  assert.equal(params.success_url, 'https://saygday.ai/app/settings?business=owner&checkout=success')
   assert.equal(params.subscription_data.trial_end, Math.floor(Date.parse((await s.account()).trial_ends_at) / 1000))
   assert.equal(params.allow_promotion_codes, false)
   assert.equal('payment_method_types' in params, false, 'Stripe dynamically selects eligible Dashboard-enabled methods')
@@ -359,7 +359,7 @@ test('portal cancellation remains available after expiry and price misconfigurat
     body: { action: 'billingPortal', user: { id: other.id }, p_user: other.id, businessId: alien.id, customerId: 'cus_alice', returnUrl: 'https://evil.example' },
     dependencies: { billing: { configuration: noPrice, stripe: s.stripe.client } } })
   assert.deepEqual(result, { url: 'https://billing.stripe.com/p/session/example' })
-  assert.deepEqual(s.stripe.calls.find(([name]) => name === 'portal')[1], { customer: 'cus_owner', configuration: 'bpc_safe', return_url: 'https://saygday.ai/app/settings?billing=returned' })
+  assert.deepEqual(s.stripe.calls.find(([name]) => name === 'portal')[1], { customer: 'cus_owner', configuration: 'bpc_safe', return_url: 'https://saygday.ai/app/settings?business=owner&billing=returned' })
   s.stripe.portal.features.subscription_cancel.mode = 'immediately'
   await refused(billingPortal(s.args), 'BILLING_UNAVAILABLE')
   s.stripe.portal = portal(); s.stripe.portal.features.subscription_update.enabled = true
@@ -429,3 +429,4 @@ test('bounded background reconciliation repairs missed events without browser vi
   assert.equal((await s.account()).subscription_status, 'active')
   assert.deepEqual(await reconcileBillingBatch(s.args), { processed: 0, failed: 0 })
 })
+

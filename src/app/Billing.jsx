@@ -67,3 +67,4 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
     {view.portalAvailable && <p className="small billing__terms">Use the secure billing portal to update your payment method, see invoices or cancel. Your saved answers and enquiries stay available in this dashboard.</p>}
   </section>
 }
+

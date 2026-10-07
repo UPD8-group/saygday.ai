@@ -55,6 +55,7 @@ export async function requireUser(request, db) {
 // What each database refusal means to a person.
 const REFUSALS = {
   NO_BUSINESS: [409, 'Add your website first.'],
+  CHOOSE_BUSINESS: [409, 'Choose which of your websites this is for, then try again.'],
   NOT_FOUND: [404, 'That wasn’t found. Refresh and try again.'],
   INVALID_WEBSITE: [400, 'Enter your website’s address, like https://yourbusiness.com.au'],
   SCAN_LIMIT: [429, 'That’s the most website scans for today. Please try again tomorrow.'],
@@ -72,6 +73,9 @@ export function rpcResult({ data, error }) {
   if (!error) return data
   const code = /^[A-Z_]+$/.test(error.message || '') ? error.message : null
   if (code && REFUSALS[code]) throw new HttpError(REFUSALS[code][0], REFUSALS[code][1], code)
+  // A function the code calls and the database doesn't have yet: the latest
+  // migration hasn't been run. Say so, rather than "couldn't reach".
+  if (error.code === 'PGRST202') throw new HttpError(503, 'SayGday is being updated. Please try again in a few minutes.', 'DATABASE_UPDATING')
   if (error.code === '23505') throw new HttpError(409, 'You already have that question. Edit the existing one instead.', 'DUPLICATE')
   if (['23514', '22001', '22023', '22P02'].includes(error.code)) throw new HttpError(400, 'Some of those details aren’t valid. Check them and try again.', 'INVALID')
   throw new HttpError(503, 'We couldn’t reach your account just now. Please try again.', 'DATABASE_UNAVAILABLE')
@@ -99,3 +103,4 @@ export async function rateLimit(db, kind, subject, limit, windowSeconds) {
   const allowed = await call(db, 'rate_limit', { p_key: rateLimitKey(kind, subject), p_limit: limit, p_window_seconds: windowSeconds })
   if (!allowed) throw new HttpError(429, windowSeconds >= 3600 ? 'A few too many requests. Please try again later.' : 'A few too many requests. Please wait a moment and try again.', 'RATE_LIMITED')
 }
+

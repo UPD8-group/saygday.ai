@@ -8,6 +8,15 @@ verification as the trial start on 4 October 2026.
 
 Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
 
+1. **Run the migrations.** SQL editor → paste each file in
+   `supabase/migrations/`, oldest first, → Run. A later change is a later
+   file: 20261004130000_many_businesses_per_owner.sql (one sign-in, many
+   businesses) must be run on a project set up before 4 October 2026.
+   For simple button colours, also run `20261004132908_simple_button_colour.sql` before deploying the updated dashboard and functions. Existing buttons keep SayGday green until their owner saves a colour.
+   For the admin page (5 October 2026), run `20261005100000_admin_dashboard.sql`. It only adds: each business's plan,
+   day-by-day counts of answers read, and the admin page's summaries. SayGday's own `saygday` business starts as
+   "Ours / test", so it counts in no total.
+
 1. **Run pending migrations in filename order.** They are in
    `supabase/migrations/`. Check the project's applied migration history first;
    do not rerun migrations already applied. The Stripe migration
@@ -43,6 +52,7 @@ one would serve the pages without these settings.
 | `RESEND_API_KEY` | your Resend key (sends sign-in codes and customers' questions) | **yes** |
 | `SAYGDAY_EMAIL_FROM` | `SayGday <hello@saygday.ai>` | no |
 | `SAYGDAY_PUBLIC_URL` | `https://saygday.ai` | no |
+| `SAYGDAY_ADMIN_PASSWORD` | a long passphrase of your own (at least 12 characters) for the admin page, `/admin` | **yes**, Functions scope only |
 
 Optional: `SAYGDAY_SCAN_MODEL` (defaults to `claude-opus-5-5`),
 `SAYGDAY_SCAN_SECRET` (defaults to a secret derived from the service key) and
@@ -52,6 +62,21 @@ day's counts).
 
 3. Deploy. The website is at `/`; sign in at `/login` with your email and
    scan a website.
+
+## 3. The admin page
+
+`https://saygday.ai/admin` shows every sign-in and business, where each business
+is in its free 14 days, and the numbers an investor asks for. It opens with
+`SAYGDAY_ADMIN_PASSWORD`; without it (or with one shorter than 12 characters) the
+page says it's switched off. Netlify uses a new or changed variable from the
+next deploy, so deploy again after setting it. Changing the password signs
+everyone out. It takes at most ten tries an hour from one connection (fifty
+in all); past that, signing in waits until the hour is up.
+
+Stripe updates paying and cancelled status automatically after reconciliation. Mark internal businesses **Ours / test** to exclude them from revenue totals. Answers read and chats in use are
+counted day by day from the day the migration runs.
+
+## 4. Moving saygday.ai across
 
 ## Stripe billing: configure before activating
 
@@ -65,7 +90,7 @@ test and production contexts. Do not use `VITE_` for any Stripe setting.
 | Name | Value | Secret? |
 |---|---|---|
 | `SAYGDAY_STRIPE_MODE` | `test` for isolated tests; `live` for production | no |
-| `SAYGDAY_STRIPE_SECRET_KEY` | Matching Stripe secret API key | **yes** |
+| `SAYGDAY_STRIPE_SECRET_KEY` | Matching restricted Stripe API key with the required billing permissions | **yes** |
 | `SAYGDAY_STRIPE_PRICE_ID` | Price for `aud`, `3000` cents, every one month | no, server-owned |
 | `SAYGDAY_STRIPE_WEBHOOK_SECRET` | This environment's webhook signing secret (`whsec_…`) | **yes** |
 | `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration (`bpc_…`) | no, server-owned |
@@ -99,3 +124,4 @@ platform, so each client adds the new line of code from their dashboard.
 - **A website scan:** one Claude call, roughly A$0.25 to A$0.45. Each business
   can scan at most six times a day.
 - **Email:** Resend's free tier covers 3,000 emails a month.
+

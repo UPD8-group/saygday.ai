@@ -327,12 +327,10 @@ test('every page carries the button, and saygday.ai’s home page passes the own
   }
   assert.equal(hasButton(await built(''), 'saygday'), true, 'the home page shows its own button code')
   const widget = await read('public/widget.js')
-  assert.match(widget, /var pulse = script\.hasAttribute\('data-pulse'\)/, 'the pulse is asked for in the tag')
-  assert.match(widget, /if \(pulsing\) button\.classList\.add\('sg-pulse'\)/)
-  assert.match(widget, /if \(open && pulsing\) \{\n\s*pulsing = false\n\s*button\.classList\.remove\('sg-pulse'\)/, 'and stops once the chat is opened')
-  assert.match(widget, /window\.sessionStorage\.getItem\(OPENED\)\) pulsing = false/, 'for the rest of the visit')
-  assert.match(widget, /@media \(prefers-reduced-motion:reduce\)\{[^']*\.sg-button\.sg-pulse\{animation:none\}/, 'never for anyone who asks for less motion')
+  assert.match(widget, /var pulse = script\.getAttribute\('data-pulse'\) !== 'off'/, 'client sites and our own site pulse by default')
+  assert.match(widget, /@media \(prefers-reduced-motion:reduce\)\{[^']*\.sg-button\.sg-pulse::before\{animation:none\}/, 'never for anyone who asks for less motion')
   assert.match(widget, /'&site=' \+ encodeURIComponent\(location\.origin\) \+ '&seen=1'/, 'the button names the page it’s on')
   assert.match(await read('src/site/site.css'), /body\.menu-open \[data-saygday\] \{ display: none; \}/, 'it steps aside for the menu')
   assert.match(await read('src/site/site.css'), /@media \(max-width: 1360px\) \{ \.site-foot \{ padding-bottom: 112px; \} \}/, 'and never covers the Acknowledgement of Country at the foot of a page')
 })
+

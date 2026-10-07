@@ -1,6 +1,6 @@
 // Display only. Access and all subscription changes are decided by the server.
 export const UNAVAILABLE_BILLING = Object.freeze({ state: 'unavailable', accessAllowed: false, checkoutAvailable: false, portalAvailable: false })
-const STATES = new Set(['setup_pending', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
+const STATES = new Set(['internal', 'setup_pending', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
 
 export function billingDate(value) {
   if (!value || !Number.isFinite(Date.parse(value))) return ''
@@ -20,6 +20,7 @@ export function billingView(value) {
     : ' No payment is taken unless you choose to subscribe.'
   const pause = allowed ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
+    internal: ['Internal business', 'This website is marked as an internal or test business. No subscription is needed.'],
     setup_pending: ['Billing is being set up', 'Paid upgrades will be available here once billing is ready. No payment is taken automatically.'],
     trial_not_started: ['Your free period hasn’t started', 'Your first 14 days are free. Your free period starts when we first verify that you own your website. No card is required to start.'],
     trial: ['Your free period is running', `Your 14 free days${trialEnd ? ` end on ${trialEnd}` : ' are in progress'}.${trialPlan}`],
@@ -66,3 +67,4 @@ export function billingReturn(search) {
 export function billingConfirmed(billing) {
   return billing?.state === 'active' || billing?.state === 'canceling' || (['trial', 'trial_ending'].includes(billing?.state) && billing?.subscriptionScheduled === true)
 }
+

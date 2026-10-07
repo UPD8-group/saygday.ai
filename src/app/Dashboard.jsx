@@ -6,50 +6,120 @@ import { Avatar } from '../chat/Chat.jsx'
 import { BillingNotice } from './Billing.jsx'
 import { billingView, UNAVAILABLE_BILLING } from './billing-view.mjs'
 
-// The dashboard's shared state: the business, its latest website scan and its
-// questions and answers. Every screen reads and refreshes it here.
+// The dashboard's shared state: the sign-in's businesses, the one being worked
+// on, its latest website scan and its questions and answers. Every screen
+// reads and refreshes it here.
+//
+// ONE SIGN-IN, MANY BUSINESSES (owner, 4 October 2026): a studio that builds
+// websites for its clients holds each client's chat under one sign-in. The
+// business being worked on is remembered by slug (localStorage, and
+// ?business= in the address, so a link opens the right one), and EVERY request
+// names it, so two tabs on two businesses never edit each other's answers.
 const Dash = createContext(null)
 export const useDash = () => useContext(Dash)
 const SCANNING = ['queued', 'reading']
+const REMEMBER = 'saygday-business'
+function rememberedSlug() {
+  try {
+    return new URLSearchParams(window.location.search).get('business') || localStorage.getItem(REMEMBER) || ''
+  } catch { return '' }
+}
+function remember(slug) {
+  try { if (slug) localStorage.setItem(REMEMBER, slug); else localStorage.removeItem(REMEMBER) } catch { /* private browsing */ }
+}
 
 export function DashboardProvider({ children }) {
-  const { request, session } = useAuth()
-  const [state, setState] = useState({ loading: true, error: '', email: '', business: null, scan: null, billing: null })
+  const { request: send, session } = useAuth()
+  const [state, setState] = useState({ loading: true, error: '', email: '', businesses: [], business: null, scan: null, billing: null })
   const [faqs, setFaqs] = useState(null)
+  // The business every request names. A ref, so a request fired in the same
+  // breath as a switch still names the right one.
+  const current = useRef(null)
+  const point = business => { current.current = business?.id || null; if (business) remember(business.slug) }
+  const request = useCallback((action, params = {}, options) => send(action, { business: current.current, ...params }, options), [send])
+
   const [billingRefreshing, setBillingRefreshing] = useState(false)
   const [billingError, setBillingError] = useState('')
   const billingRequest = useRef(null)
+  const selection = useRef(0)
   const refreshBilling = useCallback(() => {
-    if (billingRequest.current) return billingRequest.current
+    const business = current.current, version = selection.current
+    if (!business) return Promise.resolve(null)
+    if (billingRequest.current?.business === business && billingRequest.current.version === version) return billingRequest.current.promise
     setBillingRefreshing(true); setBillingError('')
-    billingRequest.current = (async () => {
+    const task = { business, version }
+    task.promise = (async () => {
       try {
         const result = await request('billingStatus')
+        if (current.current !== business || selection.current !== version) return null
         const billing = result?.billing || UNAVAILABLE_BILLING
         setState(current => ({ ...current, billing }))
         return billing
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (current.current === business && selection.current === version && error.name !== 'AbortError') {
           setState(current => ({ ...current, billing: { ...UNAVAILABLE_BILLING, portalAvailable: current.billing?.portalAvailable === true } }))
           setBillingError(error.message)
         }
         return null
-      } finally { billingRequest.current = null; setBillingRefreshing(false) }
+      } finally {
+        if (billingRequest.current === task) { billingRequest.current = null; setBillingRefreshing(false) }
+      }
     })()
-    return billingRequest.current
+    billingRequest.current = task
+    return task.promise
   }, [request])
+
+  // Make `business` the one being worked on: its scan, its answers.
+  const open = useCallback(async (business, me = null) => {
+    point(business)
+    const version = ++selection.current
+    billingRequest.current = null
+    setBillingRefreshing(false); setBillingError('')
+    setState(previous => ({ ...previous, business, billing: null, scan: null }))
+    const scan = !business ? null : me?.business?.id === business.id ? me.scan : (await send('scanStatus', { business: business.id })).scan
+    if (selection.current !== version) return
+    setState(previous => ({ ...previous, loading: false, error: '', billing: me?.business?.id === business?.id ? me.billing : null, email: me?.email ?? previous.email, businesses: me?.businesses ?? previous.businesses, business, scan }))
+    const questions = business ? (await send('listFaqs', { business: business.id })).faqs : null
+    if (selection.current !== version) return
+    setFaqs(questions)
+    if (business) await refreshBilling()
+  }, [send, refreshBilling])
+
   const load = useCallback(async () => {
     try {
-      const me = await request('me')
-      setState({ loading: false, error: '', ...me, billing: me.billing || UNAVAILABLE_BILLING })
-      if (me.business) setFaqs((await request('listFaqs')).faqs)
+      const me = await send('me')
+      const wanted = rememberedSlug()
+      await open(me.businesses.find(item => item.slug === wanted) || me.business || null, me)
       return me
     } catch (error) {
-      if (error.name !== 'AbortError') setState(current => ({ ...current, loading: false, error: error.message }))
+      if (error.name !== 'AbortError') setState(previous => ({ ...previous, loading: false, error: error.message }))
       return null
     }
-  }, [request])
+  }, [send, open])
   useEffect(() => { if (session) load() }, [session, load])
+
+  // Switch to another of the sign-in's businesses, by slug.
+  const choose = useCallback(async slug => {
+    const business = state.businesses.find(item => item.slug === slug)
+    if (!business || business.id === current.current) return
+    setFaqs(null)
+    setState(previous => ({ ...previous, business, scan: null }))
+    try { await open(business) } catch (error) { if (error.name !== 'AbortError') setState(previous => ({ ...previous, error: error.message })) }
+  }, [state.businesses, open])
+
+  // A business just added (or the first one): it joins the list and becomes
+  // the one being worked on, with the scan that has just started.
+  const added = useCallback((business, scan) => {
+    point(business)
+    ++selection.current
+    billingRequest.current = null
+    setBillingRefreshing(false); setBillingError('')
+    setState(previous => ({ ...previous, business, scan, billing: null, businesses: previous.businesses.some(item => item.id === business.id)
+      ? previous.businesses.map(item => item.id === business.id ? business : item) : [...previous.businesses, business] }))
+    setFaqs([])
+    refreshBilling()
+  }, [refreshBilling])
+
   useEffect(() => {
     if (!state.business) return
     const refreshVisible = () => { if (document.visibilityState !== 'hidden') refreshBilling() }
@@ -65,7 +135,9 @@ export function DashboardProvider({ children }) {
     const timer = setTimeout(refreshBilling, Math.min(Math.max(1000, Math.min(...boundaries) - Date.now() + 1000), 2147483647))
     return () => clearTimeout(timer)
   }, [state.billing, refreshBilling])
-  const value = { ...state, faqs, setFaqs, setBusiness: business => setState(current => ({ ...current, business })), setScan: scan => setState(current => ({ ...current, scan })), reload: load, request, refreshBilling, billingRefreshing, billingError }
+
+  const setBusiness = business => setState(previous => ({ ...previous, business, businesses: previous.businesses.map(item => item.id === business.id ? business : item) }))
+  const value = { ...state, faqs, setFaqs, setBusiness, setScan: scan => setState(previous => ({ ...previous, scan })), reload: load, request, choose, added, refreshBilling, billingRefreshing, billingError }
   return <Dash.Provider value={value}>{children}</Dash.Provider>
 }
 
@@ -87,13 +159,20 @@ function GoToSignIn() {
 export function Layout() {
   const { signOut } = useAuth()
   const dash = useDash()
+  const navigate = useNavigate()
   const ready = dash.business && !SCANNING.includes(dash.scan?.status)
   const drafts = dash.faqs?.filter(faq => faq.status === 'draft').length || 0
   const asked = dash.business?.counts?.newEnquiries || 0
   return <div className="page">
     <header className="topbar">
       <Link to="/app" className="topbar__home" aria-label="SayGday home"><Logo /></Link>
-      {dash.business && <span className="topbar__business"><Avatar character={dash.business.character} size={28} />{dash.business.name}</span>}
+      {dash.business && (dash.businesses.length > 1
+        // Several businesses under this sign-in: which one is being worked on.
+        ? <span className="topbar__business topbar__switch"><Avatar character={dash.business.character} size={28} />
+            <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { dash.choose(event.target.value); navigate('/app') }}>
+              {dash.businesses.map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}
+            </select></span>
+        : <span className="topbar__business"><Avatar character={dash.business.character} size={28} />{dash.business.name}</span>)}
       <button type="button" className="text-button topbar__out" onClick={async () => { await signOut(); goToSignIn() }}>Sign out</button>
     </header>
     {dash.business && <nav className="tabs" aria-label="Dashboard">
@@ -107,7 +186,7 @@ export function Layout() {
     </nav>}
     <main className="container">
       {!dash.loading && dash.business && <BillingNotice billing={dash.billing} />}
-      {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet />}
+      {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet key={dash.business?.id} />}
     </main>
   </div>
 }
@@ -120,34 +199,43 @@ export function Home() {
   return <Overview />
 }
 
-function Start() {
+// /app/add: another website under the same sign-in (a studio's next client).
+export function AddWebsite() {
+  return <Start another />
+}
+
+function Start({ another = false }) {
   const dash = useDash()
+  const navigate = useNavigate()
   const [website, setWebsite] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  useEffect(() => { document.title = 'Get started · SayGday' }, [])
+  useEffect(() => { document.title = `${another ? 'Add a website' : 'Get started'} · SayGday` }, [another])
   async function submit(event) {
     event.preventDefault()
     if (!website.trim()) { setError('Enter your website’s address.'); return }
     setBusy(true); setError('')
     try {
       const result = await dash.request('createBusiness', { website })
-      dash.setBusiness(result.business); dash.setScan(result.scan); dash.setFaqs([])
-      await dash.refreshBilling()
+      dash.added(result.business, result.scan)
+      if (another) navigate('/app')
     } catch (failure) { setError(failure.message) }
     finally { setBusy(false) }
   }
   return <div className="start">
     <section className="hero card card--green">
-      <p className="eyebrow">Step 1 of 3</p>
-      <h1>Put your web address in.</h1>
-      <p className="lead">We’ll read your website and write the 20 to 25 questions your customers ask most, with the answers from your own pages. You check every one before anything goes live.</p>
+      <p className="eyebrow">{another ? 'Another website' : 'Step 1 of 3'}</p>
+      <h1>{another ? 'Put the next web address in.' : 'Put your web address in.'}</h1>
+      <p className="lead">{another
+        ? 'We’ll read this website too and write its questions and answers from its own pages. Each website gets its own chat, answers and button, all under this sign-in.'
+        : 'We’ll read your website and write the 20 to 25 questions your customers ask most, with the answers from your own pages. You check every one before anything goes live.'}</p>
       <form className="hero__form" onSubmit={submit}>
         <label className="visually-hidden" htmlFor="website">Your website address</label>
         <div className="url-input"><span aria-hidden="true">https://</span><input id="website" value={website} onChange={event => setWebsite(event.target.value.replace(/^https?:\/\//i, ''))} placeholder="yourbusiness.com.au" autoComplete="url" autoCapitalize="none" spellCheck={false} inputMode="url" disabled={busy} aria-invalid={Boolean(error)} /></div>
         <Button type="submit" size="big" kind="gold" busy={busy} iconAfter="arrow">{busy ? 'Starting…' : 'Scan my website'}</Button>
       </form>
       {error && <p className="hero__error" role="alert">{error}</p>}
+      {another && dash.business && <p className="small"><Link to="/app">Back to {dash.business.name}</Link></p>}
     </section>
     <ol className="steps">
       <li><span className="steps__icon"><Icon name="globe" size={30} /></span><strong>We read your website</strong><span>Your pages, menu, prices, hours and contact details. It takes a minute or two.</span></li>
@@ -249,3 +337,4 @@ export function RequireBusiness({ children, allowWhileScanning = false }) {
   if (!dash.business || (!allowWhileScanning && SCANNING.includes(dash.scan?.status))) return <Navigate to="/app" replace />
   return children
 }
+

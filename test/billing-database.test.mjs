@@ -252,3 +252,4 @@ test('reconciliation selects oldest stale customers without leaking state or gra
   const functions = (await pg.query("select proname, prosecdef from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and proname like 'billing_%'")).rows
   assert.ok(functions.every(row => !row.prosecdef), 'billing functions remain security invoker')
 })
+
