@@ -26,7 +26,10 @@ function config() {
     }))
     return { for: JSON.parse(path[1]), values }
   })
-  assert.equal(headers.length, 7, 'all checked-in header rules are exercised')
+  assert.deepEqual(headers.map(header => header.for), [
+    '/*', '/chat.html', '/admin', '/admin/*', '/admin.html', '/theme.js',
+    '/widget.js', '/characters/*', '/site/*', '/assets/*',
+  ], 'all checked-in header rules are exercised')
   return { headers, build: { command: 'npm test && npm run build', publish: 'dist' }, redirects: [{ from: '/app/*', to: '/app.html', status: 200 }] }
 }
 const globalPolicy = value => value.headers.find(header => header.for === '/*').values['Content-Security-Policy']

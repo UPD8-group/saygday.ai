@@ -76,9 +76,7 @@ in all); past that, signing in waits until the hour is up.
 Stripe updates paying and cancelled status automatically after reconciliation. Mark internal businesses **Ours / test** to exclude them from revenue totals. Answers read and chats in use are
 counted day by day from the day the migration runs.
 
-## 4. Moving saygday.ai across
-
-## Stripe billing: configure before activating
+## 4. Stripe billing: configure before activating
 
 Follow [the billing runbook](billing.md) before offering paid Checkout.
 The plan stays **A$30/month AUD with 14 free days and no card to start**.
@@ -111,12 +109,11 @@ limits, smoke checks and paid-subscription rollback considerations. Missing
 Stripe configuration after activation disables upgrades; it does not grant
 unlimited service.
 
-## 3. Moving saygday.ai across
+## Existing installations
 
-The old platform still answers at saygday.ai. When the new one is ready:
-Netlify → the new project → Domain management → add `saygday.ai`, then remove
-it from the old project. Clients' existing chat code points at the old
-platform, so each client adds the new line of code from their dashboard.
+The domain already points to the `saygdayai` Netlify project. Clients still
+using the earlier platform's embed must add the current line of code from
+their dashboard. Do not move the domain or create a duplicate Netlify project.
 
 ## What it costs to run
 
