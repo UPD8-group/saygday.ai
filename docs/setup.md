@@ -1,8 +1,8 @@
 # Going live
 
-The application setup is below. Stripe billing has a separate staged rollout
-in [billing.md](billing.md). The owner chose first successful website ownership
-verification as the trial start on 4 October 2026.
+The application setup is below. See [billing.md](billing.md) for the current
+card-before-activation policy (owner, 8 October 2026): free building and
+preview, then verify the website and add a card for 14 live days free.
 
 ## 1. The database (Supabase, Sydney)
 
@@ -79,7 +79,7 @@ counted day by day from the day the migration runs.
 ## 4. Stripe billing: configure before activating
 
 Follow [the billing runbook](billing.md) before offering paid Checkout.
-The plan stays **A$30/month AUD with 14 free days and no card to start**.
+The plan is **14 live days free, then A$30/month AUD automatically unless cancelled**. Building and preview need no card; public activation requires one.
 Public answers still come exclusively from the business's approved answers.
 
 Add these environment variables in **Functions scope only**, with separate
@@ -97,13 +97,13 @@ test and production contexts. Do not use `VITE_` for any Stripe setting.
 port, path, query or fragment. It supplies fixed Checkout/portal return URLs;
 the request Host header and browser input are never used for redirects.
 
-The database starts with `billing_settings.enabled = false` and
-`trial_start_policy = 'website_verified'`. Existing service continues while
-it is disabled. After activation, the 14 days begin at first successful website
-ownership verification; signup, adding a website and scans do not start them.
-Already-verified businesses receive a full 14 days from activation. Retry or
-domain changes never reset the original verification or trial dates.
-Configuration alone does not enable charging. The runbook
+After versioned migrations, apply supabase/billing-upgrade.sql, then
+supabase/billing-card-activation.sql. Production already applied the original
+billing migration with compatibility as 20261008073543; do not replay it.
+Deploy compatible code before the card-activation script. Billing is enabled
+in production. New trials require verified ownership plus a confirmed
+card-backed Stripe subscription; already-started trials keep their dates.
+Configuration alone does not create a subscription or charge anyone. The runbook
 contains the exact activation procedure, webhook event list, reconciliation
 limits, smoke checks and paid-subscription rollback considerations. Missing
 Stripe configuration after activation disables upgrades; it does not grant

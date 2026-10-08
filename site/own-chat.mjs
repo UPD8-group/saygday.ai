@@ -43,7 +43,7 @@ export const OWN_ANSWERS = Object.freeze([
   {
     featured: true,
     question: 'How much does it cost?',
-    answer: 'SayGday is A$30 a month. That’s about a dollar a day, and we priced it that way on purpose. Your first 14 days are free, there’s no lock-in contract, and you don’t need a card to start.',
+    answer: 'SayGday is A$30 a month. That’s about a dollar a day, and we priced it that way on purpose. Build and preview for free without a card. Add your card when you activate your verified website: 14 days free, then A$30/month automatically unless you cancel.',
     variants: ['Price', 'Pricing', 'How much is it?', 'What does it cost?', 'What’s the monthly fee?', 'What do you charge?', 'How much per month?', 'How much is SayGday a month?', 'Is it expensive?', 'How do I pay?', 'Cost'],
   },
   {
@@ -96,7 +96,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes. Your first 14 days are free, and you don’t need a card to start. Your free period starts when we first verify that you own your website. After that, choose whether to subscribe for A$30 a month.',
+    answer: 'Yes. Build and preview without a card. Once your website is verified, add your card through Stripe to activate your chat and start 14 free days. Then A$30/month AUD is charged automatically unless you cancel. Cancel in Settings → Billing → Manage billing before the first charge to pay nothing.',
     variants: ['Can I try it for free?', 'Is SayGday free?', 'Free trial', 'How long is the free trial?', 'Can I try before I buy?', 'What happens after the free days?', 'Do I need a credit card to start?', 'Do I need a card to sign up?'],
   },
   {

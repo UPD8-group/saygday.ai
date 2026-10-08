@@ -60,7 +60,7 @@ function fakeStripe() {
 }
 
 async function setup({ enabled = true, customer = false, expired = false } = {}) {
-  const pg = await database(), person = await user(pg, 'owner@example.com'), db = rpcClient(pg, { user: person })
+  const pg = await database({ cardRequired: false }), person = await user(pg, 'owner@example.com'), db = rpcClient(pg, { user: person })
   const business = await call(db, 'create_business', { p_user: person.id, p_email: person.email, p_website: 'https://owner.example.com', p_name: 'Owner' })
   if (expired) {
     await pg.query(`update billing_accounts set trial_started_at=now()-interval '15 days',trial_ends_at=now()-interval '1 day' where business_id=$1`, [business.id])

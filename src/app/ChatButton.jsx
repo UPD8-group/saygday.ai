@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useCallback, useEffect, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
@@ -8,7 +9,7 @@ import { PRIVACY_PARAGRAPH } from './privacy-paragraph.mjs'
 import { billingView } from './billing-view.mjs'
 
 const PLATFORMS = [
-  { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website. The button appears in the bottom-right corner.'] },
+  { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website, verify it below, then activate billing to show the button.'] },
   { key: 'wix', label: 'Wix', steps: ['In Wix, open Settings, then Custom code (under Advanced).', 'Choose “Add custom code”, paste the line, apply it to All pages and place it in Body – end.', 'Save, then publish your site.'] },
   { key: 'squarespace', label: 'Squarespace', steps: ['In Squarespace, open Settings, then Advanced, then Code injection.', 'Paste the line into the Footer box.', 'Save. (Code injection needs a Business plan or higher.)'] },
   { key: 'wordpress', label: 'WordPress', steps: ['Install a plugin that adds code to the footer, such as WPCode.', 'Add a new footer snippet and paste the line.', 'Save and turn the snippet on.'] },
@@ -55,7 +56,8 @@ export function SwitchOn({ business, request, onBusiness }) {
     {verified ? <>
       <p className="live-state"><Icon name="shield" size={18} />{`Website verified. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
       <p className={`live-state${billing.accessAllowed && business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={billing.accessAllowed && business.buttonSeenAt ? 'check' : 'globe'} size={18} />
-        {!billing.accessAllowed ? 'Your customer chat is paused. Check Billing in Settings.' : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+        {!billing.accessAllowed ? (billing.state === 'card_required' ? 'Ready to activate. Add your card to start your 14 free live days.' : 'Your customer chat is paused. Check Billing in Settings.') : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+      {!billing.accessAllowed && <Link className="btn btn--gold" to="/app/settings#billing">{billing.state === 'card_required' ? 'Activate — 14 days free' : 'View billing'}</Link>}
     </> : <>
       <p>Your chat stays hidden until we’ve checked the button is on {site}, so nobody else can put answers out under your business’s name.</p>
       <p className="small">Published the change? Press the button below. We also check by ourselves the first time your website shows the button.</p>
