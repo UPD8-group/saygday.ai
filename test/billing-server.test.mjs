@@ -8,6 +8,7 @@ import { billingConfiguration, createStripe, stripeUrl, exactPrice, publicBillin
   subscriptionSnapshot, stripeWebhook, reconcileAccount, reconcileBillingBatch, STRIPE_API_VERSION } from '../netlify/functions/_lib/billing.mjs'
 
 const settings = { SAYGDAY_STRIPE_SECRET_KEY: 'sk_test_example', SAYGDAY_STRIPE_MODE: 'test', SAYGDAY_STRIPE_PRICE_ID: 'price_monthly',
+  SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_test_example',
   SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_safe', SAYGDAY_STRIPE_WEBHOOK_SECRET: 'whsec_example', SAYGDAY_PUBLIC_URL: 'https://saygday.ai' }
 const configuration = billingConfiguration(name => settings[name])
 const now = () => Math.floor(Date.now() / 1000)
@@ -24,7 +25,8 @@ function fakeStripe() {
   const calls = [], sessions = [], customerResults = new Map(), sessionResults = new Map()
   const sdk = new Stripe('sk_test_example', { apiVersion: STRIPE_API_VERSION })
   const state = { subscriptions: [], failList: false, loseSession: false, loseCustomer: false, sessionPages: false, subscriptionPages: false,
-    managedPaymentsDefault: false, failCheckoutBeforeCreate: false, price: price(), portal: portal(), calls, sessions }
+    managedPaymentsDefault: false, failCheckoutBeforeCreate: false, expireRace: false, loseExpire: false,
+    missingSession: false, price: price(), portal: portal(), calls, sessions }
   state.client = {
     webhooks: sdk.webhooks,
     prices: { retrieve: async id => { calls.push(['price', id]); return state.price } },
@@ -38,7 +40,16 @@ function fakeStripe() {
     } },
     checkout: { sessions: {
       list: async params => { calls.push(['sessions', params]); return { data: sessions, has_more: state.sessionPages } },
-      retrieve: async id => { calls.push(['retrieve', id]); return sessions.find(session => session.id === id) },
+      retrieve: async id => { calls.push(['retrieve', id]);
+        if (state.missingSession) throw Object.assign(Error('No such checkout session'), { code: 'resource_missing' })
+        return sessions.find(session => session.id === id) },
+      expire: async id => {
+        calls.push(['expire', id]); const session = sessions.find(session => session.id === id)
+        if (state.expireRace) { session.status = 'complete'; session.subscription = 'sub_racing'; throw Error('Session already completed') }
+        session.status = 'expired'
+        if (state.loseExpire) { state.loseExpire = false; throw Error('lost expiration response') }
+        return session
+      },
       create: async (params, options) => {
         calls.push(['checkout', structuredClone(params), options])
         if ((params.managed_payments?.enabled ?? state.managedPaymentsDefault) && params.adaptive_pricing)
@@ -46,7 +57,9 @@ function fakeStripe() {
         if (state.failCheckoutBeforeCreate) { state.failCheckoutBeforeCreate = false; throw Error('Checkout unavailable before creation') }
         if (!sessionResults.has(options.idempotencyKey)) {
           const session = { id: `cs_test_${sessionResults.size}`, mode: 'subscription', status: 'open', customer: params.customer,
-            livemode: false, expires_at: params.expires_at, metadata: params.metadata, url: 'https://checkout.stripe.com/c/pay/example' }
+            livemode: false, expires_at: params.expires_at, metadata: params.metadata, ui_mode: params.ui_mode || 'hosted_page',
+            ...(params.ui_mode === 'elements' ? { client_secret: `cs_test_${sessionResults.size}_secret_example` }
+              : { url: 'https://checkout.stripe.com/c/pay/example' }) }
           sessionResults.set(options.idempotencyKey, session); sessions.push(session)
         }
         if (state.loseSession) { state.loseSession = false; throw Error('lost response') }
@@ -85,6 +98,13 @@ test('configuration pins the SDK API, secret mode, origin and exact AUD monthly 
   assert.equal(createStripe(configuration).getApiField('version'), STRIPE_API_VERSION)
   assert.equal(configuration.checkoutReady, true)
   assert.ok(createStripe(configuration))
+  for (const value of ['', 'sk_test_example', 'pk_live_example', 'pk_test_invalid?secret']) {
+    const withoutCheckout = billingConfiguration(name => name === 'SAYGDAY_STRIPE_PUBLISHABLE_KEY' ? value : settings[name])
+    assert.equal(withoutCheckout.checkoutReady, false)
+    assert.equal(withoutCheckout.portalReady, true, 'payment-method management and cancellation remain available')
+    assert.equal(withoutCheckout.stripeReady, true)
+    assert.equal(withoutCheckout.webhookReady, true, 'existing subscription reconciliation is independent of the browser key')
+  }
   for (const [key, value] of [['SAYGDAY_STRIPE_MODE', 'live'], ['SAYGDAY_PUBLIC_URL', 'https://saygday.ai.evil.example/path'],
     ['SAYGDAY_PUBLIC_URL', 'http://saygday.ai'], ['SAYGDAY_PUBLIC_URL', 'https://user@evil.example'], ['SAYGDAY_PUBLIC_URL', 'https://saygday.ai/?redirect=x']]) {
     assert.equal(billingConfiguration(name => name === key ? value : settings[name]).checkoutReady, false)
@@ -109,15 +129,32 @@ test('billing states fail closed when unknown, stale, unpaid or past the paid pe
   assert.equal(publicBilling({ enabled: false }, configuration).state, 'setup_pending')
 })
 
+test('the public production browser key fallback is confined to SayGday live billing and explicit configuration wins', () => {
+  const live = { ...settings, SAYGDAY_STRIPE_SECRET_KEY: 'sk_live_example', SAYGDAY_STRIPE_MODE: 'live',
+    SAYGDAY_STRIPE_PUBLISHABLE_KEY: undefined, SAYGDAY_STRIPE_PRICE_ID: 'price_1UOA0sR8qEoKoynxWAoOrDeA' }
+  const read = values => billingConfiguration(name => values[name])
+  assert.match(read(live).publishableKey, /^pk_live_/)
+  assert.equal(read(live).checkoutReady, true)
+  for (const patch of [{ SAYGDAY_PUBLIC_URL: 'https://preview.saygday.ai' }, { SAYGDAY_STRIPE_MODE: 'test' },
+    { SAYGDAY_STRIPE_PRICE_ID: 'price_other' }, { SAYGDAY_STRIPE_PUBLISHABLE_KEY: '' }, { SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_test_example' }])
+    assert.equal(read({ ...live, ...patch }).checkoutReady, false, JSON.stringify(patch))
+  assert.equal(read({ ...live, SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_live_explicit' }).publishableKey, 'pk_live_explicit')
+})
+
 test('Checkout is authenticated and ignores every client customer, price, user, trial and redirect field', async () => {
   const s = await setup()
   const request = new Request('https://evil.example/api/app', { headers: { authorization: 'Bearer token' } })
   const result = await ownerAction({ request, db: s.db, origin: 'https://evil.example', body: { action: 'billingCheckout', customerId: 'cus_attacker',
     priceId: 'price_free', user: { id: 'attacker' }, businessId: 'other', trialDays: 100, returnUrl: 'https://evil.example' }, dependencies: { billing: s.args } })
-  assert.equal(result.url, 'https://checkout.stripe.com/c/pay/example')
+  assert.deepEqual(result, { clientSecret: 'cs_test_0_secret_example', publishableKey: 'pk_test_example',
+    expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id })
   const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
-  assert.equal(params.success_url, 'https://saygday.ai/app/settings?business=owner&checkout=success')
+  assert.equal(params.return_url, 'https://saygday.ai/app/settings?business=owner&checkout=success')
+  assert.equal(params.ui_mode, 'elements')
+  assert.equal('success_url' in params, false)
+  assert.equal('cancel_url' in params, false)
+  assert.doesNotMatch(JSON.stringify((await s.account()).checkout), /_secret_|clientSecret|publishableKey/)
   assert.equal(params.subscription_data.trial_end, Math.floor(Date.parse((await s.account()).trial_ends_at) / 1000))
   assert.equal(params.allow_promotion_codes, false)
   assert.equal('payment_method_types' in params, false, 'Stripe dynamically selects eligible Dashboard-enabled methods')
@@ -142,6 +179,84 @@ test('Checkout retries reuse the one session and simultaneous clicks cannot crea
   await billingCheckout(s.args)
   assert.equal(s.stripe.calls.filter(([name]) => name === 'checkout').length, 1)
   assert.equal(s.stripe.calls.filter(([name]) => name === 'customer').length, 1)
+})
+
+async function hostedAttempt(s, { created = true, responseLost = false } = {}) {
+  const account = await s.account(), key = 'sg-checkout-before-elements'
+  const params = { mode: 'subscription', customer: 'cus_owner', payment_method_collection: 'always',
+    line_items: [{ price: configuration.priceId, quantity: 1 }], metadata: { saygday_checkout_key: key },
+    success_url: 'https://saygday.ai/app/settings?business=owner&checkout=success',
+    cancel_url: 'https://saygday.ai/app/settings?business=owner&checkout=canceled',
+    expires_at: now() + 86400, subscription_data: { trial_end: Math.floor(Date.parse(account.trial_ends_at) / 1000),
+      metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key } } }
+  const session = created ? await s.stripe.client.checkout.sessions.create(params, { idempotencyKey: key }) : null
+  const operation = { key, created_at: Date.now(), params,
+    ...(session && !responseLost ? { session_id: session.id, url: session.url, expires_at: session.expires_at } : {}) }
+  await s.pg.query('update billing_accounts set checkout=$1 where business_id=$2', [operation, s.business.id])
+  return { operation, session }
+}
+
+test('custom Checkout retires an existing hosted link before replacement and preserves the exact legacy trial end', async () => {
+  const s = await setup({ customer: true }), legacy = await hostedAttempt(s)
+  const before = await s.account(), result = await billingCheckout(s.args)
+  assert.equal(legacy.session.status, 'expired')
+  assert.equal(s.stripe.sessions.length, 2)
+  assert.equal(result.clientSecret, 'cs_test_1_secret_example')
+  const checkoutCalls = s.stripe.calls.filter(([name]) => name === 'checkout')
+  assert.notEqual(checkoutCalls[0][2].idempotencyKey, checkoutCalls[1][2].idempotencyKey)
+  assert.equal(checkoutCalls[1][1].subscription_data.trial_end, legacy.operation.params.subscription_data.trial_end)
+  assert.ok(s.stripe.calls.findIndex(([name]) => name === 'expire') < s.stripe.calls.findIndex(([name, params]) => name === 'checkout' && params.ui_mode === 'elements'))
+  assert.equal((await s.account()).trial_ends_at, before.trial_ends_at)
+  assert.doesNotMatch(JSON.stringify((await s.account()).checkout), /client_secret|_secret_|checkout.stripe.com/)
+})
+
+test('hosted attempts with lost create responses are recovered or replayed unchanged before custom replacement', async () => {
+  for (const created of [true, false]) {
+    const s = await setup({ customer: true }), legacy = await hostedAttempt(s, { created, responseLost: true })
+    await billingCheckout(s.args)
+    const attempts = s.stripe.calls.filter(([name]) => name === 'checkout')
+    assert.equal(attempts.length, 2)
+    assert.deepEqual(attempts[0][1], legacy.operation.params)
+    assert.equal(attempts[0][2].idempotencyKey, legacy.operation.key)
+    assert.equal(s.stripe.sessions[0].status, 'expired')
+    assert.equal(attempts[1][1].ui_mode, 'elements')
+    assert.notEqual(attempts[1][2].idempotencyKey, legacy.operation.key)
+  }
+})
+
+test('a customer completing the hosted link during migration blocks replacement until current Stripe state is known', async () => {
+  const s = await setup({ customer: true }), legacy = await hostedAttempt(s)
+  s.stripe.expireRace = true
+  await refused(billingCheckout(s.args), 'BILLING_PENDING')
+  assert.equal(s.stripe.sessions.length, 1)
+  assert.equal((await s.account()).checkout.key, legacy.operation.key)
+  s.stripe.subscriptions = [subscription({ id: 'sub_racing', status: 'trialing', trial_end: legacy.operation.params.subscription_data.trial_end })]
+  await refused(billingCheckout(s.args), 'SUBSCRIPTION_EXISTS')
+  assert.equal(s.stripe.sessions.length, 1)
+})
+
+test('a lost expiration response is recovered without leaving two usable Checkout sessions', async () => {
+  const s = await setup({ customer: true })
+  await hostedAttempt(s)
+  s.stripe.loseExpire = true
+  await billingCheckout(s.args)
+  assert.deepEqual(s.stripe.sessions.map(session => session.status), ['expired', 'open'])
+})
+
+test('unknown session state, foreign attempts and mismatched client secrets cannot create a new subscription or expose credentials', async () => {
+  const s = await setup({ customer: true })
+  const result = await billingCheckout(s.args), session = s.stripe.sessions[0]
+  session.client_secret = 'cs_other_secret_example'
+  await refused(billingCheckout(s.args), 'BILLING_UNAVAILABLE')
+  session.client_secret = result.clientSecret
+  session.metadata = { saygday_checkout_key: 'someone-elses-operation' }
+  await refused(billingCheckout(s.args), 'BILLING_UNAVAILABLE')
+  session.metadata = (await s.account()).checkout.params.metadata
+  s.stripe.missingSession = true
+  s.stripe.sessions.length = 0
+  await refused(billingCheckout(s.args), 'BILLING_UNAVAILABLE')
+  assert.equal(s.stripe.calls.filter(([name]) => name === 'checkout').length, 1)
+  assert.doesNotMatch(JSON.stringify((await s.account()).checkout), /_secret_|publishableKey/)
 })
 
 test('lost customer and Checkout responses recover durable operations without duplicate subscriptions', async () => {

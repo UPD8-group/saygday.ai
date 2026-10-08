@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button, Notice } from './ui.jsx'
 import { billingConfirmed, billingRedirect, billingReturn, billingView } from './billing-view.mjs'
 
@@ -13,6 +13,9 @@ export function BillingNotice({ billing }) {
 
 export default function Billing({ billing, request, refreshBilling, refreshing, refreshError }) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const selectedBusiness = new URLSearchParams(location.search).get('business')
+  const checkoutPath = `/app/checkout${selectedBusiness ? `?business=${encodeURIComponent(selectedBusiness)}` : ''}`
   const returned = billingReturn(location.search)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -59,7 +62,7 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="error">{refreshError}</Notice>
     <div className="billing__actions">
-      {view.checkoutAvailable && <Button kind="gold" busy={busy === 'billingCheckout'} disabled={Boolean(busy) || refreshing || waiting} onClick={() => open('billingCheckout')} iconAfter="external">{view.checkoutLabel}</Button>}
+      {view.checkoutAvailable && <Button kind="gold" disabled={Boolean(busy) || refreshing || waiting} onClick={() => navigate(checkoutPath)} iconAfter="arrow">{view.checkoutLabel}</Button>}
       {view.portalAvailable && <Button kind="dark" busy={busy === 'billingPortal'} disabled={Boolean(busy)} onClick={() => open('billingPortal')} iconAfter="external">Manage billing</Button>}
       <Button kind="ghost" busy={refreshing} disabled={Boolean(busy) || waiting} onClick={refreshBilling} icon="refresh">Refresh billing status</Button>
     </div>

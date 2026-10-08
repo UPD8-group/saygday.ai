@@ -327,6 +327,10 @@ settings, which is how sign-in broke on saygday.ai before the move.
   visitor entry points enforce entitlement in the database; owners can still
   manage answers, enquiries and cancellation when service is paused. Trial
   dates are immutable through retries, cancellation and domain changes.
+  The custom `/app/checkout` uses Stripe's Payment Element and shows Stripe's
+  first billing date instead of a rounded trial countdown (owner, 8 October
+  2026). Client secrets stay in memory only. Expire any unfinished hosted
+  session before replacement; a completion race must block a second purchase.
 
 - The Supabase service role key never appears in chat, logs or code.
 - The browser never reads a table: every table and function is revoked from

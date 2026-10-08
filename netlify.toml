@@ -49,8 +49,7 @@
   to = "/story"
   status = 301
 
-# The website and the dashboard: never framed, talk only to themselves and
-# Supabase sign-in.
+# The public website: never framed, talk only to itself and Supabase sign-in.
 [[headers]]
   for = "/*"
   [headers.values]
@@ -58,6 +57,26 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# The owner's app can open Stripe's secure card fields without leaving SayGday.
+# Apply the same policy to every app entry point: client-side navigation can
+# reach checkout from any of them. These specific rules override the global
+# CSP; the public website and visitor chat keep their narrower policies.
+# Stripe sources: https://docs.stripe.com/security/guide#content-security-policy
+[[headers]]
+  for = "/app"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://*.link.com; connect-src 'self' https://plcowhnsmrgenzsohbrl.supabase.co https://api.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/app/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://*.link.com; connect-src 'self' https://plcowhnsmrgenzsohbrl.supabase.co https://api.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
+[[headers]]
+  for = "/app.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com https://*.link.com; connect-src 'self' https://plcowhnsmrgenzsohbrl.supabase.co https://api.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-src 'self' https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://link.com https://*.link.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 
 # The chat window opens inside any business's website, so it may be framed
 # anywhere. It talks only to SayGday: its typeface is bundled, so no font

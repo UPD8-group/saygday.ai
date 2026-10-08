@@ -5,6 +5,7 @@ import Questions from './app/Questions.jsx'
 import Asked from './app/Asked.jsx'
 import ChatButton from './app/ChatButton.jsx'
 import Settings from './app/Settings.jsx'
+import Checkout from './app/Checkout.jsx'
 
 export default function App() {
   return <AuthProvider>
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="asked" element={<RequireBusiness><Asked /></RequireBusiness>} />
         <Route path="button" element={<RequireBusiness><ChatButton /></RequireBusiness>} />
         <Route path="settings" element={<RequireBusiness allowWhileScanning><Settings /></RequireBusiness>} />
+        <Route path="checkout" element={<RequireBusiness allowWhileScanning><Checkout /></RequireBusiness>} />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/app" replace />} />

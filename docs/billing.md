@@ -41,6 +41,35 @@ reminder is enabled, with a Stripe-hosted payment update page and a link to
 the customer portal for cancellation. Customers see the price and first
 charge date in Checkout and their trial end date in Settings > Billing.
 
+## Custom checkout (owner decision, 8 October 2026)
+
+The activation button opens `/app/checkout` for the selected business. This
+page displays **Your billing starts on [date]**, the amount due today and
+A$30/month AUD, with cancellation terms beside the confirmation button.
+Dates and totals come from the Stripe.js Checkout Session, including
+`recurring.trial.trialEnd`; no rounded day countdown or independently
+calculated first-charge date is shown. A page left open across a Sydney date
+boundary must reload the payment form and show the refreshed date before
+confirmation. Expired sessions and invalid prices cannot be confirmed.
+
+The server creates Checkout Sessions with `ui_mode=elements` and a fixed
+business-scoped `return_url`. The browser loads Stripe.js directly from
+`https://js.stripe.com/dahlia/stripe.js` and mounts the Payment Element.
+Card numbers and security codes go directly to Stripe. The page never creates
+a subscription by itself, nor does a success return grant access: the
+existing server reconciliation and signed webhook remain authoritative.
+
+If an unfinished hosted session predates this change, the server must expire
+it successfully before creating its replacement. Completion races stop the
+replacement and reconcile the existing subscription. Durable idempotency
+parameters are never changed under an existing key. Existing subscriptions
+and trial dates are not migrated or reset. No database migration is needed.
+
+Stripe domains are permitted only on the dashboard document's CSP, including
+Stripe's authentication and Link frames. Public pages and embedded visitor
+chat retain their existing policies. Deploy previews replace the Supabase
+origin in each relevant policy with their isolated project.
+
 ## Stripe account and fixed price
 
 The owner explicitly chose live production validation. Automated regression
@@ -100,14 +129,17 @@ missing paid period; malformed dates fail closed.
 
 The environment variables are in [.env.example](../.env.example) and
 [setup.md](setup.md). All `SAYGDAY_STRIPE_*` variables belong in **Netlify
-Functions scope only**. Stripe Checkout is hosted by Stripe, so the browser
-needs no Stripe publishable key or Stripe.js. Use the keys and resources from
-one Stripe account and mode consistently.
+Functions scope only**. The custom checkout uses Stripe's Payment Element
+inside SayGday. Its public publishable key and a short-lived Checkout client
+secret are returned only to the authenticated owner, with no-store headers.
+The client secret stays in page memory, never a URL, log or browser storage.
+Use the keys and resources from one Stripe account and mode consistently.
 
 | Variable | Purpose |
 |---|---|
 | `SAYGDAY_STRIPE_MODE` | Explicit `test` or `live`; must match the API key, events and resources. |
 | `SAYGDAY_STRIPE_SECRET_KEY` | Restricted API key with the required permissions; never commit, print or expose through a `VITE_` variable. |
+| `SAYGDAY_STRIPE_PUBLISHABLE_KEY` | Public `pk_` key from that same Stripe account and mode. Optional only for the configured production origin and live price, whose public key is included in the server configuration. An explicit value overrides that default. |
 | `SAYGDAY_STRIPE_PRICE_ID` | The exact active monthly AUD 3000-cent Price. |
 | `SAYGDAY_STRIPE_WEBHOOK_SECRET` | Signing secret for this endpoint and mode, beginning `whsec_`. |
 | `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration, beginning `bpc_`. |
