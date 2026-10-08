@@ -17,7 +17,7 @@ export function billingView(value) {
     ? billing.cancelAtPeriodEnd === true
       ? ' Your subscription is set to end with your free period. It will not renew or start monthly billing. You can manage this in the billing portal.'
       : ' Your subscription is scheduled at A$30 a month (AUD) after your free period. Manage or cancel it in the billing portal.'
-    : ' No payment is taken unless you choose to subscribe.'
+    : ' Monthly billing is not set up for this existing trial. Add your card to continue at A$30/month AUD after your free period.'
   const pause = allowed || ['card_required', 'trial_not_started'].includes(billing.state) ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
     internal: ['Internal business', 'This website is marked as an internal or test business. No subscription is needed.'],
@@ -25,7 +25,7 @@ export function billingView(value) {
     card_required: ['Ready to go live', 'Your website is verified. Add your card through Stripe to activate your chat and start 14 free days. Then A$30/month AUD automatically unless you cancel. Nothing to pay today.'],
     trial_not_started: ['Build and preview for free', 'Check your answers and verify your website first. Then add your card to activate your chat and start 14 free days. A$30/month AUD afterwards unless you cancel.'],
     trial: ['Your free period is running', `Your 14 free days${trialEnd ? ` end on ${trialEnd}` : ' are in progress'}.${trialPlan}`],
-    trial_ending: ['Your free period is nearly over', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is nearly over'}.${subscribedTrial ? trialPlan : ' Upgrade will be available when it ends, so you keep all of your free time. No payment is taken automatically.'}`],
+    trial_ending: ['Your free period is nearly over', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is nearly over'}.${subscribedTrial ? trialPlan : ' Monthly billing is not set up for this existing trial. Card setup will be available when it ends, so you keep all of your free time.'}`],
     trial_expired: ['Your free period has ended', 'Upgrade to keep your customer chat running for A$30 a month (AUD).'],
     active: ['Your subscription is active', `A$30 a month (AUD).${periodEnd ? ` Your current paid period ends on ${periodEnd}.` : ''}`],
     canceling: ['Your subscription is ending', `${periodEnd ? `Your subscription ends on ${periodEnd}.` : 'Your subscription is set to end.'} It will not renew. You can manage this in the billing portal.`],
