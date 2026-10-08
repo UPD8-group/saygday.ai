@@ -1,6 +1,8 @@
 # Going live
 
-Everything here is a one-off. It takes about fifteen minutes.
+The application setup is below. Stripe billing has a separate staged rollout
+in [billing.md](billing.md). The owner chose first successful website ownership
+verification as the trial start on 4 October 2026.
 
 ## 1. The database (Supabase, Sydney)
 
@@ -14,6 +16,15 @@ Project: `plcowhnsmrgenzsohbrl` (saygday.ai, ap-southeast-2).
    For the admin page (5 October 2026), run `20261005100000_admin_dashboard.sql`. It only adds: each business's plan,
    day-by-day counts of answers read, and the admin page's summaries. SayGday's own `saygday` business starts as
    "Ours / test", so it counts in no total.
+
+1. **Run pending migrations in filename order.** They are in
+   `supabase/migrations/`. Check the project's applied migration history first;
+   do not rerun migrations already applied. The Stripe migration
+   `20261004051312_stripe_billing.sql` is deliberately disabled on arrival:
+   applying it does not activate billing or expire existing businesses.
+   Its generated timestamp precedes the rescan migration already in this
+   repository; on an existing database apply only the pending billing file,
+   as explained in the billing runbook, without replaying applied migrations.
 2. **Nothing else to set in Supabase.** SayGday sends its own sign-in email
    (`netlify/functions/sign-in.mts`): Supabase makes the code, and the site
    emails it from `SAYGDAY_EMAIL_FROM` through Resend. Supabase's own email
@@ -62,17 +73,47 @@ next deploy, so deploy again after setting it. Changing the password signs
 everyone out. It takes at most ten tries an hour from one connection (fifty
 in all); past that, signing in waits until the hour is up.
 
-Billing is by hand, so mark each business **Paying**, **Cancelled** or
-**Ours / test** on its page once you know: monthly revenue, trial to paid and
-the month-by-month chart count from that. Answers read and chats in use are
+Stripe updates paying and cancelled status automatically after reconciliation. Mark internal businesses **Ours / test** to exclude them from revenue totals. Answers read and chats in use are
 counted day by day from the day the migration runs.
 
-## 4. Moving saygday.ai across
+## 4. Stripe billing: configure before activating
 
-The old platform still answers at saygday.ai. When the new one is ready:
-Netlify → the new project → Domain management → add `saygday.ai`, then remove
-it from the old project. Clients' existing chat code points at the old
-platform, so each client adds the new line of code from their dashboard.
+Follow [the billing runbook](billing.md) before offering paid Checkout.
+The plan stays **A$30/month AUD with 14 free days and no card to start**.
+Public answers still come exclusively from the business's approved answers.
+
+Add these environment variables in **Functions scope only**, with separate
+test and production contexts. Do not use `VITE_` for any Stripe setting.
+
+| Name | Value | Secret? |
+|---|---|---|
+| `SAYGDAY_STRIPE_MODE` | `test` for isolated tests; `live` for production | no |
+| `SAYGDAY_STRIPE_SECRET_KEY` | Matching restricted Stripe API key with the required billing permissions | **yes** |
+| `SAYGDAY_STRIPE_PRICE_ID` | Price for `aud`, `3000` cents, every one month | no, server-owned |
+| `SAYGDAY_STRIPE_WEBHOOK_SECRET` | This environment's webhook signing secret (`whsec_…`) | **yes** |
+| `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration (`bpc_…`) | no, server-owned |
+
+`SAYGDAY_PUBLIC_URL` must be the canonical HTTPS origin, without credentials,
+port, path, query or fragment. It supplies fixed Checkout/portal return URLs;
+the request Host header and browser input are never used for redirects.
+
+The database starts with `billing_settings.enabled = false` and
+`trial_start_policy = 'website_verified'`. Existing service continues while
+it is disabled. After activation, the 14 days begin at first successful website
+ownership verification; signup, adding a website and scans do not start them.
+Already-verified businesses receive a full 14 days from activation. Retry or
+domain changes never reset the original verification or trial dates.
+Configuration alone does not enable charging. The runbook
+contains the exact activation procedure, webhook event list, reconciliation
+limits, smoke checks and paid-subscription rollback considerations. Missing
+Stripe configuration after activation disables upgrades; it does not grant
+unlimited service.
+
+## Existing installations
+
+The domain already points to the `saygdayai` Netlify project. Clients still
+using the earlier platform's embed must add the current line of code from
+their dashboard. Do not move the domain or create a duplicate Netlify project.
 
 ## What it costs to run
 
@@ -80,3 +121,4 @@ platform, so each client adds the new line of code from their dashboard.
 - **A website scan:** one Claude call, roughly A$0.25 to A$0.45. Each business
   can scan at most six times a day.
 - **Email:** Resend's free tier covers 3,000 emails a month.
+

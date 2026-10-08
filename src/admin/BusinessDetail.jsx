@@ -82,18 +82,20 @@ function PlanCard({ detail, stage, onChange }) {
     catch (failure) { setError(failure.message) }
     finally { setBusy('') }
   }
-  const trialStage = stageOf({ createdAt: business.createdAt }, Date.now())
+  const trialStage = stageOf({ createdAt: business.createdAt, billing: business.billing && {
+    ...business.billing, subscriptionStatus: null, hasCustomer: false,
+  } }, Date.now())
   return <section className="card">
     <h2>Plan</h2>
-    <p className="plan__days">Free days: {dateLabel(business.createdAt)} to {dateLabel(stage.endsAt)}{business.plan === 'trial' ? '.'
-      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : `day ${trialStage.day} of ${TRIAL_DAYS}`}).</span>}</p>
+    <p className="plan__days">Free days: {dateLabel(business.billing?.enabled ? business.billing.trialStartedAt : business.createdAt) || 'not started'} to {dateLabel(stage.endsAt) || 'not started'}{business.plan === 'trial' ? '.'
+      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : trialStage.key === 'not_started' ? 'not started' : `day ${trialStage.day} of ${TRIAL_DAYS}`}).</span>}</p>
     {business.plan === 'trial' && <p><TrialMeter stage={stage} /></p>}
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <div className="segmented segmented--wrap" role="radiogroup" aria-label="Plan">
       {PLANS.map(plan => <button type="button" role="radio" key={plan.key} aria-checked={business.plan === plan.key}
-        aria-busy={busy === plan.key || undefined} disabled={Boolean(busy)} onClick={() => choose(plan.key)}>{plan.label}</button>)}
+        aria-busy={busy === plan.key || undefined} disabled={Boolean(busy) || business.billing?.hasCustomer} onClick={() => choose(plan.key)}>{plan.label}</button>)}
     </div>
-    <p className="small">Set by hand while SayGday is billed by hand. It changes nothing for the business: it’s how these pages count revenue. Ours / test leaves the business out of every number.</p>
+    <p className="small">{business.billing?.hasCustomer ? 'Stripe updates this plan automatically. Manage subscriptions in Stripe.' : 'Ours / test keeps internal businesses running and leaves them out of every total. Once billing is enabled, paid totals come from Stripe.'}</p>
     {detail.plans.length > 0 && <ul className="history">{detail.plans.map(item => <li key={`${item.plan}-${item.at}`}><strong>{planLabel(item.plan)}</strong> <span className="small">{dateLabel(item.at)}, {when(item.at)}</span></li>)}</ul>}
   </section>
 }
@@ -223,3 +225,4 @@ function Look({ business }) {
     </div>
   </section>
 }
+

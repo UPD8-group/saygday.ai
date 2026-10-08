@@ -96,12 +96,12 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes. Your first 14 days are free, and you don’t need a card to start, so you can try it on your own website first. After that, SayGday is A$30 a month.',
+    answer: 'Yes. Your first 14 days are free, and you don’t need a card to start. Your free period starts when we first verify that you own your website. After that, choose whether to subscribe for A$30 a month.',
     variants: ['Can I try it for free?', 'Is SayGday free?', 'Free trial', 'How long is the free trial?', 'Can I try before I buy?', 'What happens after the free days?', 'Do I need a credit card to start?', 'Do I need a card to sign up?'],
   },
   {
     question: 'Is there a lock-in contract?',
-    answer: 'No. There’s no lock-in contract and you can stop any time: take the line of code off your website, or send us a message from our contact page to close your account. We’ll give you at least 30 days’ notice by email before any price change.',
+    answer: 'No. There’s no lock-in contract. Cancel your subscription through Settings → Billing → Manage billing in your dashboard. Your chat stays available until the end of the current paid period. Removing the chat code alone does not cancel payments. We’ll give you at least 30 days’ notice by email before any price change.',
     variants: ['Can I cancel any time?', 'How do I cancel?', 'Is there a minimum term?', 'Do I have to sign a contract?', 'Am I locked in?', 'Can I stop any time?'],
   },
   {
@@ -271,7 +271,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Can I turn the chat off?',
-    answer: 'Yes. Take the line of code off your website and the button disappears. You can put it back any time. To close your account altogether, send us a message from our contact page: we delete your business, your answers and your customers’ questions within 30 days.',
+    answer: 'Yes. Take the line of code off your website and the button disappears. Removing the code does not cancel payments: manage or cancel your subscription in Settings → Billing. To close your account altogether, send us a message from our contact page: we delete your business, your answers and your customers’ questions within 30 days.',
     variants: ['How do I remove the chat?', 'Can I pause it?', 'How do I turn it off?', 'Can I hide the button?', 'How do I close my account?', 'Delete my account'],
   },
   {
@@ -320,3 +320,4 @@ export const OWN_ANSWERS = Object.freeze([
     variants: ['Opening hours', 'What are your opening hours?', 'What time do you shut on Sat?', 'What time do you close?', 'Are you open on weekends?', 'Business hours'],
   },
 ].map(Object.freeze))
+

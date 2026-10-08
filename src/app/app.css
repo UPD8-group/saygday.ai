@@ -243,6 +243,17 @@ textarea.input { resize: vertical; line-height: 1.5; }
 
 /* ---- Settings ---- */
 .settings .card { max-width: 720px; }
+.billing { scroll-margin-top: 24px; }
+.billing__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.billing__price { font-size: 26px; font-weight: 700; color: var(--green-dark); }
+.billing__price > span { font-size: 15px; font-weight: 500; color: var(--muted); }
+.billing__state { background: var(--mint); border-radius: 12px; padding: 16px; margin: 18px 0; }
+.billing__state--attention, .notice--warning { background: var(--gold-soft); color: var(--ink); }
+.billing__state h3 { margin: 0 0 6px; }
+.billing__state p { margin: 0; }
+.billing__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.billing__terms { margin: 16px 0 0; }
+.billing-notice a { font-weight: 650; white-space: nowrap; }
 
 @media (max-width: 860px) {
   .auth { grid-template-columns: 1fr; gap: 26px; padding-top: 0; }
@@ -279,3 +290,4 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .button-colour { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .button-colour input[type="color"] { width: 64px; height: 44px; cursor: pointer; }
 .preview__launcher:focus-visible { outline: 3px solid #000; outline-offset: 4px; box-shadow: 0 0 0 4px #fff; }
+

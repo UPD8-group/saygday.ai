@@ -5,6 +5,7 @@ import Chat, { Avatar } from '../chat/Chat.jsx'
 import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
 import { PRIVACY_PARAGRAPH } from './privacy-paragraph.mjs'
+import { billingView } from './billing-view.mjs'
 
 const PLATFORMS = [
   { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website. The button appears in the bottom-right corner.'] },
@@ -25,6 +26,8 @@ const NOT_YET = {
 // (owner, 3 October 2026): the chat button on its home page, or a DNS record.
 // The server also checks by itself the first time the button loads there.
 export function SwitchOn({ business, request, onBusiness }) {
+  const dash = useDash()
+  const billing = billingView(dash.billing)
   const site = business.website?.replace(/^https:\/\//, '') || 'your website'
   const domain = site.replace(/^www\./, '')
   const verified = Boolean(business.websiteVerifiedAt)
@@ -36,11 +39,11 @@ export function SwitchOn({ business, request, onBusiness }) {
     if (!quiet) { setBusy(true); setError('') }
     try {
       const result = await request('verifyWebsite')
-      if (result.verified) onBusiness(result.business)
+      if (result.verified) { onBusiness(result.business); await dash.refreshBilling() }
       else if (!quiet) setError((NOT_YET[result.reason] || NOT_YET.missing)(site))
     } catch (failure) { if (!quiet) setError(failure.message) }
     finally { if (!quiet) setBusy(false) }
-  }, [request, onBusiness, site])
+  }, [request, onBusiness, site, dash.refreshBilling])
   // If the button is already on the website, opening this page switches it on.
   useEffect(() => { if (!verified && business.website) check(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   async function copyRecord() {
@@ -50,9 +53,9 @@ export function SwitchOn({ business, request, onBusiness }) {
   return <section className="card switch-on">
     <h2>3. Switch it on</h2>
     {verified ? <>
-      <p className="live-state is-live"><Icon name="shield" size={18} />{`Switched on. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
-      <p className={`live-state${business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={business.buttonSeenAt ? 'check' : 'globe'} size={18} />
-        {business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+      <p className="live-state"><Icon name="shield" size={18} />{`Website verified. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
+      <p className={`live-state${billing.accessAllowed && business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={billing.accessAllowed && business.buttonSeenAt ? 'check' : 'globe'} size={18} />
+        {!billing.accessAllowed ? 'Your customer chat is paused. Check Billing in Settings.' : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
     </> : <>
       <p>Your chat stays hidden until we’ve checked the button is on {site}, so nobody else can put answers out under your business’s name.</p>
       <p className="small">Published the change? Press the button below. We also check by ourselves the first time your website shows the button.</p>
@@ -160,3 +163,4 @@ export default function ChatButton() {
     </div>
   </div>
 }
+

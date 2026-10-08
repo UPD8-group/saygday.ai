@@ -65,11 +65,20 @@ export function dateLabel(value, { short = false } = {}) {
 // and for one still on trial, which of its 14 days it's on. The free days run
 // from when the website was added.
 export function stageOf(business, now = Date.now()) {
-  const start = time(business.createdAt) ?? now
-  const endsAt = start + TRIAL_DAYS * DAY
+  const billing = business.billing
+  if (business.plan === 'internal') return { endsAt: null, key: 'internal', label: 'Ours / test' }
+  if (billing?.enabled) {
+    const paid = billing.subscriptionStatus === 'active' && billing.priceValid === true
+      && time(billing.currentPeriodEnd) > now && time(billing.syncedAt) > now - DAY && time(billing.syncedAt) <= now
+    if (paid) return { endsAt: billing.trialEndsAt, key: 'paying', label: 'Paying' }
+    if (!billing.trialStartedAt) return { endsAt: null, key: 'not_started', label: 'Trial not started' }
+    if (time(billing.trialEndsAt) <= now && billing.hasCustomer) return { endsAt: billing.trialEndsAt, key: 'cancelled', label: 'Payment inactive' }
+  }
+  const start = time(billing?.enabled ? billing.trialStartedAt : business.createdAt) ?? now
+  const endsAt = billing?.enabled ? time(billing.trialEndsAt) : start + TRIAL_DAYS * DAY
   const base = { endsAt: new Date(endsAt).toISOString() }
-  if (business.plan === 'paying') return { ...base, key: 'paying', label: 'Paying' }
-  if (business.plan === 'cancelled') return { ...base, key: 'cancelled', label: 'Cancelled' }
+  if (!billing?.enabled && business.plan === 'paying') return { ...base, key: 'paying', label: 'Paying' }
+  if (!billing?.enabled && business.plan === 'cancelled') return { ...base, key: 'cancelled', label: 'Cancelled' }
   if (business.plan === 'internal') return { ...base, key: 'internal', label: 'Ours / test' }
   if (now < endsAt) {
     const day = Math.min(TRIAL_DAYS, Math.max(1, Math.floor((now - start) / DAY) + 1))
@@ -210,3 +219,4 @@ export function investorSummary(summary) {
     `Website scans: ${number(t.scans)} · AI cost about ${dollars(t.aiCost[0], { cents: true })}–${dollars(t.aiCost[1], { cents: true })}`,
   ].join('\n')
 }
+

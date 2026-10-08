@@ -66,6 +66,8 @@ const REFUSALS = {
   SLUG_UNAVAILABLE: [503, 'We couldn’t set up your business just now. Please try again.'],
   WEBSITE_TAKEN: [409, 'Another SayGday account has already proved it owns this website. If it’s yours, get in touch through our contact page.'],
   WEBSITE_CHANGED: [409, 'Your website address just changed. Check your website again.'],
+  BILLING_REQUIRED: [402, 'Your free period has ended or your subscription needs attention. Open Settings → Billing to continue scanning. Your saved answers and enquiries are still available.'],
+  BILLING_LEASE_LOST: [409, 'Your billing is being updated. Refresh billing status before trying again.'],
 }
 export function rpcResult({ data, error }) {
   if (!error) return data
@@ -101,3 +103,4 @@ export async function rateLimit(db, kind, subject, limit, windowSeconds) {
   const allowed = await call(db, 'rate_limit', { p_key: rateLimitKey(kind, subject), p_limit: limit, p_window_seconds: windowSeconds })
   if (!allowed) throw new HttpError(429, windowSeconds >= 3600 ? 'A few too many requests. Please try again later.' : 'A few too many requests. Please wait a moment and try again.', 'RATE_LIMITED')
 }
+

@@ -121,7 +121,8 @@ settings, which is how sign-in broke on saygday.ai before the move.
   where its request's Origin is that website, and the chat window only
   opens inside it: it reports the page that holds it (`location.ancestorOrigins`,
   or the referrer, which widget.js forces with `referrerpolicy="origin"`),
-  and the chat's GET is cached per Origin. Locked by
+  and the chat's GET uses no-store in the browser and CDN so subscription
+  changes cannot serve cached access or answers. Locked by
   test/verification.test.mjs.
 
 - **Spam limits keep no one's address** (the privacy page's promise, 2
@@ -311,6 +312,21 @@ settings, which is how sign-in broke on saygday.ai before the move.
 
 ## Hard rules
 
+- **Billing is server-owned.** `docs/billing.md` describes the Stripe rollout.
+  Keep A$30/month AUD and the original 14-day no-card free period. Neither
+  browser state nor a Checkout return URL grants service. Billing webhooks
+  verify the raw signature, reconcile current Stripe state under a fenced
+  database lease, and save state plus the event receipt atomically. All
+  visitor entry points enforce entitlement in the database; the owner can
+  still manage answers, enquiries and cancellation when service is paused.
+  **The 14 days start at first successful website ownership verification**
+  (owner, 4 October 2026). Signup, adding a website and scans do not start the
+  clock. Preserve the original first-verification timestamp and trial dates
+  through retries and domain changes. Already-verified businesses receive a
+  full 14 days from billing activation. The migration seeds `website_verified`
+  but keeps billing disabled until Stripe configuration and rollout testing
+  are complete.
+
 - The Supabase service role key never appears in chat, logs or code.
 - The browser never reads a table: every table and function is revoked from
   `anon` and `authenticated` and granted to `service_role` only, and every
@@ -320,3 +336,4 @@ settings, which is how sign-in broke on saygday.ai before the move.
   their green is trusted. Run the sabotage with `npm test`, never
   `node --test test/` (that form fails every run and proves nothing).
 - Never `git add` while a sabotage script is running.
+
