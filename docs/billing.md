@@ -158,6 +158,9 @@ use them. Do not introduce client-side table access for billing.
 
 ## Checkout and the end of the free period
 
+New businesses use the card-backed 14-day activation flow above. The following
+remaining-time rules apply only after a trial has already started.
+
 Owners may voluntarily choose Checkout while more than **48 hours and
 30 minutes** remain in their free period. That subscription uses the original
 stored trial end, with a payment method collected for renewal. It does not
@@ -253,7 +256,12 @@ no browser-owned subscription state and no success-URL entitlement. Public
 chat responses are not cached across subscription changes; the next visitor
 answer refresh must pass the current checks.
 
-## Deployment order
+## Historical initial deployment procedure (superseded)
+
+This section records the original no-card rollout. For the 8 October live
+card-activation change, use the deployment order and owner decision at the
+top of this document. A sandbox rehearsal is not a prerequisite for that
+explicitly authorised live rollout.
 
 The new migration's generated version (`20261004051312`) sorts before the
 existing rescan migration (`20261004100000`). On an existing database, inspect
@@ -288,7 +296,7 @@ The code and migrations do not activate billing automatically. Sandbox
 configuration and test evidence are recorded separately; no production
 migration or live deployment is implied.
 
-## Testing on the existing deploy preview
+## Optional isolated deploy preview reference
 
 Use the existing `saygdayai` project's Deploy Preview for this PR, with an
 isolated Supabase branch and Stripe sandbox. Do not create another Netlify
@@ -339,8 +347,8 @@ documented declined/authentication-required cards for those paths.
 
 | Check | Expected result |
 |---|---|
-| New owner, no card | Signup, website addition and scans do not start the trial; first successful website verification starts 14 days, with no unsolicited Stripe customer or charge. |
-| Existing business at activation | Already-verified businesses receive a complete 14-day window; unverified businesses wait for verification. No retroactive charge. |
+| New owner, no card | Signup, scans, preview and verification do not start the trial or allow public chat. Card-backed Stripe confirmation starts the full 14 days. Abandoned Checkout grants nothing. |
+| Existing business at card-policy rollout | Already-started trials retain exactly their original dates and access. Unstarted accounts require card-backed activation. No retroactive charge. |
 | Double-click Upgrade / repeat request | One reusable Checkout attempt and no second subscription. |
 | Upgrade before trial expiry | Every remaining free day is preserved; no replacement 14-day period. |
 | Upgrade after expiry | Checkout states A$30/month AUD; public access resumes only after server verification. |
@@ -371,7 +379,8 @@ smoke checks:
 
 | Test file | Boundary exercised |
 |---|---|
-| `test/billing-database.test.mjs` | Real migrations in PGlite: inert rollout, first-verification trial start, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
+| `test/card-activation.test.mjs` | New card policy: verified site and confirmed payment method, exact 14 days, abandoned Checkout, metadata mismatch, replay, cancellation, immutable dates and grandfathered legacy trials. |
+| `test/billing-database.test.mjs` | Explicit legacy fixtures in PGlite: inert rollout, first-verification trial start, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
 | `test/billing-server.test.mjs` | Real Stripe SDK signed fixture generation and verification, with mocked provider API responses and real PGlite state: tampered/stale signatures, ownership, retries, event replay/order, concurrency, exact pricing and bounded outage recovery. |
 | `test/billing-ui.test.mjs` | Dashboard state copy, server capability flags, safe redirects, refresh behaviour and return-query handling. |
 | Existing matcher, widget and server suites | Approved answers remain exact; failed refresh cannot reuse stale answers; ownership and enquiry handling remain enforced. |
