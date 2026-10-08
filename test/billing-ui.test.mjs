@@ -57,7 +57,7 @@ test('every billing lifecycle has explicit copy and preserves the server access 
 test('a trial never implies consent to charge; scheduled subscriptions are shown separately', () => {
   for (const state of ['trial', 'trial_ending']) {
     const billing = { state, accessAllowed: true, trialEndsAt: '2026-10-18T12:00:00Z' }
-    assert.match(billingView(billing).description, /No payment is taken/)
+    assert.match(billingView(billing).description, /Monthly billing is not set up for this existing trial/)
     assert.equal(billingConfirmed(billing), false)
     assert.equal(billingConfirmed({ ...billing, portalAvailable: true }), false, 'a Stripe customer alone is not a paid commitment')
     assert.match(billingView({ ...billing, subscriptionScheduled: true }).description, /subscription is scheduled at A\$30 a month \(AUD\) after your free period/)
@@ -93,7 +93,7 @@ test('rendered billing controls honour server capability flags and explain price
   const expired = render({ state: 'trial_expired', accessAllowed: false, checkoutAvailable: true, portalAvailable: false })
   assert.match(expired, /Upgrade — A\$30\/month/)
   assert.match(expired, /month AUD/)
-  assert.match(expired, /Build and preview free, with no card/)
+  assert.match(expired, /Card details are required to activate a new chat/)
   assert.doesNotMatch(expired, />Manage billing</)
   const active = render({ state: 'active', accessAllowed: true, portalAvailable: true, checkoutAvailable: false })
   assert.match(active, />Manage billing</)
@@ -104,7 +104,7 @@ test('rendered billing controls honour server capability flags and explain price
   assert.match(failure, />Manage billing</)
   assert.doesNotMatch(failure, /Upgrade —/)
   const ending = render({ state: 'trial_ending', accessAllowed: true, checkoutAvailable: false })
-  assert.match(ending, /Upgrade will be available when it ends/)
+  assert.match(ending, /Card setup will be available when it ends/)
   assert.doesNotMatch(ending, /Upgrade —/)
 })
 
@@ -116,8 +116,8 @@ test('billing explains card collection after verification and automatic monthly 
   assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)
   const html = render({ state: 'trial_not_started', accessAllowed: false, checkoutAvailable: false })
   assert.match(html, /Build and preview for free/)
-  assert.match(html, /verify your website and add your card through Stripe/)
-  assert.match(html, /Build and preview free, with no card/)
+  assert.match(html, /Verify your website, then add your card securely through Stripe/)
+  assert.match(html, /Card details are required to activate a new chat/)
   assert.match(html, /automatically unless you cancel/)
 })
 

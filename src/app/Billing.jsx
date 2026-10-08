@@ -49,7 +49,7 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
 
   return <section className="card billing" id="billing" aria-labelledby="billing-title">
     <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">A$30 <span>/ month AUD</span></span></div>
-    <p className="small">Build and preview free, with no card. To go live, verify your website and add your card through Stripe. Your first 14 live days are free, then A$30/month AUD automatically unless you cancel.</p>
+    <p className="small"><strong>Card details are required to activate a new chat.</strong> Verify your website, then add your card securely through Stripe. Your first 14 live days are free, then A$30/month AUD automatically unless you cancel. You can build and preview before activating.</p>
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>
     </div>
