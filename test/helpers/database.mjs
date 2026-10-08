@@ -14,7 +14,7 @@ afterEach(async () => {
 
 // The real migrations, in a real Postgres (PGlite), with just enough of
 // Supabase around them: the three roles and an auth.users table.
-export async function database() {
+export async function database({ cardRequired = true } = {}) {
   const pg = new PGlite()
   openDatabases.add(pg)
   await pg.exec(`
@@ -26,6 +26,9 @@ export async function database() {
   for (const name of (await readdir(folder)).filter(file => file.endsWith('.sql')).sort())
     await pg.exec(await readFile(new URL(name, folder), 'utf8'))
   await pg.exec(await readFile(new URL('../../supabase/billing-upgrade.sql', import.meta.url), 'utf8'))
+  await pg.exec(await readFile(new URL('../../supabase/billing-card-activation.sql', import.meta.url), 'utf8'))
+  // Legacy regression fixtures explicitly retain the previously promised no-card policy.
+  if (!cardRequired) await pg.exec('update public.billing_settings set require_card_for_new_trials=false')
   return pg
 }
 

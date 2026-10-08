@@ -49,7 +49,7 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
 
   return <section className="card billing" id="billing" aria-labelledby="billing-title">
     <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">A$30 <span>/ month AUD</span></span></div>
-    <p className="small">First 14 days free. No card required to start. Your free period starts when we first verify that you own your website. You choose whether to subscribe.</p>
+    <p className="small">Build and preview free, with no card. To go live, verify your website and add your card through Stripe. Your first 14 live days are free, then A$30/month AUD automatically unless you cancel.</p>
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>
     </div>
@@ -59,11 +59,11 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="error">{refreshError}</Notice>
     <div className="billing__actions">
-      {view.checkoutAvailable && <Button kind="gold" busy={busy === 'billingCheckout'} disabled={Boolean(busy) || refreshing || waiting} onClick={() => open('billingCheckout')} iconAfter="external">Upgrade — A$30/month</Button>}
+      {view.checkoutAvailable && <Button kind="gold" busy={busy === 'billingCheckout'} disabled={Boolean(busy) || refreshing || waiting} onClick={() => open('billingCheckout')} iconAfter="external">{view.checkoutLabel}</Button>}
       {view.portalAvailable && <Button kind="dark" busy={busy === 'billingPortal'} disabled={Boolean(busy)} onClick={() => open('billingPortal')} iconAfter="external">Manage billing</Button>}
       <Button kind="ghost" busy={refreshing} disabled={Boolean(busy) || waiting} onClick={refreshBilling} icon="refresh">Refresh billing status</Button>
     </div>
-    {view.checkoutAvailable && <p className="small billing__terms">Checkout confirms your payment details and when monthly billing begins. Upgrading during your free period keeps its original end date. Nothing is charged automatically unless you choose to subscribe.</p>}
+    {view.checkoutAvailable && <p className="small billing__terms">Checkout confirms your payment details and when monthly billing begins. If your free period is already running, its original end date stays the same. Cancel in Manage billing before the first charge to pay nothing.</p>}
     {view.portalAvailable && <p className="small billing__terms">Use the secure billing portal to update your payment method, see invoices or cancel. Your saved answers and enquiries stay available in this dashboard.</p>}
   </section>
 }

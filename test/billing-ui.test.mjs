@@ -41,12 +41,12 @@ test('missing, malformed and unavailable billing never claim access or invent an
 })
 
 test('every billing lifecycle has explicit copy and preserves the server access decision', () => {
-  const states = ['setup_pending', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable']
+  const states = ['setup_pending', 'card_required', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable']
   for (const state of states) {
     const denied = billingView({ state, accessAllowed: false })
     assert.equal(denied.state, state)
     assert.ok(denied.title.length > 10, state)
-    assert.match(denied.description, /edit answers and read enquiries/, state)
+    assert.match(denied.description, ['card_required', 'trial_not_started'].includes(state) ? /14 free days/ : /edit answers and read enquiries/, state)
   }
   assert.match(billingView({ state: 'canceling', accessAllowed: true, currentPeriodEnd: '2026-11-01T12:00:00Z' }).description, /will not renew/)
   assert.doesNotMatch(billingView({ state: 'active', accessAllowed: true }).description, /paused/)
@@ -93,7 +93,7 @@ test('rendered billing controls honour server capability flags and explain price
   const expired = render({ state: 'trial_expired', accessAllowed: false, checkoutAvailable: true, portalAvailable: false })
   assert.match(expired, /Upgrade — A\$30\/month/)
   assert.match(expired, /month AUD/)
-  assert.match(expired, /First 14 days free. No card required to start/)
+  assert.match(expired, /Build and preview free, with no card/)
   assert.doesNotMatch(expired, />Manage billing</)
   const active = render({ state: 'active', accessAllowed: true, portalAvailable: true, checkoutAvailable: false })
   assert.match(active, />Manage billing</)
@@ -108,14 +108,17 @@ test('rendered billing controls honour server capability flags and explain price
   assert.doesNotMatch(ending, /Upgrade —/)
 })
 
-test('billing explains that the free period starts at the first successful ownership verification', () => {
-  const start = /Your free period starts when we first verify that you own your website\./
+test('billing explains card collection after verification and automatic monthly renewal', () => {
+  const activation = render({ state: 'card_required', accessAllowed: false, checkoutAvailable: true })
+  assert.match(activation, /Activate.*14 days free/)
+  assert.match(activation, /Nothing to pay today/)
+  const start = /verify your website first/
   assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)
   const html = render({ state: 'trial_not_started', accessAllowed: false, checkoutAvailable: false })
-  assert.match(html, /Your free period hasn’t started/)
-  assert.match(html, start)
-  assert.match(html, /First 14 days free\. No card required to start\./)
-  assert.match(html, /You choose whether to subscribe\./)
+  assert.match(html, /Build and preview for free/)
+  assert.match(html, /verify your website and add your card through Stripe/)
+  assert.match(html, /Build and preview free, with no card/)
+  assert.match(html, /automatically unless you cancel/)
 })
 
 test('dashboard notice links directly to billing without hiding owner tools', () => {
@@ -134,7 +137,7 @@ test('billing refresh is authoritative, bounded and used by both live indicators
   assert.match(dashboard, /addEventListener\('focus', refreshVisible\)/)
   assert.match(dashboard, /const available = verified && billing\.accessAllowed/)
   assert.match(dashboard, /: !billing\.accessAllowed \? \{/)
-  assert.match(button, /!billing\.accessAllowed \? 'Your customer chat is paused/)
+  assert.match(button, /!billing\.accessAllowed \? \(billing\.state === 'card_required'/)
   assert.match(billing, /!billingConfirmed\(next\) && attempts < 6/)
   assert.match(billing, /clearTimeout\(timer\)/)
   assert.doesNotMatch(billing, /setBilling|state: 'active'|localStorage|sessionStorage/)

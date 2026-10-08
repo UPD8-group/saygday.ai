@@ -312,20 +312,21 @@ settings, which is how sign-in broke on saygday.ai before the move.
 
 ## Hard rules
 
-- **Billing is server-owned.** `docs/billing.md` describes the Stripe rollout.
-  Keep A$30/month AUD and the original 14-day no-card free period. Neither
-  browser state nor a Checkout return URL grants service. Billing webhooks
+- **Billing is server-owned.** Owner decision, 8 October 2026: build, scan,
+  approve and preview free without a card. A new business must verify its
+  website and complete Stripe Checkout with a payment method before public
+  activation. Its full 14 days begin with the confirmed Stripe subscription,
+  then A$30/month AUD is charged automatically unless cancelled. Existing
+  started trials retain their original dates and no-card access. Apply
+  supabase/billing-card-activation.sql after billing-upgrade.sql; do not
+  replay the original migration on production (applied under the combined
+  20261008073543 migration). docs/billing.md describes the rollout.
+  Neither browser state nor a Checkout return URL grants service. Webhooks
   verify the raw signature, reconcile current Stripe state under a fenced
   database lease, and save state plus the event receipt atomically. All
-  visitor entry points enforce entitlement in the database; the owner can
-  still manage answers, enquiries and cancellation when service is paused.
-  **The 14 days start at first successful website ownership verification**
-  (owner, 4 October 2026). Signup, adding a website and scans do not start the
-  clock. Preserve the original first-verification timestamp and trial dates
-  through retries and domain changes. Already-verified businesses receive a
-  full 14 days from billing activation. The migration seeds `website_verified`
-  but keeps billing disabled until Stripe configuration and rollout testing
-  are complete.
+  visitor entry points enforce entitlement in the database; owners can still
+  manage answers, enquiries and cancellation when service is paused. Trial
+  dates are immutable through retries, cancellation and domain changes.
 
 - The Supabase service role key never appears in chat, logs or code.
 - The browser never reads a table: every table and function is revoked from

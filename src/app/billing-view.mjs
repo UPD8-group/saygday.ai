@@ -1,6 +1,6 @@
 // Display only. Access and all subscription changes are decided by the server.
 export const UNAVAILABLE_BILLING = Object.freeze({ state: 'unavailable', accessAllowed: false, checkoutAvailable: false, portalAvailable: false })
-const STATES = new Set(['internal', 'setup_pending', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
+const STATES = new Set(['internal', 'setup_pending', 'card_required', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
 
 export function billingDate(value) {
   if (!value || !Number.isFinite(Date.parse(value))) return ''
@@ -18,11 +18,12 @@ export function billingView(value) {
       ? ' Your subscription is set to end with your free period. It will not renew or start monthly billing. You can manage this in the billing portal.'
       : ' Your subscription is scheduled at A$30 a month (AUD) after your free period. Manage or cancel it in the billing portal.'
     : ' No payment is taken unless you choose to subscribe.'
-  const pause = allowed ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
+  const pause = allowed || ['card_required', 'trial_not_started'].includes(billing.state) ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
     internal: ['Internal business', 'This website is marked as an internal or test business. No subscription is needed.'],
     setup_pending: ['Billing is being set up', 'Paid upgrades will be available here once billing is ready. No payment is taken automatically.'],
-    trial_not_started: ['Your free period hasn’t started', 'Your first 14 days are free. Your free period starts when we first verify that you own your website. No card is required to start.'],
+    card_required: ['Ready to go live', 'Your website is verified. Add your card through Stripe to activate your chat and start 14 free days. Then A$30/month AUD automatically unless you cancel. Nothing to pay today.'],
+    trial_not_started: ['Build and preview for free', 'Check your answers and verify your website first. Then add your card to activate your chat and start 14 free days. A$30/month AUD afterwards unless you cancel.'],
     trial: ['Your free period is running', `Your 14 free days${trialEnd ? ` end on ${trialEnd}` : ' are in progress'}.${trialPlan}`],
     trial_ending: ['Your free period is nearly over', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is nearly over'}.${subscribedTrial ? trialPlan : ' Upgrade will be available when it ends, so you keep all of your free time. No payment is taken automatically.'}`],
     trial_expired: ['Your free period has ended', 'Upgrade to keep your customer chat running for A$30 a month (AUD).'],
@@ -38,6 +39,7 @@ export function billingView(value) {
   const [title, description] = states[billing.state]
   return {
     state: billing.state, title, description: description + pause, accessAllowed: allowed,
+    checkoutLabel: billing.state === 'card_required' ? 'Activate — 14 days free' : 'Upgrade — A$30/month',
     checkoutAvailable: billing.checkoutAvailable === true && billing.state !== 'unavailable',
     portalAvailable: billing.portalAvailable === true,
     needsAttention: !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state),

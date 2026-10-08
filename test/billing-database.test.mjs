@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { database, rpcClient, user } from './helpers/database.mjs'
 
 async function setup({ policy, verified = true } = {}) {
-  const pg = await database()
+  const pg = await database({ cardRequired: false })
   const owner = await user(pg)
   const db = rpcClient(pg)
   const call = async (name, args = {}) => {
@@ -55,7 +55,7 @@ test('billing migration records the chosen verification policy, stays inert, and
 })
 
 test('the selected policy never starts on signup, website entry or scans; first successful verification starts exactly 14 days', async () => {
-  const pg = await database()
+  const pg = await database({ cardRequired: false })
   await pg.exec('update public.billing_settings set enabled=true where singleton')
   const owner = await user(pg)
   await pg.exec('set role service_role')
@@ -104,7 +104,7 @@ test('verification policy permits setup, starts once on proof, and survives doma
 
 test('account and business creation policies use actual timestamps through service_role invoker RPCs', async () => {
   for (const policy of ['account_created', 'business_created']) {
-    const pg = await database()
+    const pg = await database({ cardRequired: false })
     await activate(pg, policy)
     const owner = await user(pg)
     await pg.exec('set role service_role')

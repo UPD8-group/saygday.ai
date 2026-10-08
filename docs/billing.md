@@ -4,51 +4,49 @@
 
 Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
 
-After all versioned migrations, apply supabase/billing-upgrade.sql in the same deployment transaction as the pending Stripe migration. This compatibility script restores billing checks alongside multi-business ownership, button colours and daily activity counts. It is idempotent and covered by the full database suite. Do not activate billing until live configuration and the end-to-end rehearsal pass.
+Apply versioned migrations, then supabase/billing-upgrade.sql, then
+supabase/billing-card-activation.sql. Production already applied the original
+Stripe migration together with the compatibility script under version
+20261008073543_stripe_billing_with_multibusiness_compatibility. Do not replay
+the original file because its old timestamp is absent from remote history.
+Deploy compatible code before the card-activation SQL. That SQL is idempotent.
 
-The isolated branch described in the historical sandbox record is no longer present (verified 8 October). Do not assume its old URL or credentials remain usable.
+## Card before public activation (owner decision, 8 October 2026)
 
+Build, scan, approve answers and preview free without a card. Verify website
+ownership, then complete Stripe Checkout with a payment method to go live.
+The full 14 days start when Stripe confirms the subscription, followed by
+**A$30/month AUD automatically unless cancelled**. Opening or abandoning
+Checkout starts nothing. Stripe collects the payment method with
+payment_method_collection=always and trial_period_days=14. No raw card data
+reaches SayGday. Missing-payment-method trial expiry cancels the subscription.
 
-SayGday has one plan: **A$30 each month, charged in AUD**, after **14 free
-days with no card required**. The application creates a Stripe customer only
-when an owner chooses to upgrade. Signing in, adding a business and trying
-the service must not require Checkout or a payment method.
+Only a current provider subscription tied to the persisted Checkout key and
+business, with a payment method, exact price and 14-day interval, can persist
+the trial under the existing atomic lease. Website verification alone cannot
+start it. Trial dates remain immutable through resubscription and domain changes.
+All public chat entry points stay blocked until entitlement exists. Owner
+editing and preview remain available. Visitors still receive approved answers
+word for word; billing never changes the chat model.
 
-Billing does not change the chat model. Visitors receive only the business's
-current approved answers, word for word. Website scans remain the only AI
-operation. A paused subscription hides the public chat; the owner can still
-sign in, read and edit saved information, and manage billing.
+Already-started trials are grandfathered without changing their dates or
+requiring a card until expiry. Their payments begin only if they subscribe;
+Checkout preserves their original end date. The original website_verified
+policy remains in the database for this legacy cohort, while
+require_card_for_new_trials=true governs new accounts. The earlier no-card
+policy and sandbox notes are historical, superseded by this owner decision.
 
-For the configured sandbox resources, connected checks and remaining setup,
-see the [4 October 2026 sandbox record](billing-sandbox-2026-10-04.md).
-
-## Trial starts when website ownership is verified
-
-**Owner decision, 4 October 2026:** the 14-day clock begins at the first
-successful verification that the business owns its website. Signing up,
-adding a website and scanning it do not start the clock. No card is required.
-The stored policy is `website_verified`.
-
-The billing migration seeds that policy but starts disabled, so applying it
-cannot begin a trial, take payment, or switch off an existing chat. Keep
-billing disabled until Stripe configuration and rollout testing are complete.
-
-Businesses already verified before billing activation receive a full 14 days
-from activation. An unverified business starts its full period when its
-website is first verified. This migration safeguard prevents a historical
-verification date from immediately expiring existing service.
-
-The original first-verification timestamp is retained after retries and
-website changes. A replacement website must prove ownership again, but
-neither that check nor repeated sign-in or rescanning creates another free
-period. Once started, trial dates are immutable and use the server clock;
-changing a browser's date cannot extend access.
+Stripe Dashboard > Billing > Subscriptions and emails: the seven-day trial
+reminder is enabled, with a Stripe-hosted payment update page and a link to
+the customer portal for cancellation. Customers see the price and first
+charge date in Checkout and their trial end date in Settings > Billing.
 
 ## Stripe account and fixed price
 
-Use Stripe test mode with a separate test database/site first. Create the
-same resources again in live mode; their IDs and secrets are different.
-Never connect a preview to live Stripe keys or a production billing database.
+The owner explicitly chose live production validation. Automated regression
+tests use local database fixtures and mocked Stripe responses, never real
+charges. No completed live payment is claimed until observed. Never connect
+a preview to production keys or a production billing database.
 
 Create one active recurring Price with these settings:
 

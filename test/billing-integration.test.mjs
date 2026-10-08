@@ -7,7 +7,7 @@ import { billingConfiguration, publicBilling } from '../netlify/functions/_lib/b
 import { stageOf, summarise } from '../src/admin/metrics.mjs'
 
 async function setup() {
-  const pg = await database(), owner = await user(pg), stranger = await user(pg)
+  const pg = await database({ cardRequired: false }), owner = await user(pg), stranger = await user(pg)
   const db = rpcClient(pg, { user: owner })
   const add = (who, website) => call(db, 'create_business', { p_user: who.id, p_email: who.email, p_website: website })
   const a = await add(owner, 'https://first.example.com'), b = await add(owner, 'https://second.example.com')

@@ -49,11 +49,11 @@ test('SayGday’s own chat: the G’day button, a pulse, and well over 20 answer
 test('the chat’s facts are the website’s facts', async () => {
   const site = async slug => words(await built(slug))
   const facts = [
-    ['How much does it cost?', 'A$30 a month', await site('pricing'), 'SayGday is A$30 a month'],
-    ['How much does it cost?', 'Your first 14 days are free', await site('pricing'), 'Your first 14 days are free'],
-    ['Is there a free trial?', 'you don’t need a card to start', await site('pricing'), 'no card to start'],
-    ['Is there a free trial?', 'Your free period starts when we first verify that you own your website.', await site('pricing'), 'Your free period starts when we first verify that you own your website.'],
-    ['Is there a free trial?', 'Your free period starts when we first verify that you own your website.', await site('terms'), 'Your free period starts when we first verify that you own your website.'],
+    ['How much does it cost?', 'A$30 a month', await site('pricing'), 'A$30 a month'],
+    ['How much does it cost?', '14 days free', await site('pricing'), '14 days free'],
+    ['Is there a free trial?', 'Build and preview without a card', await site('pricing'), 'No card needed to build and preview'],
+    ['Is there a free trial?', 'add your card through Stripe to activate your chat', await site('pricing'), 'add your card through Stripe to activate your chat'],
+    ['Is there a free trial?', 'charged automatically unless you cancel', await site('terms'), 'unless you cancel'],
     ['Is there a lock-in contract?', 'at least 30 days’ notice by email before any price change', await site('terms'), 'at least 30 days’ notice by email before any price change'],
     ['How long does it take to set up?', 'an hour or so', await site('getting-started'), 'An hour or so'],
     ['Can James set it up for me?', 'James does the first setups himself', await site('getting-started'), 'James does the first setups himself'],

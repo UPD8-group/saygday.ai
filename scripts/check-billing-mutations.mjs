@@ -6,6 +6,12 @@ import assert from 'node:assert/strict'
 
 const mutations = [
   {
+    file: 'supabase/billing-card-activation.sql',
+    from: 'if a.trial_started_at is not null or a.card_required then return; end if;',
+    to: 'if a.trial_started_at is not null then return; end if;',
+    test: 'new card activation requires verification and a confirmed payment method before any public access',
+  },
+  {
     file: 'netlify/functions/_lib/billing.mjs',
     from: "if (!configuration.portalReady) throw unavailable()\n  const account = await call(db, 'billing_owner', { p_user: user.id, p_business: business })",
     to: "if (!configuration.portalReady) throw unavailable()\n  const account = await call(db, 'billing_owner', { p_user: user.id, p_business: null })",
