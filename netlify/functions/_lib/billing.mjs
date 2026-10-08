@@ -20,9 +20,14 @@ const iso = value => stripeTimestamp(value) ? new Date(value * 1000).toISOString
 const objectId = value => typeof value === 'string' ? value : value?.id
 const unavailable = () => new HttpError(503, 'Billing is temporarily unavailable. Please try again shortly.', 'BILLING_UNAVAILABLE')
 const busy = () => new HttpError(409, 'We’re updating your billing. Please try again in a moment.', 'BILLING_BUSY')
+// Publishable browser identifier, intentionally public. Secret and webhook
+// keys remain server environment values. Scope this production fallback to
+// this exact site and price; other deployments must supply their own pk_*.
+const SAYGDAY_PUBLIC_STRIPE_KEY = 'pk_live_51UA2P7R8qEoKoynxKDV4Q6I5JpVH9q80xSh3VJLzNWvizyQgWfsEqlGfjJb6qPTMcGaWFrc1YZgf0QXgCeCov5ak00i3j7v0Qm'
 
 export function billingConfiguration(read = env) {
   const key = read('SAYGDAY_STRIPE_SECRET_KEY') || ''
+  const configuredPublishableKey = read('SAYGDAY_STRIPE_PUBLISHABLE_KEY')
   const mode = read('SAYGDAY_STRIPE_MODE') || ''
   const priceId = read('SAYGDAY_STRIPE_PRICE_ID') || ''
   const portalConfigurationId = read('SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID') || ''
@@ -33,12 +38,16 @@ export function billingConfiguration(read = env) {
     if (url.protocol === 'https:' && !url.username && !url.password && !url.port && url.pathname === '/' && !url.search && !url.hash)
       publicUrl = url.origin
   } catch { /* No untrusted Host-header fallback. */ }
+  const publishableKey = configuredPublishableKey ?? (mode === 'live' && publicUrl === 'https://saygday.ai'
+    && priceId === 'price_1UOA0sR8qEoKoynxWAoOrDeA' ? SAYGDAY_PUBLIC_STRIPE_KEY : '')
   const validKey = /^(sk|rk)_(live|test)_[A-Za-z0-9]+$/.test(key) && key.split('_')[1] === mode
+  const publishableKeyReady = /^pk_(live|test)_[A-Za-z0-9]+$/.test(publishableKey) && publishableKey.split('_')[1] === mode
   const stripeReady = validKey && /^price_[A-Za-z0-9]+$/.test(priceId)
   const portalReady = validKey && !!publicUrl && /^bpc_[A-Za-z0-9]+$/.test(portalConfigurationId)
   const webhookReady = stripeReady && /^whsec_[A-Za-z0-9]+$/.test(webhookSecret)
-  return { key, mode, live: mode === 'live', priceId, portalConfigurationId, webhookSecret, publicUrl,
-    keyReady: validKey, stripeReady, portalReady, webhookReady, checkoutReady: stripeReady && portalReady && webhookReady }
+  return { key, publishableKey, mode, live: mode === 'live', priceId, portalConfigurationId, webhookSecret, publicUrl,
+    keyReady: validKey, publishableKeyReady, stripeReady, portalReady, webhookReady,
+    checkoutReady: stripeReady && portalReady && webhookReady && publishableKeyReady }
 }
 
 export function createStripe(configuration = billingConfiguration()) {
@@ -191,10 +200,37 @@ export async function billingPortal({ db, user, business = null, configuration =
   return { url: stripeUrl(session.url, 'portal') }
 }
 
-function validCheckout(session, account, configuration) {
+function validCheckout(session, account, configuration, operation) {
   if (!session || objectId(session.customer) !== account.stripe_customer_id || session.mode !== 'subscription'
-    || session.livemode !== configuration.live) throw unavailable()
+    || session.livemode !== configuration.live || !/^cs_[A-Za-z0-9_]+$/.test(session.id)
+    || session.metadata?.saygday_checkout_key !== operation.key
+    || !['open', 'complete', 'expired'].includes(session.status)) throw unavailable()
   return session
+}
+
+function customCheckout(session, account, configuration, current) {
+  if (session.ui_mode !== 'elements' || session.status !== 'open' || !stripeTimestamp(session.expires_at)
+    || session.expires_at <= current || typeof session.client_secret !== 'string'
+    || !session.client_secret.startsWith(`${session.id}_secret_`) || session.client_secret.length <= session.id.length + 8) throw unavailable()
+  // This response is authenticated and no-store. The client secret is held in
+  // page memory only: never save it in our database, URLs or application logs.
+  return { clientSecret: session.client_secret, publishableKey: configuration.publishableKey,
+    expiresAt: session.expires_at, businessId: account.business_id }
+}
+
+async function recoverCheckout(client, account, configuration, operation) {
+  if (!operation.key) return null
+  if (operation.session_id) {
+    try { return validCheckout(await client.checkout.sessions.retrieve(operation.session_id), account, configuration, operation) }
+    catch (error) { if (error.code !== 'resource_missing') throw error }
+  }
+  // A missing response or temporary lookup failure cannot authorise a second
+  // subscription. Recover only the exact durable attempt, across all statuses.
+  const sessions = await client.checkout.sessions.list({ customer: account.stripe_customer_id, limit: 100 })
+  if (sessions.has_more || !Array.isArray(sessions.data)) throw unavailable()
+  const matches = sessions.data.filter(candidate => candidate.metadata?.saygday_checkout_key === operation.key)
+  if (matches.length > 1 || (!matches.length && operation.session_id)) throw unavailable()
+  return matches.length ? validCheckout(matches[0], account, configuration, operation) : null
 }
 
 export async function billingCheckout({ db, user, business = null, configuration = billingConfiguration(), stripe, now = Date.now() }) {
@@ -222,25 +258,41 @@ export async function billingCheckout({ db, user, business = null, configuration
       account = (await commit(db, account, lease, { p_state: { stripe_customer_id: customer.id }, p_checkout: {} })).account
       operation = {}
     }
-    const snapshot = await subscriptionSnapshot(client, account, configuration)
+    let snapshot = await subscriptionSnapshot(client, account, configuration)
     account = (await commit(db, account, lease, { p_state: snapshot })).account
     if (snapshot.stripe_subscription_id && !TERMINAL.has(snapshot.subscription_status))
       throw new HttpError(409, 'You already have a subscription. Open Manage billing to update it.', 'SUBSCRIPTION_EXISTS')
 
-    let session
     if (operation.key && (operation.params?.mode !== 'subscription' || operation.params.customer !== account.stripe_customer_id
       || operation.params.line_items?.length !== 1 || operation.params.line_items[0].price !== configuration.priceId
       || operation.params.line_items[0].quantity !== 1)) throw unavailable()
-    if (operation.session_id) session = validCheckout(await client.checkout.sessions.retrieve(operation.session_id), account, configuration)
-    else if (operation.key) {
-      // Idempotency records expire after 24 hours. Find the actual session
-      // first, including a completed session whose webhook has not arrived.
-      const sessions = await client.checkout.sessions.list({ customer: account.stripe_customer_id, limit: 100 })
-      if (sessions.has_more) throw unavailable()
-      session = sessions.data.find(candidate => candidate.metadata?.saygday_checkout_key === operation.key)
-      if (session) validCheckout(session, account, configuration)
+    let session = await recoverCheckout(client, account, configuration, operation)
+    if (!session && operation.key && operation.params.expires_at > current && operation.params.ui_mode !== 'elements') {
+      // A hosted attempt may have lost its create response just before this
+      // rollout. Replay its ORIGINAL parameters/key, then expire it; changing
+      // a durable request under the old key would break Stripe idempotency.
+      session = validCheckout(await client.checkout.sessions.create(operation.params, { idempotencyKey: operation.key }), account, configuration, operation)
     }
-    if (session?.status === 'open' && session.expires_at > current) return { url: stripeUrl(session.url, 'checkout') }
+    if (session?.status === 'open' && session.ui_mode === 'elements' && session.expires_at > current) {
+      const result = customCheckout(session, account, configuration, current)
+      await commit(db, account, lease, { p_checkout: { ...operation, session_id: session.id, expires_at: session.expires_at } })
+      return result
+    }
+    if (session?.status === 'open') {
+      // Retire the old hosted link before creating an Elements session. A
+      // customer can confirm in another tab while this request holds our DB
+      // lease; only Stripe's successful expiration makes replacement safe.
+      try { session = validCheckout(await client.checkout.sessions.expire(session.id), account, configuration, operation) }
+      catch {
+        session = validCheckout(await client.checkout.sessions.retrieve(session.id), account, configuration, operation)
+        if (session.status !== 'complete' && session.status !== 'expired') throw unavailable()
+      }
+      snapshot = await subscriptionSnapshot(client, account, configuration)
+      account = (await commit(db, account, lease, { p_state: snapshot })).account
+      if (snapshot.stripe_subscription_id && !TERMINAL.has(snapshot.subscription_status))
+        throw new HttpError(409, 'You already have a subscription. Open Manage billing to update it.', 'SUBSCRIPTION_EXISTS')
+      if (session.status === 'open') throw unavailable()
+    }
     // Completion may race the subscription list above. Only the exact linked
     // subscription being confirmed terminal permits a fresh purchase.
     if (session?.status === 'complete' && !(TERMINAL.has(snapshot.subscription_status)
@@ -256,7 +308,7 @@ export async function billingCheckout({ db, user, business = null, configuration
       if (remaining > 0 && remaining <= CHECKOUT_TRIAL_BUFFER)
         throw new HttpError(409, 'Your free time is still running. Choose the monthly plan once it ends.', 'TRIAL_ENDING')
       const key = `sg-checkout-${randomUUID()}`
-      const params = { mode: 'subscription', customer: account.stripe_customer_id, payment_method_collection: 'always',
+      const params = { mode: 'subscription', ui_mode: 'elements', customer: account.stripe_customer_id, payment_method_collection: 'always',
         line_items: [{ price: configuration.priceId, quantity: 1 }],
         // Account defaults may enable Stripe's merchant-of-record service,
         // which requires localised prices and tax. Keep this fixed AUD offer
@@ -265,7 +317,7 @@ export async function billingCheckout({ db, user, business = null, configuration
         integration_identifier: `saygday-monthly-${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
         allow_promotion_codes: false, automatic_tax: { enabled: false }, adaptive_pricing: { enabled: false },
         client_reference_id: account.business_id, metadata: { saygday_checkout_key: key },
-        success_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=success`, cancel_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=canceled`,
+        return_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=success`,
         expires_at: current + (remaining > 0 ? Math.min(86400, remaining - 48 * 3600) : 86400),
         subscription_data: { metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key },
           trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
@@ -275,10 +327,10 @@ export async function billingCheckout({ db, user, business = null, configuration
     }
     // Same params and key across retries; no client prices, customer IDs,
     // return URLs, user IDs or trial extensions are accepted.
-    session = validCheckout(await client.checkout.sessions.create(operation.params, { idempotencyKey: operation.key }), account, configuration)
-    const url = stripeUrl(session.url, 'checkout')
-    await commit(db, account, lease, { p_checkout: { ...operation, session_id: session.id, expires_at: session.expires_at, url } })
-    return { url }
+    session = validCheckout(await client.checkout.sessions.create(operation.params, { idempotencyKey: operation.key }), account, configuration, operation)
+    const result = customCheckout(session, account, configuration, current)
+    await commit(db, account, lease, { p_checkout: { ...operation, session_id: session.id, expires_at: session.expires_at } })
+    return result
   })
 }
 

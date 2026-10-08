@@ -18,6 +18,12 @@ const mutations = [
     test: 'billing ownership names one website and rejects missing or foreign selections',
   },
   {
+    file: 'netlify/functions/_lib/billing.mjs',
+    from: "if (session?.status === 'complete' && !(TERMINAL.has(snapshot.subscription_status)",
+    to: "if (false && session?.status === 'complete' && !(TERMINAL.has(snapshot.subscription_status)",
+    test: 'a customer completing the hosted link during migration blocks replacement until current Stripe state is known',
+  },
+  {
     file: 'supabase/billing-upgrade.sql',
     from: 'from public.businesses b where b.slug = p_slug and b.website_verified_at is not null and public.billing_access(b.id)',
     to: 'from public.businesses b where b.slug = p_slug and b.website_verified_at is not null',
@@ -36,7 +42,7 @@ try {
     const source = readFileSync(mutation.file, 'utf8')
     const normalized = source.replaceAll('\r\n', '\n')
     assert.equal(normalized.split(mutation.from).length, 2, 'mutation must match exactly once: ' + mutation.file)
-    originals.set(mutation.file, source)
+    if (!originals.has(mutation.file)) originals.set(mutation.file, source)
     writeFileSync(mutation.file, normalized.replace(mutation.from, mutation.to))
   }
   const run = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['test'], {

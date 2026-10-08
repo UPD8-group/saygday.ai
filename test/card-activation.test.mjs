@@ -7,6 +7,7 @@ import { call } from '../netlify/functions/_lib/runtime.mjs'
 import { billingCheckout, billingStatus, stripeWebhook, STRIPE_API_VERSION } from '../netlify/functions/_lib/billing.mjs'
 
 const configuration = { key: 'sk_test_example', live: false, keyReady: true, stripeReady: true, checkoutReady: true,
+  publishableKey: 'pk_test_example',
   portalReady: true, webhookReady: true, priceId: 'price_monthly', portalConfigurationId: 'bpc_safe',
   webhookSecret: 'whsec_example', publicUrl: 'https://saygday.ai' }
 const price = { id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 3000, tax_behavior: 'inclusive',
@@ -29,7 +30,7 @@ async function setup() {
     checkout: { sessions: {
       create: async (params, options) => { state.calls.push({ params, options });
         const session = { id: 'cs_card', mode: 'subscription', customer: 'cus_card', status: 'open', livemode: false,
-          expires_at: params.expires_at, url: 'https://checkout.stripe.com/c/pay/example' };
+          expires_at: params.expires_at, metadata: params.metadata, ui_mode: params.ui_mode, client_secret: 'cs_card_secret_example' };
         state.sessions.push(session); return session },
       retrieve: async () => state.sessions[0], list: async () => ({ data: state.sessions, has_more: false }),
     } },
