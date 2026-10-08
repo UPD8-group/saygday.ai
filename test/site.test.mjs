@@ -61,7 +61,7 @@ test('the bar, the menu and the footer are on every page, and the menu marks the
   assert.deepEqual(menu.map(page => page.name), ['Is this AI?', 'What’s different', 'When it matters', 'How it works', 'Getting started', 'Meet the mob', 'Our story', 'Pricing', 'Contact'])
   for (const page of ALL) {
     const html = await built(page)
-    assert.match(html, /<a class="bar__cta" href="\/login">Try it free<\/a>/, `${page.file}: the bar`)
+    assert.match(html, /<a class="bar__cta" href="\/login">14 days free<\/a>/, `${page.file}: the bar`)
     for (const item of menu) assert.ok(html.includes(`href="${pathFor(item)}"`), `${page.file}: menu links to ${item.name}`)
     const current = html.match(/<a class="menu__link" href="([^"]+)" aria-current="page">/g) || []
     assert.equal(current.length, page.name ? 1 : 0, `${page.file}: the menu marks only this page`)
@@ -384,9 +384,10 @@ test('a reader can swap between day and night at the top of every page, and day 
     const headEnd = html.indexOf('</head>')
     assert.ok(html.indexOf('<script src="/theme.js"></script>') > -1 && html.indexOf('<script src="/theme.js"></script>') < html.indexOf('<link rel="stylesheet" href="/src/site/site.css">'), `${page.file}: the choice is applied before the stylesheet, so night never flashes day`)
     assert.ok(html.indexOf('<script src="/theme.js">') < headEnd, `${page.file}: the boot script is in the head`)
-    assert.match(html, /<a class="bar__cta" href="\/login">Try it free<\/a>\n\s*<button class="theme" id="theme" type="button" aria-label="Switch to dark mode"><svg class="theme__moon"[^]*?<\/svg><svg class="theme__sun"[^]*?<\/svg><\/button>\n\s*<button class="burger"/, `${page.file}: the button sits in the bar, between Try it free and the menu`)
+    assert.match(html, /<a class="bar__cta" href="\/login">14 days free<\/a>\n\s*<button class="theme" id="theme" type="button" aria-label="Switch to dark mode"><svg class="theme__moon"[^]*?<\/svg><svg class="theme__sun"[^]*?<\/svg><\/button>\n\s*<button class="burger"/, `${page.file}: the button sits in the bar, between Try it free and the menu`)
     assert.match(html, /<noscript><style>[^<]*\.theme \{ display: none !important; \}/, `${page.file}: without JavaScript the button is not shown`)
   }
   assert.match(await read('netlify.toml'), /\[\[headers\]\]\n  for = "\/theme\.js"\n  \[headers\.values\]\n    Cache-Control = "public, max-age=300"/, 'the boot script is cached briefly, like widget.js')
   assert.match(await read('netlify.toml'), /script-src 'self';/, 'the boot script is a file of the site’s own, as the content security policy requires')
 })
+

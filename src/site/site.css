@@ -618,3 +618,9 @@ body.menu-open [data-saygday] { display: none; }
 .oo-credit .oo-light { stroke-dasharray: 25 75; stroke-dashoffset: 0; animation: oo-trace 2.4s linear infinite; }
 @keyframes oo-trace { to { stroke-dashoffset: -100; } }
 @media (prefers-reduced-motion: reduce) { .oo-credit { transition: none; } .oo-credit .oo-light { animation: none; opacity: 0; } }
+
+
+/* Put the card requirement beside public signup buttons, including mobile. */
+.trial-note { margin-top: 12px; font-size: 15px; line-height: 1.5; }
+.next .trial-note { flex-basis: 100%; margin: 0; }
+.hero__fine strong { color: #fff; font-weight: 600; }
