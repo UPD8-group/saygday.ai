@@ -193,7 +193,11 @@ https://saygday.ai/api/stripe/webhook
 ```
 
 Use the test site's origin for tests. Select the pinned API version
-**`2026-09-30.endive`**, matching `STRIPE_API_VERSION` and Stripe SDK 23.0.0.
+**`2026-08-26.dahlia`**, matching `STRIPE_API_VERSION`. This is the stable
+version offered by the live account's Workbench on 8 October 2026. The Node
+SDK remains 23.0.0 with an explicit API-version override for all requests;
+webhook validation uses the same version. Do not choose the preview release.
+The historical sandbox record used Endive and is not current rollout evidence.
 Connect-account events and mismatched API versions or live/test modes are
 rejected. Subscribe to these events:
 

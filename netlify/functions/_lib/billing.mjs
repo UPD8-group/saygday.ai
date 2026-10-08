@@ -5,7 +5,8 @@ import Stripe from 'stripe'
 import { randomInt, randomUUID } from 'node:crypto'
 import { call, env, HttpError } from './runtime.mjs'
 
-export const STRIPE_API_VERSION = '2026-09-30.endive'
+// Match the stable snapshot version offered by the live account's Workbench.
+export const STRIPE_API_VERSION = '2026-08-26.dahlia'
 export const CHECKOUT_TRIAL_BUFFER = (48 * 60 + 30) * 60
 const TERMINAL = new Set(['canceled', 'incomplete_expired'])
 const KNOWN_STATUS = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'incomplete_expired', 'canceled', 'paused'])

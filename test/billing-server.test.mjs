@@ -81,7 +81,8 @@ function signedRequest(client, payload, { timestamp, tamper = false, secret = co
 }
 
 test('configuration pins the SDK API, secret mode, origin and exact AUD monthly inclusive price', () => {
-  assert.equal(Stripe.API_VERSION, STRIPE_API_VERSION)
+  assert.equal(STRIPE_API_VERSION, '2026-08-26.dahlia')
+  assert.equal(createStripe(configuration).getApiField('version'), STRIPE_API_VERSION)
   assert.equal(configuration.checkoutReady, true)
   assert.ok(createStripe(configuration))
   for (const [key, value] of [['SAYGDAY_STRIPE_MODE', 'live'], ['SAYGDAY_PUBLIC_URL', 'https://saygday.ai.evil.example/path'],
