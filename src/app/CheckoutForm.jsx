@@ -23,7 +23,7 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
   const settings = `/app/settings?business=${encodeURIComponent(business.slug)}#billing`
   const completed = `/app/settings?business=${encodeURIComponent(business.slug)}&checkout=success#billing`
 
-  useEffect(() => { document.title = `Checkout - ${business.name} - SayGday` }, [business.name])
+  useEffect(() => { document.title = `Checkout — ${business.name} — SayGday` }, [business.name])
 
   useEffect(() => {
     const run = { disposed: false, failed: false, confirming: false, checkout: null, actions: null, element: null, bootstrap: null, view: null, day: checkoutDay() }
@@ -149,7 +149,7 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
       <section className="card checkout__summary" aria-labelledby="checkout-title">
         <p className="eyebrow">SayGday Assistant</p>
         <p className="checkout__business">{business.name}</p>
-        <h1 id="checkout-title">{view?.title || 'Let's get your chat ready.'}</h1>
+        <h1 id="checkout-title">{view?.title || 'Let’s get your chat ready.'}</h1>
         {view && <>
           <p className="checkout__rate">A$40 <span>/ month AUD</span></p>
           <p className="small">Your website assistant with owner-approved answers, enquiry capture and a dashboard to manage your chat.</p>
@@ -158,7 +158,7 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
           <p className="checkout__cancel"><Icon name="check" size={18} /><span>{view.trial ? 'Cancel in Manage billing before your first payment to pay nothing.' : 'Cancel in Manage billing any time to stop the next renewal.'}</span></p>
           {view.trial && <p className="small checkout__timezone">Billing dates shown in Sydney time.</p>}
         </>}
-        {status === 'loading' && !view && <Spinner label="Checking your billing date and amount." />}
+        {status === 'loading' && !view && <Spinner label="Checking your billing date and amount…" />}
       </section>
       <section className="card checkout__payment" aria-labelledby="payment-title">
         <div className="checkout__secure"><Icon name="shield" size={20} />Secure checkout with Stripe</div>
@@ -169,9 +169,9 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
         <form onSubmit={confirm} hidden={status === 'error'} aria-busy={status === 'loading' || busy}>
           <Field label="Billing email" hint="Stripe sends your subscription and payment updates here.">{(id, note) => <input id={id} className="input" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} readOnly={emailLocked} disabled={busy || status === 'loading'} aria-describedby={note} />}</Field>
           <div className="checkout__element" ref={mount} />
-          {!paymentReady && <Spinner label="Loading the secure card form." />}
+          {!paymentReady && <Spinner label="Loading the secure card form…" />}
           {view && <p className="checkout__consent">{view.trial ? `By confirming, you authorise A$40/month AUD from ${view.date} until you cancel.` : 'By subscribing, you authorise A$40 today and A$40/month AUD until you cancel.'} You agree to our <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>}
-          <Button kind="gold" size="big" type="submit" busy={busy} disabled={!view || !paymentReady || status !== 'ready'} iconAfter="arrow">{busy ? 'Confirming securely.' : view?.button || 'Preparing checkout.'}</Button>
+          <Button kind="gold" size="big" type="submit" busy={busy} disabled={!view || !paymentReady || status !== 'ready'} iconAfter="arrow">{busy ? 'Confirming securely…' : view?.button || 'Preparing checkout…'}</Button>
           <Notice kind="error">{error}</Notice>
           {view?.trial && <p className="checkout__nothing">{view.dueToday} AUD due today</p>}
         </form>
