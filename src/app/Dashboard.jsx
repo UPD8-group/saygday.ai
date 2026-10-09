@@ -35,6 +35,8 @@ export function DashboardProvider({ children }) {
   const [faqs, setFaqs] = useState(null)
   const [reviewedChat, setReviewedChat] = useState('')
   const [confirmedAppearance, setConfirmedAppearance] = useState('')
+  // The mounted appearance editor registers its save while it has pending edits.
+  const appearanceSave = useRef(null)
   // The business every request names. A ref, so a request fired in the same
   // breath as a switch still names the right one.
   const current = useRef(null)
@@ -145,7 +147,7 @@ export function DashboardProvider({ children }) {
   const approveChatPreview = () => setReviewedChat(reviewKey)
   const appearanceConfirmed = previewApproved || Boolean(state.business && confirmedAppearance === chatReviewKey(state.business, []))
   const confirmChatAppearance = (business = state.business) => setConfirmedAppearance(chatReviewKey(business, []))
-  const value = { ...state, previewApproved, approveChatPreview, appearanceConfirmed, confirmChatAppearance, faqs, setFaqs, setBusiness, setScan: scan => setState(previous => ({ ...previous, scan })), reload: load, request, choose, added, refreshBilling, billingRefreshing, billingError }
+  const value = { ...state, appearanceSave, previewApproved, approveChatPreview, appearanceConfirmed, confirmChatAppearance, faqs, setFaqs, setBusiness, setScan: scan => setState(previous => ({ ...previous, scan })), reload: load, request, choose, added, refreshBilling, billingRefreshing, billingError }
   return <Dash.Provider value={value}>{children}</Dash.Provider>
 }
 
@@ -172,6 +174,8 @@ export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuButton = useRef(null)
   const main = useRef(null)
+  const leavingAppearance = useRef(false)
+  const [savingAppearance, setSavingAppearance] = useState(false)
   const ready = dash.business && !SCANNING.includes(dash.scan?.status)
   const drafts = dash.faqs?.filter(faq => faq.status === 'draft').length || 0
   const asked = dash.business?.counts?.newEnquiries || 0
@@ -182,7 +186,34 @@ export function Layout() {
   function followLink(event) {
     if (event.target.closest('a')) { setMenuOpen(false); requestAnimationFrame(() => main.current?.focus()) }
   }
-  return <div className="page dashboard-shell">
+  async function leaveAppearance(next) {
+    if (leavingAppearance.current) return
+    leavingAppearance.current = true
+    setSavingAppearance(Boolean(dash.appearanceSave.current))
+    try {
+      if (dash.appearanceSave.current && !await dash.appearanceSave.current()) {
+        setMenuOpen(false)
+        requestAnimationFrame(() => main.current?.focus())
+        return
+      }
+      await next()
+    } finally { leavingAppearance.current = false; setSavingAppearance(false) }
+  }
+  function saveBeforeLink(event) {
+    if (!dash.appearanceSave.current && !leavingAppearance.current) return
+    const link = event.target.closest('a[href]')
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === '_blank' || link.hasAttribute('download')) return
+    const destination = new URL(link.href, window.location.href)
+    if (destination.origin !== window.location.origin || !destination.pathname.startsWith('/app') || link.getAttribute('href').startsWith('#')) return
+    event.preventDefault()
+    event.stopPropagation()
+    leaveAppearance(() => {
+      navigate(destination.pathname + destination.search + destination.hash)
+      setMenuOpen(false)
+      requestAnimationFrame(() => main.current?.focus())
+    })
+  }
+  return <div className="page dashboard-shell" onClickCapture={saveBeforeLink}>
     <a className="skip-link" href="#dashboard-main">Skip to content</a>
     <header className="dashboard-mobile-bar">
       <Link to="/app" aria-label="SayGday home"><Logo small /></Link>
@@ -194,7 +225,7 @@ export function Layout() {
       {dash.business && <div className="sidebar-business">
         <Avatar character={dash.business.character} colour={dash.business.buttonColour} size={36} />
         <div>{dash.businesses.length > 1
-          ? <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { dash.choose(event.target.value); navigate('/app') }}>
+          ? <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { const slug = event.target.value; leaveAppearance(async () => { await dash.choose(slug); navigate('/app') }) }}>
             {dash.businesses.map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}
           </select> : <strong>{dash.business.name}</strong>}
           <small>{dash.business.website?.replace(/^https?:\/\//, '').replace(/\/$/, '')}</small>
@@ -223,10 +254,11 @@ export function Layout() {
         {dash.business && <NavLink to="/app/settings"><Icon name="settings" size={19} />Settings</NavLink>}
         <Link to="/app/add"><Icon name="plus" size={19} />Add a website</Link>
         <a href="/contact" target="_blank" rel="noopener noreferrer"><Icon name="mail" size={19} />Help &amp; support<Icon name="external" size={14} /></a>
-        <button type="button" onClick={async () => { await signOut(); goToSignIn() }}><Icon name="back" size={19} />Sign out</button>
+        <button type="button" onClick={() => leaveAppearance(async () => { await signOut(); goToSignIn() })}><Icon name="back" size={19} />Sign out</button>
       </nav>
     </aside>
     <main className="container dashboard-main" id="dashboard-main" ref={main} tabIndex={-1}>
+      {savingAppearance && <p role="status">Saving your appearance…</p>}
       {!dash.loading && dash.business && <BillingNotice billing={dash.billing} />}
       {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet key={dash.business?.id} />}
     </main>
