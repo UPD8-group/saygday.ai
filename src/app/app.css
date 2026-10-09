@@ -495,3 +495,20 @@ textarea.input { resize: vertical; line-height: 1.5; }
   .final-preview-summary > .btn { width: 100%; }
   .final-preview .preview__site { border-radius: 14px; }
 }
+
+/* Optional review guidance: compact by default and never a save error. */
+.answer-overlaps { margin: 20px 0; border: 1px solid #ded8c3; border-radius: 16px; background: #fbf8ed; padding: 18px 20px; }
+.answer-overlaps__heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.answer-overlaps__heading strong { display: flex; align-items: center; gap: 8px; }
+.answer-overlaps__heading p { margin: 5px 0 0; color: var(--muted); font-size: .92rem; }
+.answer-overlaps__actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.answer-overlaps__details { margin-top: 18px; border-top: 1px solid #ded8c3; padding-top: 14px; }
+.answer-overlaps__details > p { font-size: .94rem; }
+.answer-overlaps__pair { margin-top: 16px; padding: 16px; background: #fff; border-radius: 12px; border: 1px solid var(--line); }
+.answer-overlaps__questions { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.answer-overlaps__questions > div { min-width: 0; overflow-wrap: anywhere; }
+.answer-overlaps__questions p { white-space: pre-wrap; font-size: .94rem; }
+.answer-overlaps details { margin-top: 16px; font-size: .88rem; }
+.answer-overlaps summary { cursor: pointer; color: var(--muted); }
+.answer-overlaps__restore { margin: 12px 0; }
+@media (max-width: 700px) { .answer-overlaps__heading { align-items: flex-start; flex-direction: column; gap: 12px; } .answer-overlaps__questions { grid-template-columns: 1fr; gap: 20px; } }

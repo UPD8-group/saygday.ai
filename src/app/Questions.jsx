@@ -19,13 +19,15 @@ export default function Questions({ guided = false }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const [editingIds, setEditingIds] = useState([])
   useEffect(() => { document.title = 'Questions · SayGday' }, [])
   useEffect(() => { if (picked === 'drafts' && !drafts.length) setShow(null) }, [drafts.length, picked])
 
-  // A variant that would find another answer shows the wrong answer: say so.
+  // Keep matching unchanged; explain overlaps once per pair of answers.
   const clashes = useMemo(() => variantClashes(live), [live])
   const list = show === 'drafts' ? drafts : live
 
+  function edit(id) { setEditingIds(current => current.includes(id) ? current : [...current, id]) }
   function replace(faq) { dash.setFaqs(current => current.map(item => (item.id === faq.id ? faq : item))) }
   async function save(fields, faq) {
     setError('')
@@ -66,27 +68,49 @@ export default function Questions({ guided = false }) {
       <button role="tab" aria-selected={show === 'drafts'} onClick={() => setShow('drafts')} disabled={!drafts.length}>To check <span>{drafts.length}</span></button>
       <button role="tab" aria-selected={show === 'live'} onClick={() => setShow('live')}>Approved <span>{live.length}</span></button>
     </div>
-    {show === 'live' && clashes.length > 0 && <Notice kind="error">
-      {clashes.slice(0, 3).map(clash => <p key={`${clash.entry.id}-${clash.phrasing}`}>“{clash.phrasing}” (a way of asking “{clash.entry.question}”) also matches “{clash.other.question}”. Edit one of them so each question clearly finds its own answer.</p>)}
-    </Notice>}
+    {show === 'live' && clashes.length > 0 && <AnswerOverlaps key={dash.business.id} clashes={clashes} onEdit={edit} />}
     {list.length === 0 ? <Empty icon="list" title={show === 'drafts' ? 'Nothing to check' : 'No approved answers yet'}>
       <p>{show === 'drafts' ? 'You’ve checked everything from your website.' : 'Approve the questions from your website, or add your own.'}</p>
-    </Empty> : <ul className="faq-list">{list.map(faq => <FaqCard key={faq.id} faq={faq} featuredCount={live.filter(item => item.featured).length} onSave={fields => save(fields, faq)}
+    </Empty> : <ul className="faq-list">{list.map(faq => <FaqCard key={faq.id} faq={faq} editing={editingIds.includes(faq.id)} onEdit={() => edit(faq.id)} onClose={() => setEditingIds(current => current.filter(id => id !== faq.id))} featuredCount={live.filter(item => item.featured).length} onSave={fields => save(fields, faq)}
       onDelete={() => act(async () => { await dash.request('deleteFaq', { id: faq.id }); dash.setFaqs(current => current.filter(item => item.id !== faq.id)) })}
       onError={setError} />)}</ul>}
     {!guided && live.length > 0 && <TryIt faqs={live} name={dash.business.name} />}
   </div>
 }
 
-function FaqCard({ faq, featuredCount, onSave, onDelete, onError }) {
-  const [editing, setEditing] = useState(false)
+export function AnswerOverlaps({ clashes, onEdit }) {
+  const [hidden, setHidden] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const groups = new Map()
+  for (const clash of clashes) {
+    const key = JSON.stringify([clash.entry.id, clash.other.id].sort())
+    if (!groups.has(key)) groups.set(key, { key, entries: [clash.entry, clash.other], phrases: new Set() })
+    groups.get(key).phrases.add(clash.phrasing)
+  }
+  if (hidden) return <div className="answer-overlaps__restore"><Button kind="ghost" size="small" onClick={() => { setHidden(false); setExpanded(true) }}>Review overlapping questions ({groups.size})</Button></div>
+  return <section className="answer-overlaps" aria-label="Questions to review">
+    <div className="answer-overlaps__heading">
+      <div><strong><Icon name="list" size={18} /> Questions to review</strong><p>{plural(groups.size, 'pair')} of approved answers may cover the same topic. Your answers are still saved.</p></div>
+      <div className="answer-overlaps__actions"><Button kind="ghost" size="small" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Close review' : 'Review questions'}</Button><Button kind="ghost" size="small" onClick={() => { setHidden(true); setExpanded(false) }}>Hide for now</Button></div>
+    </div>
+    {expanded && <div className="answer-overlaps__details">
+      <p>If both answers say the same thing, keep the best one and remove the duplicate using its Remove button below. If they answer different questions, edit their wording or “Other ways customers might ask it”.</p>
+      {[...groups.values()].map(group => <div className="answer-overlaps__pair" key={group.key}>
+        <div className="answer-overlaps__questions">{group.entries.map((entry, index) => <div key={entry.id}><strong>{entry.question}</strong><p>{entry.answer}</p><Button kind="ghost" size="small" icon="edit" onClick={() => onEdit(entry.id)} aria-label={'Edit answer: ' + entry.question}>Edit {index === 0 ? 'first' : 'second'} answer</Button></div>)}</div>
+        <details><summary>See the wording that overlaps ({group.phrases.size})</summary><ul>{[...group.phrases].map(phrase => <li key={phrase}>{phrase}</li>)}</ul></details>
+      </div>)}
+    </div>}
+  </section>
+}
+
+function FaqCard({ faq, featuredCount, onSave, onDelete, onError, editing, onEdit, onClose }) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   async function quick(fields) {
     setBusy(true)
     try { await onSave(fields) } catch (failure) { onError(failure.message) } finally { setBusy(false) }
   }
-  if (editing) return <li><Editor title="Edit" initial={faq} onCancel={() => setEditing(false)} onSave={async fields => { await onSave(fields); setEditing(false) }} /></li>
+  if (editing) return <li><Editor title="Edit" initial={faq} onCancel={() => onClose()} onSave={async fields => { await onSave(fields); onClose() }} /></li>
   const draft = faq.status === 'draft'
   return <li className={`faq card${draft ? ' faq--draft' : ''}`}>
     <div className="faq__body">
@@ -103,7 +127,7 @@ function FaqCard({ faq, featuredCount, onSave, onDelete, onError }) {
         : <button type="button" className={`star${faq.featured ? ' is-on' : ''}`} aria-pressed={faq.featured} disabled={busy || (!faq.featured && featuredCount >= 6)} onClick={() => quick({ featured: !faq.featured })}
           title={faq.featured ? 'Shown when the chat opens' : featuredCount >= 6 ? 'Six questions already show when the chat opens' : 'Show when the chat opens'}>
           <Icon name="star" size={18} />{faq.featured ? 'Shown first' : 'Show first'}</button>}
-      <Button size="small" kind="ghost" onClick={() => setEditing(true)} icon="edit">Edit</Button>
+      <Button size="small" kind="ghost" onClick={onEdit} icon="edit">Edit</Button>
       {confirming ? <span className="confirm">Remove it? <Button size="small" kind="danger" onClick={onDelete}>Remove</Button><Button size="small" kind="ghost" onClick={() => setConfirming(false)}>Keep</Button></span>
         : <Button size="small" kind="ghost" onClick={() => setConfirming(true)} icon="trash">Remove</Button>}
     </div>
