@@ -5,7 +5,9 @@ import { billingConfirmed, billingRedirect, billingReturn, billingView } from '.
 
 export function BillingNotice({ billing }) {
   const view = billingView(billing)
-  if (view.state === 'active' && view.accessAllowed) return null
+  // Setup and pricing stay with activation in Billing and Checkout.
+  // Reserve dashboard banners for billing problems or upcoming service changes.
+  if (['internal', 'setup_pending', 'trial_not_started', 'card_required'].includes(view.state) || !view.needsAttention) return null
   return <div className="billing-notice"><Notice kind={view.needsAttention ? 'warning' : 'info'}>
     <strong>{view.title}.</strong> {view.description} <Link to="/app/settings#billing">View billing</Link>
   </Notice></div>
