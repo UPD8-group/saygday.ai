@@ -79,8 +79,8 @@ test('the chat’s facts are the website’s facts', async () => {
     ['Can I choose what the button looks like?', 'eight Aussie locals', await site('meet-the-mob'), 'Eight Aussie locals'],
   ]
   assert.equal(CHARACTERS.length, 8, 'eight in the mob')
-  assert.equal(PLAIN_BUTTONS.length, 12, 'and twelve plain buttons')
-  assert.ok(answer('Can I choose what the button looks like?').includes('twelve plain buttons'))
+  assert.equal(PLAIN_BUTTONS.length, 15, 'and fifteen chat and symbol buttons')
+  assert.ok(answer('Can I choose what the button looks like?').includes('fifteen chat and symbol buttons'))
   for (const [question, inAnswer, source, inSource] of facts) {
     assert.ok(answer(question).includes(inAnswer), `“${question}” says ${inAnswer}`)
     assert.ok(source.includes(inSource), `and so does its source: ${inSource}`)

@@ -4,22 +4,22 @@ import { readFile } from 'node:fs/promises'
 import { CHARACTERS, CHARACTER_KEYS, DEFAULT_CHARACTER, PLAIN_BUTTONS, characterLabel, plainSvg } from '../shared/characters.mjs'
 import { database, rpcClient, user } from './helpers/database.mjs'
 
-// The looks a chat button can have: the mob, and twelve plain buttons (the
-// same twelve the website's Meet the mob page shows).
+// The looks a chat button can have: the mob, and fifteen plain buttons (the
+// same fifteen the website's Meet the mob page shows).
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 
-test('twelve plain buttons beside the mob, the bubble first and still the default', () => {
-  assert.deepEqual(PLAIN_BUTTONS.map(button => button.name), ['Chat bubble', 'Typing', 'Two bubbles', 'G’day', 'Hi', 'Question', 'Plus', 'Smile', 'Heart', 'Ring', 'Dot', 'Ring and dot'])
+test('fifteen plain buttons beside the mob, the bubble first and still the default', () => {
+  assert.deepEqual(PLAIN_BUTTONS.map(button => button.name), ['Chat bubble', 'Typing', 'Two bubbles', 'G’day', 'Hi', 'Waving hand', 'Question', 'Plus', 'Smile', 'Heart', 'Ring', 'Dot', 'Ring and dot', 'Information', 'Lifebuoy'])
   assert.equal(PLAIN_BUTTONS[0].key, DEFAULT_CHARACTER)
-  assert.equal(CHARACTER_KEYS.length, 20)
-  assert.equal(new Set(CHARACTER_KEYS).size, 20, 'no two looks share a key')
+  assert.equal(CHARACTER_KEYS.length, 23)
+  assert.equal(new Set(CHARACTER_KEYS).size, 23, 'no two looks share a key')
   assert.equal(characterLabel('smile'), 'A plain button: Smile')
   assert.equal(characterLabel('wally'), 'Wally the wombat')
   assert.equal(plainSvg('nothing-like-this', 20), plainSvg('bubble', 20), 'an unknown look draws the bubble')
   assert.equal(characterLabel('nothing-like-this'), 'A plain button: Chat bubble')
 })
 
-test('the button on a business’s website draws exactly the same twelve', async () => {
+test('the button on a business’s website draws exactly the same fifteen', async () => {
   const widget = await read('public/widget.js')
   const table = widget.slice(widget.indexOf('var PLAIN = {'), widget.indexOf('\n  }\n', widget.indexOf('var PLAIN = {')))
   const drawn = Object.fromEntries([...table.matchAll(/^\s+'([a-z-]+)': '(.*)',?$/gm)].map(([, key, glyph]) => [key, glyph]))
@@ -32,7 +32,7 @@ test('the button on a business’s website draws exactly the same twelve', async
 })
 
 test('the database accepts every look, and nothing else', async () => {
-  const migration = await read('supabase/migrations/20261002120000_plain_buttons.sql')
+  const migration = await read('supabase/migrations/20261009142742_friendly_chat_icons.sql')
   const listed = migration.match(/check \(character in \(([^)]*)\)\)/)[1].match(/'([^']+)'/g).map(item => item.slice(1, -1))
   assert.deepEqual(listed.sort(), [...CHARACTER_KEYS].sort())
   const pg = await database()

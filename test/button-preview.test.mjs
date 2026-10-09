@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 
-test('dashboard renders the saved colour in its picker, all simple swatches and preview; animals stay fixed', async () => {
+test('appearance offers open colour choices and grouped icons; real chat stays in final approval', async () => {
   // Bundle the real React view with only the dashboard data source replaced.
   const require = createRequire(import.meta.url)
   const { build } = require(require.resolve('esbuild', { paths: [dirname(require.resolve('vite/package.json'))] }))
@@ -23,16 +23,22 @@ test('dashboard renders the saved colour in its picker, all simple swatches and 
   globalThis.location = { origin: 'https://saygday.ai' }
   globalThis.__colourPreviewDash = { business: { slug: 'test-cafe', name: 'Test Cafe', character: 'plus', greeting: 'Hello', buttonColour: '#ffcc00' }, faqs: [] }
   try {
-    const simple = render()
-    assert.match(simple, /<footer class="chat__foot">Made in Australia by <a href="https:\/\/saygday.ai" target="_blank" rel="noopener">SayGday.ai<\/a><\/footer>/)
-    assert.match(simple, /type="color"[^>]*value="#ffcc00"/)
-    assert.match(simple, /class="preview__launcher" style="background:#ffcc00;color:#000000"/)
-    assert.equal((simple.match(/background:#ffcc00;color:#000000/g) || []).length, 14, 'twelve swatches, chat avatar and launcher')
+    const appearance = render({ stage: 'appearance' })
+    assert.doesNotMatch(appearance, /Preview: what customers see|preview__launcher|chat__foot|type="color"|Simple button colour|Or keep it simple/)
+    assert.match(appearance, /Classic Chat &amp; Greetings/)
+    assert.match(appearance, /Symbols &amp; Shapes/)
+    assert.match(appearance, /Waving hand|Information|Lifebuoy/)
+    assert.match(appearance, /aria-label="Colour choices"/)
+    assert.match(appearance, /aria-label="Colour hue"/)
+    assert.match(appearance, /value="#FFCC00"/)
+    assert.equal((appearance.match(/background:#ffcc00;color:#000000/g) || []).length, 16, 'fifteen icon choices and the selected-button sample')
+    const customerPreview = render({ stage: 'preview' })
+    assert.match(customerPreview, /class="preview__launcher" style="background:#ffcc00;color:#000000"/)
+    assert.match(customerPreview, /<footer class="chat__foot">Made in Australia by <a href="https:\/\/saygday.ai" target="_blank" rel="noopener">SayGday.ai<\/a><\/footer>/)
     globalThis.__colourPreviewDash.business.character = 'wally'
     const animal = render()
-    assert.doesNotMatch(animal, /type="color"/)
-    assert.match(animal, /Animal character colours are fixed/)
-    assert.match(animal, /class="preview__launcher"(?! style=)/)
+    assert.match(animal, /The Mob keeps its original artwork/)
+    assert.doesNotMatch(animal, /class="preview__launcher"/)
     assert.match(animal, /src="\/characters\/wally.webp"/)
     const final = render({ stage: 'preview' })
     assert.match(final, /Your chosen icon:/)
