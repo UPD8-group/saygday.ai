@@ -9,6 +9,7 @@ import { respond, variantClashes } from '../../shared/matcher.mjs'
 export default function Questions({ guided = false }) {
   const dash = useDash()
   const [params, setParams] = useSearchParams()
+  const Heading = guided ? 'h2' : 'h1'
   const faqs = dash.faqs || []
   const drafts = faqs.filter(faq => faq.status === 'draft')
   const live = faqs.filter(faq => faq.status === 'approved')
@@ -20,7 +21,7 @@ export default function Questions({ guided = false }) {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [editingIds, setEditingIds] = useState([])
-  useEffect(() => { document.title = 'Questions · SayGday' }, [])
+  useEffect(() => { if (!guided) document.title = 'Questions · SayGday' }, [guided])
   useEffect(() => { if (picked === 'drafts' && !drafts.length) setShow(null) }, [drafts.length, picked])
 
   // Keep matching unchanged; explain overlaps once per pair of answers.
@@ -49,7 +50,7 @@ export default function Questions({ guided = false }) {
 
   return <div className="questions">
     <div className="section-head">
-      <div><h1>Questions & answers</h1><p className="lead">Your chat only ever shows the answers you’ve approved, word for word.</p></div>
+      <div><Heading>Questions & answers</Heading><p className="lead">Your chat only ever shows the answers you’ve approved, word for word.</p></div>
       <Button onClick={() => setAdding({ question: '' })} icon="plus">Add a question</Button>
     </div>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
