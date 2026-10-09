@@ -2,6 +2,15 @@ const STRIPE_SCRIPT = 'https://js.stripe.com/dahlia/stripe.js'
 let loading
 const pendingCheckouts = new WeakMap()
 
+// The server already supplies return_url. Current Stripe Checkout rejects a
+// second returnUrl here, and rejects overriding a customer-provided email.
+export function confirmCheckout(actions, { email, emailLocked }) {
+  return actions.confirm({
+    ...(!emailLocked ? { email: email.trim() } : {}),
+    redirect: 'if_required',
+  })
+}
+
 // React StrictMode replays effects. Share only an in-flight request for the
 // same request function and business, so that replay cannot race the server's
 // checkout lease. Settled responses (and their secrets) are never cached here.
