@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { checkoutBootstrap, checkoutDate, checkoutDay, checkoutView } from '../src/app/checkout-view.mjs'
-import { requestCheckoutBootstrap } from '../src/app/checkout-stripe.mjs'
+import { confirmCheckout, requestCheckoutBootstrap } from '../src/app/checkout-stripe.mjs'
 
 const now = Date.parse('2026-10-08T10:50:00Z')
 const bootstrap = {
@@ -141,4 +141,44 @@ test('failed checkout creation clears in-flight state and different sign-in requ
   assert.notEqual(first, second)
   assert.deepEqual(await first, { owner: 'first' })
   assert.deepEqual(await second, { owner: 'second' })
+})
+
+// Model Stripe's integration contract: our server has already set return_url,
+// and Stripe refuses a client returnUrl even when it points to the same page.
+function checkoutActions({ lockedEmail = false, result, failure } = {}) {
+  return {
+    calls: [],
+    confirm(options) {
+      if ('returnUrl' in options) throw new Error('return_url is already set on the Checkout Session')
+      if (lockedEmail && 'email' in options) throw new Error('customer email is already set on the Checkout Session')
+      this.calls.push(options)
+      return failure ? Promise.reject(failure) : Promise.resolve(result)
+    },
+  }
+}
+
+test('checkout confirmation uses the server return URL and forwards an editable billing email', async () => {
+  const result = { type: 'success', session: { status: { type: 'complete' } } }
+  const actions = checkoutActions({ result })
+  assert.throws(() => actions.confirm({ returnUrl: 'https://saygday.ai/app/billing' }), /return_url is already set/)
+  assert.equal(await confirmCheckout(actions, { email: ' owner@example.com ', emailLocked: false }), result)
+  assert.deepEqual(actions.calls, [{ email: 'owner@example.com', redirect: 'if_required' }])
+})
+
+test('checkout confirmation leaves an existing Stripe customer email untouched', async () => {
+  const result = { type: 'success', session: { status: { type: 'complete' } } }
+  const actions = checkoutActions({ lockedEmail: true, result })
+  assert.throws(() => actions.confirm({ email: 'owner@example.com' }), /customer email is already set/)
+  assert.equal(await confirmCheckout(actions, { email: 'owner@example.com', emailLocked: true }), result)
+  assert.deepEqual(actions.calls, [{ redirect: 'if_required' }])
+})
+
+test('checkout confirmation preserves Stripe validation errors and rejected requests for the form to handle', async () => {
+  const result = { type: 'error', error: { message: 'Your card number is incomplete.', code: 'incomplete_number' } }
+  const actions = checkoutActions({ result })
+  assert.equal(await confirmCheckout(actions, { email: 'owner@example.com', emailLocked: false }), result)
+  const failure = new Error('Connection interrupted')
+  const failedActions = checkoutActions({ failure })
+  await assert.rejects(confirmCheckout(failedActions, { email: 'owner@example.com', emailLocked: false }), error => error === failure)
+  assert.equal(failedActions.calls.length, 1, 'an uncertain result must never trigger an automatic second confirmation')
 })

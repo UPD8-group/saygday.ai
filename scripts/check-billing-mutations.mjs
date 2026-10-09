@@ -6,6 +6,12 @@ import assert from 'node:assert/strict'
 
 const mutations = [
   {
+    file: 'src/app/checkout-stripe.mjs',
+    from: "return actions.confirm({\n    ...(!emailLocked ? { email: email.trim() } : {}),",
+    to: "return actions.confirm({\n    returnUrl: 'https://saygday.ai/app/billing',\n    ...(!emailLocked ? { email: email.trim() } : {}),",
+    test: 'checkout confirmation uses the server return URL and forwards an editable billing email',
+  },
+  {
     file: 'netlify/functions/_lib/billing.mjs',
     from: 'price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT)',
     to: '(price.unit_amount === 3000 || price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT))',
