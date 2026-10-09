@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Navigate, Outlet, useBlocker, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import { Button, Icon, Logo, Notice, Spinner, plural } from './ui.jsx'
 import { Avatar } from '../chat/Chat.jsx'
@@ -176,6 +176,16 @@ export function Layout() {
   const main = useRef(null)
   const leavingAppearance = useRef(false)
   const [savingAppearance, setSavingAppearance] = useState(false)
+  const bypassAppearanceBlock = useRef(false)
+  const blocker = useBlocker(useCallback(() => !bypassAppearanceBlock.current && Boolean(dash.appearanceSave.current), [dash.appearanceSave]))
+  const latestBlocker = useRef(blocker)
+  latestBlocker.current = blocker
+  useEffect(() => {
+    if (blocker.state !== 'blocked' || leavingAppearance.current) return
+    leaveAppearance(() => latestBlocker.current.proceed?.()).then(saved => {
+      if (!saved) latestBlocker.current.reset?.()
+    })
+  }, [blocker, savingAppearance])
   const ready = dash.business && !SCANNING.includes(dash.scan?.status)
   const drafts = dash.faqs?.filter(faq => faq.status === 'draft').length || 0
   const asked = dash.business?.counts?.newEnquiries || 0
@@ -194,26 +204,19 @@ export function Layout() {
       if (dash.appearanceSave.current && !await dash.appearanceSave.current()) {
         setMenuOpen(false)
         requestAnimationFrame(() => main.current?.focus())
-        return
+        return false
       }
+      bypassAppearanceBlock.current = true
       await next()
-    } finally { leavingAppearance.current = false; setSavingAppearance(false) }
+      return true
+    } finally { bypassAppearanceBlock.current = false; leavingAppearance.current = false; setSavingAppearance(false) }
   }
-  function saveBeforeLink(event) {
-    if (!dash.appearanceSave.current && !leavingAppearance.current) return
-    const link = event.target.closest('a[href]')
-    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === '_blank' || link.hasAttribute('download')) return
-    const destination = new URL(link.href, window.location.href)
-    if (destination.origin !== window.location.origin || !destination.pathname.startsWith('/app') || link.getAttribute('href').startsWith('#')) return
-    event.preventDefault()
-    event.stopPropagation()
-    leaveAppearance(() => {
-      navigate(destination.pathname + destination.search + destination.hash)
-      setMenuOpen(false)
-      requestAnimationFrame(() => main.current?.focus())
-    })
+  function ignoreRepeatedLink(event) {
+    if (leavingAppearance.current && event.target.closest('a[href]')) {
+      event.preventDefault(); event.stopPropagation()
+    }
   }
-  return <div className="page dashboard-shell" onClickCapture={saveBeforeLink}>
+  return <div className="page dashboard-shell" onClickCapture={ignoreRepeatedLink}>
     <a className="skip-link" href="#dashboard-main">Skip to content</a>
     <header className="dashboard-mobile-bar">
       <Link to="/app" aria-label="SayGday home"><Logo small /></Link>
@@ -225,7 +228,7 @@ export function Layout() {
       {dash.business && <div className="sidebar-business">
         <Avatar character={dash.business.character} colour={dash.business.buttonColour} size={36} />
         <div>{dash.businesses.length > 1
-          ? <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { const slug = event.target.value; leaveAppearance(async () => { await dash.choose(slug); navigate('/app') }) }}>
+          ? <select aria-label="Which of your websites" disabled={savingAppearance} value={dash.business.slug} onChange={event => { const slug = event.target.value; leaveAppearance(async () => { await dash.choose(slug); navigate('/app') }) }}>
             {dash.businesses.map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}
           </select> : <strong>{dash.business.name}</strong>}
           <small>{dash.business.website?.replace(/^https?:\/\//, '').replace(/\/$/, '')}</small>
@@ -260,7 +263,7 @@ export function Layout() {
     <main className="container dashboard-main" id="dashboard-main" ref={main} tabIndex={-1}>
       {savingAppearance && <p role="status">Saving your appearance…</p>}
       {!dash.loading && dash.business && <BillingNotice billing={dash.billing} />}
-      {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet key={dash.business?.id} />}
+      {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet key={dash.business?.id} />}
     </main>
   </div>
 }
