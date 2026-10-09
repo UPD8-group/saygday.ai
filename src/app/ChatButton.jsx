@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
@@ -89,6 +89,7 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   const [greeting, setGreeting] = useState(business.greeting)
   const [signedBy, setSignedBy] = useState(business.signedBy || '')
   const [busy, setBusy] = useState(false)
+  const saveTask = useRef(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
   const [platform, setPlatform] = useState('any')
@@ -106,18 +107,45 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   const validColour = /^#[0-9a-f]{6}$/i.test(colour)
   const showInstall = !stage || stage === 'install'
 
-  async function save() {
+  function save() {
+    if (saveTask.current) return saveTask.current
+    if (!changed) return Promise.resolve(true)
+    if (!validColour || !greeting.trim()) {
+      setError(!validColour ? 'Enter a six-digit colour code, such as #31584A, before leaving this page.' : 'Enter a greeting before leaving this page.')
+      return Promise.resolve(false)
+    }
     setBusy(true); setError(''); setSaved('')
-    try { const result = await dash.request('updateBusiness', { character, buttonColour: colour, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); dash.confirmChatAppearance?.(result.business); setSaved('Saved. Your chat button shows this now.') }
-    catch (failure) { setError(failure.message) }
-    finally { setBusy(false) }
+    saveTask.current = (async () => {
+      try {
+        const result = await dash.request('updateBusiness', { character, buttonColour: colour, greeting, signedBy: signedBy.trim() })
+        dash.setBusiness(result.business)
+        dash.confirmChatAppearance?.(result.business)
+        setSaved('Saved. Your chat button shows this now.')
+        return true
+      } catch (failure) { setError('Your appearance could not be saved. ' + failure.message); return false }
+      finally { saveTask.current = null; setBusy(false) }
+    })()
+    return saveTask.current
   }
+  useEffect(() => {
+    if (!showLook || (!changed && !busy) || !dash.appearanceSave) return
+    dash.appearanceSave.current = save
+    return () => { if (dash.appearanceSave.current === save) dash.appearanceSave.current = null }
+  }, [showLook, changed, busy, character, colour, greeting, signedBy, dash])
+  useEffect(() => {
+    if (!showLook || (!changed && !busy)) return
+    const warnBeforeUnload = event => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warnBeforeUnload)
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [showLook, changed, busy])
   async function copy() {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2500) }
     catch { document.getElementById('install-code')?.select() }
   }
   if (stage === 'verify') return <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} guided />
-  return <div className="button-page">
+  const Container = showLook ? 'fieldset' : 'div'
+  return <Container className="button-page" disabled={showLook ? busy : undefined}>
+    <Notice kind="error">{error}</Notice>
     {!stage && <div className="section-head"><div><h1>Your chat appearance</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>}
     {stage === 'preview' && <section className="card final-preview-summary"><Avatar character={business.character} size={56} colour={business.buttonColour} /><div><h2>{business.name}</h2><p>Your chosen icon: <strong>{characterLabel(business.character)}</strong></p><p className="small">{live.length} approved {live.length === 1 ? 'answer' : 'answers'} · Your saved greeting and colours</p></div><Link className="btn btn--ghost" to={setupPath('appearance', business.slug)}>Change appearance</Link><Link className="text-button" to={setupPath('answers', business.slug)}>Edit answers</Link></section>}
     <div className={stage === 'preview' ? 'final-preview' : showLook ? 'button-grid appearance-grid' : undefined}>
@@ -162,7 +190,7 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
       <h2>Your greeting</h2>
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
           <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
-          <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
+          <Notice kind="success">{saved}</Notice>
           <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim() || !validColour} icon="check">Save changes</Button>
     </section>}
         {showInstall && <section className="card">
@@ -173,6 +201,6 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
           <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map((step, index) => <li key={step}>{stage === 'install' && platform === 'any' && index === 2 ? 'Publish your website, then continue to check it in the next step.' : step}</li>)}</ol>
         </section>}
         {!stage && <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />}
-  </div>
+  </Container>
 }
 

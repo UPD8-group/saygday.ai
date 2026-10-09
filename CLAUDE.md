@@ -351,3 +351,5 @@ settings, which is how sign-in broke on saygday.ai before the move.
 
 
 - **Appearance picker (owner, 10 October 2026):** keep the full chat preview only in final approval, not Choose appearance. Show colour choices openly, and group icons as The Mob, Classic Chat & Greetings, and Symbols & Shapes. Waving hand, Information and Lifebuoy are included; avoid robot/AI/live-agent imagery.
+
+- **Appearance menu navigation (owner, 10 October 2026):** save pending icon, colour and greeting edits before following dashboard links, switching businesses or signing out. Wait for the existing updateBusiness response; a failed or invalid save keeps the editor and its choices on screen. Final approval must show saved choices.

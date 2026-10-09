@@ -543,3 +543,6 @@ textarea.input { resize: vertical; line-height: 1.5; }
 
 .appearance-grid .looks { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 560px) { .appearance-grid .looks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Native fieldset locks the appearance controls while their save is in flight. */
+fieldset.button-page { min-width: 0; margin: 0; padding: 0; border: 0; }
