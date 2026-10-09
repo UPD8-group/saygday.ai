@@ -144,12 +144,12 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
     <Link className="checkout__back" to={settings}><Icon name="back" size={18} />Back to billing</Link>
     <div className="checkout__grid">
       <section className="card checkout__summary" aria-labelledby="checkout-title">
-        <p className="eyebrow">SayGday Website + Assistant</p>
+        <p className="eyebrow">SayGday Assistant</p>
         <p className="checkout__business">{business.name}</p>
         <h1 id="checkout-title">{view?.title || 'Let’s get your chat ready.'}</h1>
         {view && <>
           <p className="checkout__rate">A$40 <span>/ month AUD</span></p>
-          <p className="small">A small-business website and hosting if you need them, owner-approved answers and enquiry capture, plus up to four small updates to existing website content each month. <a href="/terms" target="_blank" rel="noreferrer">Package scope and terms</a>.</p>
+          <p className="small">Your website assistant with owner-approved answers, enquiry capture and a dashboard to manage your chat.</p>
           <p className="checkout__intro">{view.trial ? `Nothing to pay today. Your first A$40 payment is on ${view.date}, then monthly unless you cancel.` : 'Your first A$40 payment is today, then monthly unless you cancel.'}</p>
           <dl className="checkout__totals"><div><dt>Due today</dt><dd>{view.dueToday} <span>AUD</span></dd></div>{view.trial && <div><dt>First payment</dt><dd>{view.date}</dd></div>}<div><dt>Then</dt><dd>A$40 / month AUD</dd></div></dl>
           <p className="checkout__cancel"><Icon name="check" size={18} /><span>{view.trial ? 'Cancel in Manage billing before your first payment to pay nothing.' : 'Cancel in Manage billing any time to stop the next renewal.'}</span></p>
