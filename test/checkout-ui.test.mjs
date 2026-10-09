@@ -16,7 +16,7 @@ function session() {
     id: 'cs_live_fixture', livemode: true,
     status: { type: 'open' }, currency: 'aud', minorUnitsAmountDivisor: 100,
     total: { total: { amount: 'A$0.00', minorUnitsAmount: 0 } },
-    recurring: { interval: 'month', intervalCount: 1, dueNext: { total: { amount: 'A$30.00', minorUnitsAmount: 3000 } }, trial: { trialEnd: 1792660037, trialPeriodDays: null } },
+    recurring: { interval: 'month', intervalCount: 1, dueNext: { total: { amount: 'A$40.00', minorUnitsAmount: 4000 } }, trial: { trialEnd: 1792660037, trialPeriodDays: null } },
   }
 }
 
@@ -54,11 +54,11 @@ test('new 14-day trials use Stripe trialEnd, and never add fourteen days to a br
 test('expired trials pay immediately and cannot accidentally promise a free period', () => {
   const s = session()
   s.recurring.trial = null
-  s.total.total = { amount: 'A$30.00', minorUnitsAmount: 3000 }
+  s.total.total = { amount: 'A$40.00', minorUnitsAmount: 4000 }
   const view = checkoutView(s, checkout, now)
   assert.equal(view.trial, false)
-  assert.equal(view.dueToday, 'A$30.00')
-  assert.equal(view.button, 'Subscribe for A$30/month')
+  assert.equal(view.dueToday, 'A$40.00')
+  assert.equal(view.button, 'Subscribe for A$40/month')
   assert.equal(view.date, '')
   assert.doesNotMatch(view.title, /free|billing starts on/)
 })
@@ -78,7 +78,8 @@ test('wrong sessions, wrong prices, currency changes, missing totals and invalid
     s => { s.currency = 'usd' }, s => { s.minorUnitsAmountDivisor = 1 },
     s => { s.recurring.interval = 'year' }, s => { s.recurring.intervalCount = 2 },
     s => { s.recurring.dueNext.total.minorUnitsAmount = 6000 },
-    s => { s.total.total.minorUnitsAmount = 3000 },
+    s => { s.recurring.dueNext.total.minorUnitsAmount = 3000 },
+    s => { s.total.total.minorUnitsAmount = 4000 },
     s => { s.total.total.minorUnitsAmount = '0' },
     s => { s.total.total.amount = null }, s => { delete s.total },
     s => { s.recurring.trial.trialEnd = Math.floor(now / 1000) },

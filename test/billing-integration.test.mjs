@@ -98,6 +98,6 @@ test('admin uses verification trial dates and counts only fresh paid subscriptio
   assert.notEqual(stageOf({...paid,billing:{...paid.billing,syncedAt:'2026-10-06T00:00:00Z'}},now).key,'paying')
   const totals=summarise({businesses:[paid,{...paid,id:'internal',plan:'internal'},base]},now).totals
   assert.equal(totals.paying,1)
-  assert.equal(totals.mrr,30)
+  assert.equal(totals.mrr,40)
 })
 

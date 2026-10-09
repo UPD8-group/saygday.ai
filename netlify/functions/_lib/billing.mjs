@@ -24,6 +24,13 @@ const busy = () => new HttpError(409, 'We’re updating your billing. Please try
 // keys remain server environment values. Scope this production fallback to
 // this exact site and price; other deployments must supply their own pk_*.
 const SAYGDAY_PUBLIC_STRIPE_KEY = 'pk_live_51UA2P7R8qEoKoynxKDV4Q6I5JpVH9q80xSh3VJLzNWvizyQgWfsEqlGfjJb6qPTMcGaWFrc1YZgf0QXgCeCov5ak00i3j7v0Qm'
+const SAYGDAY_MONTHLY_PRICE = 'price_1UOX45R8qEoKoynxBDir6jA0'
+const SAYGDAY_PREVIOUS_MONTHLY_PRICE = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
+const MONTHLY_AMOUNT = 4000
+// The earlier live price remains readable during the owner's subscription
+// migration. It can never be selected for a new checkout by this release.
+const previousPrice = (id, configuration) => configuration.live && configuration.publicUrl === 'https://saygday.ai'
+  && configuration.priceId === SAYGDAY_MONTHLY_PRICE && id === SAYGDAY_PREVIOUS_MONTHLY_PRICE
 
 export function billingConfiguration(read = env) {
   const key = read('SAYGDAY_STRIPE_SECRET_KEY') || ''
@@ -39,7 +46,7 @@ export function billingConfiguration(read = env) {
       publicUrl = url.origin
   } catch { /* No untrusted Host-header fallback. */ }
   const publishableKey = configuredPublishableKey ?? (mode === 'live' && publicUrl === 'https://saygday.ai'
-    && priceId === 'price_1UOA0sR8qEoKoynxWAoOrDeA' ? SAYGDAY_PUBLIC_STRIPE_KEY : '')
+    && priceId === SAYGDAY_MONTHLY_PRICE ? SAYGDAY_PUBLIC_STRIPE_KEY : '')
   const validKey = /^(sk|rk)_(live|test)_[A-Za-z0-9]+$/.test(key) && key.split('_')[1] === mode
   const publishableKeyReady = /^pk_(live|test)_[A-Za-z0-9]+$/.test(publishableKey) && publishableKey.split('_')[1] === mode
   const stripeReady = validKey && /^price_[A-Za-z0-9]+$/.test(priceId)
@@ -64,8 +71,9 @@ export function stripeUrl(value, purpose) {
 }
 
 export function exactPrice(price, configuration, { forCheckout = false } = {}) {
-  return !!price && price.id === configuration.priceId && price.livemode === configuration.live
-    && price.currency === 'aud' && price.unit_amount === 3000 && price.tax_behavior === 'inclusive' && price.type === 'recurring'
+  const legacy = !forCheckout && previousPrice(price?.id, configuration)
+  return !!price && (price.id === configuration.priceId || legacy) && price.livemode === configuration.live
+    && price.currency === 'aud' && price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT) && price.tax_behavior === 'inclusive' && price.type === 'recurring'
     && price.billing_scheme === 'per_unit' && price.recurring?.interval === 'month'
     && price.recurring.interval_count === 1 && price.recurring.usage_type === 'licensed'
     && !price.transform_quantity && (!forCheckout || price.active === true)
@@ -130,7 +138,7 @@ export async function subscriptionSnapshot(stripe, account, configuration) {
   const item = sub.items?.data?.[0]
   const invoice = sub.latest_invoice
   const paid = invoice && typeof invoice === 'object' && invoice.status === 'paid' && invoice.currency === 'aud'
-    && invoice.amount_paid === 3000 && invoice.total === 3000
+    && invoice.amount_paid === item?.price?.unit_amount && invoice.total === item?.price?.unit_amount
   // Only the current provider subscription from our persisted Checkout attempt
   // can start a card-backed trial. Neither a redirect nor a customer ID proves it.
   const startsTrial = account.card_required === true && !account.trial_ends_at
@@ -263,23 +271,24 @@ export async function billingCheckout({ db, user, business = null, configuration
     if (snapshot.stripe_subscription_id && !TERMINAL.has(snapshot.subscription_status))
       throw new HttpError(409, 'You already have a subscription. Open Manage billing to update it.', 'SUBSCRIPTION_EXISTS')
 
+    const retiresPrice = previousPrice(operation.params?.line_items?.[0]?.price, configuration)
     if (operation.key && (operation.params?.mode !== 'subscription' || operation.params.customer !== account.stripe_customer_id
-      || operation.params.line_items?.length !== 1 || operation.params.line_items[0].price !== configuration.priceId
+      || operation.params.line_items?.length !== 1 || (operation.params.line_items[0].price !== configuration.priceId && !retiresPrice)
       || operation.params.line_items[0].quantity !== 1)) throw unavailable()
     let session = await recoverCheckout(client, account, configuration, operation)
-    if (!session && operation.key && operation.params.expires_at > current && operation.params.ui_mode !== 'elements') {
-      // A hosted attempt may have lost its create response just before this
-      // rollout. Replay its ORIGINAL parameters/key, then expire it; changing
+    if (!session && operation.key && operation.params.expires_at > current && (operation.params.ui_mode !== 'elements' || retiresPrice)) {
+      // An earlier hosted or A$30 attempt may have lost its create response
+      // before this rollout. Replay its ORIGINAL parameters/key, then expire it; changing
       // a durable request under the old key would break Stripe idempotency.
       session = validCheckout(await client.checkout.sessions.create(operation.params, { idempotencyKey: operation.key }), account, configuration, operation)
     }
-    if (session?.status === 'open' && session.ui_mode === 'elements' && session.expires_at > current) {
+    if (session?.status === 'open' && !retiresPrice && session.ui_mode === 'elements' && session.expires_at > current) {
       const result = customCheckout(session, account, configuration, current)
       await commit(db, account, lease, { p_checkout: { ...operation, session_id: session.id, expires_at: session.expires_at } })
       return result
     }
     if (session?.status === 'open') {
-      // Retire the old hosted link before creating an Elements session. A
+      // Retire the old hosted link or A$30 checkout before replacement. A
       // customer can confirm in another tab while this request holds our DB
       // lease; only Stripe's successful expiration makes replacement safe.
       try { session = validCheckout(await client.checkout.sessions.expire(session.id), account, configuration, operation) }

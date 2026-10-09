@@ -79,7 +79,7 @@ counted day by day from the day the migration runs.
 ## 4. Stripe billing: configure before activating
 
 Follow [the billing runbook](billing.md) before offering paid Checkout.
-The plan is **14 live days free, then A$30/month AUD automatically unless cancelled**. Building and preview need no card; public activation requires one.
+The plan is **14 live days free, then A$40/month AUD automatically unless cancelled**. Building and preview need no card; public activation requires one.
 Public answers still come exclusively from the business's approved answers.
 
 Add these environment variables in **Functions scope only**, with separate
@@ -90,7 +90,7 @@ test and production contexts. Do not use `VITE_` for any Stripe setting.
 | `SAYGDAY_STRIPE_MODE` | `test` for isolated tests; `live` for production | no |
 | `SAYGDAY_STRIPE_SECRET_KEY` | Matching restricted Stripe API key with the required billing permissions | **yes** |
 | `SAYGDAY_STRIPE_PUBLISHABLE_KEY` | Matching public `pk_` key; optional for the configured saygday.ai production origin and live price | no, public by design |
-| `SAYGDAY_STRIPE_PRICE_ID` | Price for `aud`, `3000` cents, every one month | no, server-owned |
+| `SAYGDAY_STRIPE_PRICE_ID` | Price for `aud`, `4000` cents, every one month | no, server-owned |
 | `SAYGDAY_STRIPE_WEBHOOK_SECRET` | This environment's webhook signing secret (`whsec_…`) | **yes** |
 | `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration (`bpc_…`) | no, server-owned |
 

@@ -242,7 +242,7 @@ test('answers read and button loads are counted by the day, as numbers only', as
 test('where a business is in its free 14 days, and how far it has got', () => {
   const now = Date.parse('2026-10-20T00:00:00Z')
   const ago = days => new Date(now - days * DAY).toISOString()
-  assert.equal(TRIAL_DAYS, 14); assert.equal(PRICE, 30)
+  assert.equal(TRIAL_DAYS, 14); assert.equal(PRICE, 40)
   assert.deepEqual([stageOf({ createdAt: ago(0) }, now).label, stageOf({ createdAt: ago(0) }, now).daysLeft], ['Day 1 of 14', 14])
   assert.deepEqual([stageOf({ createdAt: ago(5.5) }, now).key, stageOf({ createdAt: ago(5.5) }, now).label], ['trial', 'Day 6 of 14'])
   assert.deepEqual([stageOf({ createdAt: ago(11.5) }, now).key, stageOf({ createdAt: ago(11.5) }, now).daysLeft], ['ending', 3])

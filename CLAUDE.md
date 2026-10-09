@@ -310,13 +310,23 @@ settings, which is how sign-in broke on saygday.ai before the move.
   a formula. Locked by test/admin.test.mjs; migration 20261005100000 is run by
   hand like the others.
 
+## Current package (owner, 9 October 2026)
+
+- One SayGday Website + Assistant subscription is A$40/month AUD per business.
+  It includes creation and hosting of a simple site if needed (up to five pages
+  using supplied content), the assistant, and four small existing-content updates
+  monthly. Existing-site customers can retain their website; editing access is
+  required for updates. Domain/paid-platform costs and larger work are separate.
+  The request dashboard is being built elsewhere; do not claim it is available.
+  Preserve website verification, card activation and the 14-day trial.
+
 ## Hard rules
 
 - **Billing is server-owned.** Owner decision, 8 October 2026: build, scan,
   approve and preview free without a card. A new business must verify its
   website and complete Stripe Checkout with a payment method before public
   activation. Its full 14 days begin with the confirmed Stripe subscription,
-  then A$30/month AUD is charged automatically unless cancelled. Existing
+  then A$40/month AUD is charged automatically unless cancelled. Existing
   started trials retain their original dates and no-card access. Apply
   supabase/billing-card-activation.sql after billing-upgrade.sql; do not
   replay the original migration on production (applied under the combined

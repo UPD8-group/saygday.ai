@@ -43,13 +43,13 @@ export const OWN_ANSWERS = Object.freeze([
   {
     featured: true,
     question: 'How much does it cost?',
-    answer: 'SayGday is A$30 a month. That’s about a dollar a day, and we priced it that way on purpose. Build and preview for free without a card. Add your card when you activate your verified website: 14 days free, then A$30/month automatically unless you cancel.',
+    answer: "SayGday Website + Assistant is A$40 a month AUD: your assistant, creation and hosting of a small-business website if needed, and up to four small content updates each month. Build and preview your assistant without a card. Add your card when you activate your verified website: 14 days free, then A$40/month automatically unless you cancel. Domain and paid-platform costs are separate; see our Pricing page for the included scope.",
     variants: ['Price', 'Pricing', 'How much is it?', 'What does it cost?', 'What’s the monthly fee?', 'What do you charge?', 'How much per month?', 'How much is SayGday a month?', 'Is it expensive?', 'How do I pay?', 'Cost'],
   },
   {
     featured: true,
     question: 'How do I get started?',
-    answer: 'Press Try it free and sign up with your email. Then it’s three easy steps: put in your business’s web address and we draft the questions your customers ask most; check the answers and sign off the ones you’re happy with; then add one line to your website. Your chat button appears in the corner, ready for your customers.',
+    answer: "Already have a website? Press Try it free, sign in with your email and enter your business web address. Review the suggested answers, approve the ones you want, then add the chat code to your site. Verify your website and confirm your card through Stripe to activate your 14 free days; checkout shows the first billing date. Need a website too? Contact us first so we can agree the included pages and timing.",
     variants: ['How do I sign up?', 'How do I join?', 'How do I start?', 'Can I sign up?', 'Create an account', 'Register', 'I want to sign up', 'Get started', 'I want SayGday for my business'],
   },
   {
@@ -96,7 +96,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes. Build and preview without a card. Once your website is verified, add your card through Stripe to activate your chat and start 14 free days. Then A$30/month AUD is charged automatically unless you cancel. Cancel in Settings → Billing → Manage billing before the first charge to pay nothing.',
+    answer: 'Yes. Build and preview without a card. Once your website is verified, add your card through Stripe to activate your chat and start 14 free days. Then A$40/month AUD is charged automatically unless you cancel. Cancel in Settings → Billing → Manage billing before the first charge to pay nothing.',
     variants: ['Can I try it for free?', 'Is SayGday free?', 'Free trial', 'How long is the free trial?', 'Can I try before I buy?', 'What happens after the free days?', 'Do I need a credit card to start?', 'Do I need a card to sign up?'],
   },
   {
@@ -106,17 +106,17 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'What’s included in the price?',
-    answer: 'Everything, for one simple price of A$30 a month: a chat button in the corner of your website with your answers in it, your common questions drafted from your own website for you to check, questions you haven’t answered yet sent to your email, any of the mob or a plain button, and help from a real person when you need it.',
+    answer: "A$40 a month AUD includes SayGday, creation and hosting of a simple small-business website if needed, and up to four small updates to existing content each month. The included site is up to five pages using your supplied content. Your assistant uses owner-approved answers and captures enquiries. Already have a website? Keep it and add SayGday; updates need suitable editing access. Domain registration and paid platforms, apps or existing hosting plans are separate. New pages, features, redesigns, shops, booking systems and bulk product uploads are quoted separately.",
     variants: ['What do I get?', 'Are there hidden fees?', 'Are there any extra costs?', 'What does the price include?'],
   },
   {
     question: 'Why is it so cheap?',
-    answer: 'Because the cost of living keeps going up, and small businesses feel it first. We didn’t want to be one more big bill on the pile, so SayGday is about a dollar a day: our way of giving something back.',
-    variants: ['Why only $30?', 'Why a dollar a day?', 'How is it so affordable?', 'Why is it cheap?'],
+    answer: "We want small businesses to have an affordable website and a helpful assistant. A$40 a month covers a clearly scoped package, including four small content updates. Keeping the setup and ongoing work simple helps us keep the price accessible.",
+    variants: ['Why only $40?', 'Why a little over a dollar a day?', 'How is it so affordable?', 'Why is it cheap?'],
   },
   {
     question: 'How long does it take to set up?',
-    answer: 'About an afternoon. A few minutes to tell us your website, an hour or so (with a cuppa) to check your answers, and a few minutes to add it to your website.',
+    answer: "For an existing website, allow about an afternoon: a few minutes to tell us your website, an hour or so to check your answers, then installation, website verification and card confirmation to activate. If you need us to create a website, we agree the pages and timing with you first; the afternoon estimate is for assistant setup only.",
     variants: ['How long does setup take?', 'How quick is it to set up?', 'How much time does it take?', 'How fast can I be up and running?'],
   },
   {
@@ -126,12 +126,12 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'What do I need to get started?',
-    answer: 'Just three things: your business’s web address, an email address to sign in with (and for your customers’ questions to come to), and an hour or so to check your answers.',
+    answer: "For an existing website, you need its web address, an email address to sign in with and receive enquiries, and time to check your answers. Public activation needs website verification and a card. If you need a website created, contact us first with your business details, text and images so we can agree the pages and timing.",
     variants: ['What do I need?', 'What do I need to sign up?', 'What are the requirements?'],
   },
   {
     question: 'Do I need a website to use SayGday?',
-    answer: 'Yes. SayGday is a chat button for your website, so you’ll need one where you can add a line of code. We also read your website to draft your first questions and answers.',
+    answer: "The assistant runs on a website, but you do not need to have one already. The A$40/month Website + Assistant package includes creation and hosting of a simple small-business website if needed. Contact us first to agree the pages and timing. If you already have a site, you can keep it and add SayGday. The assistant does not currently run in Facebook or Instagram messages.",
     variants: ['Do I need a website?', 'I don’t have a website', 'Can I use it without a website?', 'Does it work on Facebook?', 'Can I use it on Facebook?', 'Can I use it on Instagram?'],
   },
   {
@@ -191,7 +191,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'How do I add it to my website?',
-    answer: 'Copy the one line of code from the Chat button page in your dashboard and paste it into your website, just before </body> or wherever your site lets you add custom code to every page. Publish, and the button appears in the bottom-right corner. Not your thing? Email the line to whoever looks after your website.',
+    answer: "Open Chat button in your dashboard and copy the code onto your website, or give it to whoever looks after the site. Then verify website ownership and confirm your card through Stripe to activate your chat. You can preview your approved answers before activation. If we create your included website, we help with installation too.",
     variants: ['How do I install it?', 'Where do I paste the code?', 'Where do I put the code?', 'How do I put it on my website?', 'Embed code', 'How do I add the chat button?', 'Installation'],
   },
   {
@@ -206,7 +206,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'My chat button isn’t showing. What do I do?',
-    answer: 'First, check the line of code is on your website and that you’ve published the change. Then open the Chat button page in your dashboard and press Check my website: your chat switches on once we find your button on your home page. If your website turns us away, add the record shown there to your domain’s settings instead. Still stuck? Send us a message from our contact page.',
+    answer: "Check the chat code is on your published website. Open Chat button in your dashboard and check website verification; you can use the button on your home page or the DNS record shown there. A new chat also needs card confirmation through Stripe before activation. If your trial or subscription has ended, check Settings and Billing. Still stuck? Send us a message from our contact page.",
     variants: ['The button isn’t showing', 'My chat isn’t working', 'I can’t see the chat button', 'Why isn’t my chat live yet?', 'The chat button doesn’t appear', 'It’s not working'],
   },
   {
@@ -276,7 +276,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Can I use it on more than one website?',
-    answer: 'Each SayGday account looks after one business and its website. If you run more than one, send us a message from our contact page and we’ll help you set them up.',
+    answer: "You can manage more than one business under one sign-in. Each A$40/month subscription covers one business and its website. Choose the business you want to manage in your dashboard, or contact us for help setting up another.",
     variants: ['Multiple websites', 'I have two websites', 'I have two businesses', 'More than one business', 'Can I add another website?', 'Multiple locations'],
   },
   {
