@@ -624,3 +624,20 @@ body.menu-open [data-saygday] { display: none; }
 .trial-note { margin-top: 12px; font-size: 15px; line-height: 1.5; }
 .next .trial-note { flex-basis: 100%; margin: 0; }
 .hero__fine strong { color: #fff; font-weight: 600; }
+
+/* Keep every header control usable on narrow phones; never squeeze the menu. */
+.burger { flex: none; }
+@media (max-width: 600px) {
+  .bar__inner { gap: 8px; }
+  .bar__cta { flex: none; padding-inline: 12px; font-size: 14px; }
+  .burger { width: 44px; height: 44px; }
+}
+@media (max-width: 420px) {
+  .bar .logo__mark { display: none; }
+  .bar .logo { font-size: 20px; gap: 0; }
+}
+@media (max-width: 359px) {
+  .bar__inner { gap: 6px; }
+  .bar .logo { font-size: 18px; }
+  .bar__cta { padding-inline: 10px; font-size: 13px; }
+}
