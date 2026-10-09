@@ -144,13 +144,14 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
     <Link className="checkout__back" to={settings}><Icon name="back" size={18} />Back to billing</Link>
     <div className="checkout__grid">
       <section className="card checkout__summary" aria-labelledby="checkout-title">
-        <p className="eyebrow">Your SayGday subscription</p>
+        <p className="eyebrow">SayGday Website + Assistant</p>
         <p className="checkout__business">{business.name}</p>
         <h1 id="checkout-title">{view?.title || 'Let’s get your chat ready.'}</h1>
         {view && <>
-          <p className="checkout__rate">A$30 <span>/ month AUD</span></p>
-          <p className="checkout__intro">{view.trial ? `Nothing to pay today. Your first A$30 payment is on ${view.date}, then monthly unless you cancel.` : 'Your first A$30 payment is today, then monthly unless you cancel.'}</p>
-          <dl className="checkout__totals"><div><dt>Due today</dt><dd>{view.dueToday} <span>AUD</span></dd></div>{view.trial && <div><dt>First payment</dt><dd>{view.date}</dd></div>}<div><dt>Then</dt><dd>A$30 / month AUD</dd></div></dl>
+          <p className="checkout__rate">A$40 <span>/ month AUD</span></p>
+          <p className="small">A small-business website and hosting if you need them, owner-approved answers and enquiry capture, plus up to four small updates to existing website content each month. <a href="/terms" target="_blank" rel="noreferrer">Package scope and terms</a>.</p>
+          <p className="checkout__intro">{view.trial ? `Nothing to pay today. Your first A$40 payment is on ${view.date}, then monthly unless you cancel.` : 'Your first A$40 payment is today, then monthly unless you cancel.'}</p>
+          <dl className="checkout__totals"><div><dt>Due today</dt><dd>{view.dueToday} <span>AUD</span></dd></div>{view.trial && <div><dt>First payment</dt><dd>{view.date}</dd></div>}<div><dt>Then</dt><dd>A$40 / month AUD</dd></div></dl>
           <p className="checkout__cancel"><Icon name="check" size={18} /><span>{view.trial ? 'Cancel in Manage billing before your first payment to pay nothing.' : 'Cancel in Manage billing any time to stop the next renewal.'}</span></p>
           {view.trial && <p className="small checkout__timezone">Billing dates shown in Sydney time.</p>}
         </>}
@@ -166,7 +167,7 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
           <Field label="Billing email" hint="Stripe sends your subscription and payment updates here.">{(id, note) => <input id={id} className="input" type="email" autoComplete="email" maxLength={254} required value={email} onChange={event => setEmail(event.target.value)} readOnly={emailLocked} disabled={busy || status === 'loading'} aria-describedby={note} />}</Field>
           <div className="checkout__element" ref={mount} />
           {!paymentReady && <Spinner label="Loading the secure card form…" />}
-          {view && <p className="checkout__consent">{view.trial ? `By confirming, you authorise A$30/month AUD from ${view.date} until you cancel.` : 'By subscribing, you authorise A$30 today and A$30/month AUD until you cancel.'} You agree to our <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>}
+          {view && <p className="checkout__consent">{view.trial ? `By confirming, you authorise A$40/month AUD from ${view.date} until you cancel.` : 'By subscribing, you authorise A$40 today and A$40/month AUD until you cancel.'} You agree to our <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</p>}
           <Button kind="gold" size="big" type="submit" busy={busy} disabled={!view || !paymentReady || status !== 'ready'} iconAfter="arrow">{busy ? 'Confirming securely…' : view?.button || 'Preparing checkout…'}</Button>
           {view?.trial && <p className="checkout__nothing">{view.dueToday} AUD due today</p>}
         </form>

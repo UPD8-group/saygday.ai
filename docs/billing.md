@@ -1,6 +1,8 @@
 # Stripe billing
 
-## Current integration (8 October 2026)
+## Current integration (9 October 2026)
+
+The current offer is SayGday Website + Assistant at A$40/month AUD: the assistant, creation and hosting of a simple small-business website if needed (up to five pages using supplied content), and four small existing-content updates monthly. Domain and paid-platform costs and larger work are separate. The separate job-request dashboard is not yet advertised as available.
 
 Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
 
@@ -16,7 +18,7 @@ Deploy compatible code before the card-activation SQL. That SQL is idempotent.
 Build, scan, approve answers and preview free without a card. Verify website
 ownership, then complete Stripe Checkout with a payment method to go live.
 The full 14 days start when Stripe confirms the subscription, followed by
-**A$30/month AUD automatically unless cancelled**. Opening or abandoning
+**A$40/month AUD automatically unless cancelled**. Opening or abandoning
 Checkout starts nothing. Stripe collects the payment method with
 payment_method_collection=always and trial_period_days=14. No raw card data
 reaches SayGday. Missing-payment-method trial expiry cancels the subscription.
@@ -45,7 +47,7 @@ charge date in Checkout and their trial end date in Settings > Billing.
 
 The activation button opens `/app/checkout` for the selected business. This
 page displays **Your billing starts on [date]**, the amount due today and
-A$30/month AUD, with cancellation terms beside the confirmation button.
+A$40/month AUD, with cancellation terms beside the confirmation button.
 Dates and totals come from the Stripe.js Checkout Session, including
 `recurring.trial.trialEnd`; no rounded day countdown or independently
 calculated first-charge date is shown. A page left open across a Sydney date
@@ -62,8 +64,9 @@ existing server reconciliation and signed webhook remain authoritative.
 If an unfinished hosted session predates this change, the server must expire
 it successfully before creating its replacement. Completion races stop the
 replacement and reconcile the existing subscription. Durable idempotency
-parameters are never changed under an existing key. Existing subscriptions
-and trial dates are not migrated or reset. No database migration is needed.
+parameters are never changed under an existing key. The 9 October price change moves the owner\u2019s sole test subscription to the
+A$40 price without proration, retaining its trial and billing dates. New
+subscriptions use the A$40 price. No trial is restarted by the price change.
 
 Stripe domains are permitted only on the dashboard document's CSP, including
 Stripe's authentication and Link frames. Public pages and embedded visitor
@@ -82,10 +85,10 @@ Create one active recurring Price with these settings:
 | Setting | Required value |
 |---|---|
 | Currency | `aud` |
-| Unit amount | `3000` cents |
+| Unit amount | `4000` cents |
 | Interval | One month |
 | Quantity | Exactly `1` |
-| Tax behaviour | Inclusive; the displayed total remains A$30 |
+| Tax behaviour | Inclusive; the displayed total remains A$40 |
 | Coupons / promotion codes | Disabled |
 | Adjustable quantities / additional products | Disabled |
 | Automatic tax / additional tax rates | Disabled |
@@ -98,7 +101,7 @@ discounts or a second plan without implementing and testing that change.
 Each Checkout request explicitly sets `managed_payments.enabled=false`.
 Some Stripe accounts enable Managed Payments by default; that merchant-of-record
 service requires its own tax and localised pricing, which conflicts with this
-direct A$30 AUD offer. The per-session opt-out preserves the offer without
+direct A$40 AUD offer. The per-session opt-out preserves the offer without
 changing account-wide settings. See Stripe's
 [Managed Payments Checkout documentation](https://docs.stripe.com/payments/managed-payments/update-checkout).
 
@@ -140,7 +143,7 @@ Use the keys and resources from one Stripe account and mode consistently.
 | `SAYGDAY_STRIPE_MODE` | Explicit `test` or `live`; must match the API key, events and resources. |
 | `SAYGDAY_STRIPE_SECRET_KEY` | Restricted API key with the required permissions; never commit, print or expose through a `VITE_` variable. |
 | `SAYGDAY_STRIPE_PUBLISHABLE_KEY` | Public `pk_` key from that same Stripe account and mode. Optional only for the configured production origin and live price, whose public key is included in the server configuration. An explicit value overrides that default. |
-| `SAYGDAY_STRIPE_PRICE_ID` | The exact active monthly AUD 3000-cent Price. |
+| `SAYGDAY_STRIPE_PRICE_ID` | The exact active monthly AUD 4000-cent Price. |
 | `SAYGDAY_STRIPE_WEBHOOK_SECRET` | Signing secret for this endpoint and mode, beginning `whsec_`. |
 | `SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID` | Dedicated portal configuration, beginning `bpc_`. |
 | `SAYGDAY_PUBLIC_URL` | Canonical HTTPS origin, e.g. `https://saygday.ai`; no path, port, credentials, query or fragment. |
@@ -275,7 +278,7 @@ backlog; a fixed batch is not unlimited capacity.
 
 An unexpired local trial survives a Stripe outage. After that, public access
 requires all of: a valid single-price subscription in `active` state, an
-exactly paid A$30 AUD invoice, a future paid-through timestamp, and a
+exactly paid A$40 AUD invoice, a future paid-through timestamp, and a
 successful Stripe sync less than **24 hours** old. A scheduled cancellation
 retains access only while these conditions hold and its period has not ended.
 `past_due`, `unpaid`, incomplete, paused and cancelled subscriptions do not
@@ -383,7 +386,7 @@ documented declined/authentication-required cards for those paths.
 | Existing business at card-policy rollout | Already-started trials retain exactly their original dates and access. Unstarted accounts require card-backed activation. No retroactive charge. |
 | Double-click Upgrade / repeat request | One reusable Checkout attempt and no second subscription. |
 | Upgrade before trial expiry | Every remaining free day is preserved; no replacement 14-day period. |
-| Upgrade after expiry | Checkout states A$30/month AUD; public access resumes only after server verification. |
+| Upgrade after expiry | Checkout states A$40/month AUD; public access resumes only after server verification. |
 | Abandon Checkout / alter return query | No paid access; the dashboard never treats the return URL as proof of payment. |
 | Successful payment | The server records the correct customer's subscription and paid-through date. |
 | Declined payment / incomplete authentication | No unpaid subscription grants paid access; a recovery action remains available. |

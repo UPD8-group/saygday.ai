@@ -11,22 +11,27 @@ const settings = { SAYGDAY_STRIPE_SECRET_KEY: 'sk_test_example', SAYGDAY_STRIPE_
   SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_test_example',
   SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_safe', SAYGDAY_STRIPE_WEBHOOK_SECRET: 'whsec_example', SAYGDAY_PUBLIC_URL: 'https://saygday.ai' }
 const configuration = billingConfiguration(name => settings[name])
+const liveSettings = { ...settings, SAYGDAY_STRIPE_SECRET_KEY: 'sk_live_example', SAYGDAY_STRIPE_MODE: 'live',
+  SAYGDAY_STRIPE_PUBLISHABLE_KEY: undefined, SAYGDAY_STRIPE_PRICE_ID: 'price_1UOX45R8qEoKoynxBDir6jA0' }
+const liveConfiguration = billingConfiguration(name => liveSettings[name])
+const previousPriceId = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
 const now = () => Math.floor(Date.now() / 1000)
-const price = () => ({ id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 3000, tax_behavior: 'inclusive',
+const price = () => ({ id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 4000, tax_behavior: 'inclusive',
   type: 'recurring', billing_scheme: 'per_unit', recurring: { interval: 'month', interval_count: 1, usage_type: 'licensed' } })
 const subscription = (overrides = {}) => ({ id: 'sub_plan', customer: 'cus_owner', created: now(), livemode: false, status: 'active',
   collection_method: 'charge_automatically', cancel_at_period_end: false, items: { data: [{ quantity: 1, price: price(), current_period_end: now() + 86400 }] },
-  latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 3000, total: 3000 }, ...overrides })
+  latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 4000, total: 4000 }, ...overrides })
 const portal = () => ({ id: 'bpc_safe', active: true, livemode: false, features: { payment_method_update: { enabled: true }, invoice_history: { enabled: true },
   customer_update: { enabled: false }, subscription_cancel: { enabled: true, mode: 'at_period_end', proration_behavior: 'none' },
   subscription_update: { enabled: false } } })
 
-function fakeStripe() {
+function fakeStripe(config = configuration) {
   const calls = [], sessions = [], customerResults = new Map(), sessionResults = new Map()
   const sdk = new Stripe('sk_test_example', { apiVersion: STRIPE_API_VERSION })
   const state = { subscriptions: [], failList: false, loseSession: false, loseCustomer: false, sessionPages: false, subscriptionPages: false,
     managedPaymentsDefault: false, failCheckoutBeforeCreate: false, expireRace: false, loseExpire: false,
-    missingSession: false, price: price(), portal: portal(), calls, sessions }
+    missingSession: false, price: { ...price(), id: config.priceId, livemode: config.live },
+    portal: { ...portal(), livemode: config.live }, calls, sessions }
   state.client = {
     webhooks: sdk.webhooks,
     prices: { retrieve: async id => { calls.push(['price', id]); return state.price } },
@@ -34,7 +39,7 @@ function fakeStripe() {
       return { data: structuredClone(state.subscriptions), has_more: state.subscriptionPages } } },
     customers: { create: async (params, options) => {
       calls.push(['customer', structuredClone(params), options])
-      if (!customerResults.has(options.idempotencyKey)) customerResults.set(options.idempotencyKey, { id: 'cus_owner', livemode: false })
+      if (!customerResults.has(options.idempotencyKey)) customerResults.set(options.idempotencyKey, { id: 'cus_owner', livemode: config.live })
       if (state.loseCustomer) { state.loseCustomer = false; throw Error('lost response') }
       return customerResults.get(options.idempotencyKey)
     } },
@@ -57,7 +62,7 @@ function fakeStripe() {
         if (state.failCheckoutBeforeCreate) { state.failCheckoutBeforeCreate = false; throw Error('Checkout unavailable before creation') }
         if (!sessionResults.has(options.idempotencyKey)) {
           const session = { id: `cs_test_${sessionResults.size}`, mode: 'subscription', status: 'open', customer: params.customer,
-            livemode: false, expires_at: params.expires_at, metadata: params.metadata, ui_mode: params.ui_mode || 'hosted_page',
+            livemode: config.live, expires_at: params.expires_at, metadata: params.metadata, ui_mode: params.ui_mode || 'hosted_page',
             ...(params.ui_mode === 'elements' ? { client_secret: `cs_test_${sessionResults.size}_secret_example` }
               : { url: 'https://checkout.stripe.com/c/pay/example' }) }
           sessionResults.set(options.idempotencyKey, session); sessions.push(session)
@@ -72,7 +77,7 @@ function fakeStripe() {
   return state
 }
 
-async function setup({ enabled = true, customer = false, expired = false } = {}) {
+async function setup({ enabled = true, customer = false, expired = false, config = configuration } = {}) {
   const pg = await database({ cardRequired: false }), person = await user(pg, 'owner@example.com'), db = rpcClient(pg, { user: person })
   const business = await call(db, 'create_business', { p_user: person.id, p_email: person.email, p_website: 'https://owner.example.com', p_name: 'Owner' })
   if (expired) {
@@ -80,8 +85,8 @@ async function setup({ enabled = true, customer = false, expired = false } = {})
   }
   if (enabled) await pg.exec(`update billing_settings set enabled=true,trial_start_policy='business_created'`)
   if (customer) await pg.query(`update billing_accounts set stripe_customer_id='cus_owner' where business_id=$1`, [business.id])
-  const stripe = fakeStripe()
-  return { pg, db, person, business, stripe, args: { db, user: person, configuration, stripe: stripe.client },
+  const stripe = fakeStripe(config)
+  return { pg, db, person, business, stripe, args: { db, user: person, configuration: config, stripe: stripe.client },
     account: () => call(db, 'billing_owner', { p_user: person.id }) }
 }
 const refused = (promise, code) => assert.rejects(promise, error => error.code === code)
@@ -110,7 +115,7 @@ test('configuration pins the SDK API, secret mode, origin and exact AUD monthly 
     assert.equal(billingConfiguration(name => name === key ? value : settings[name]).checkoutReady, false)
   }
   assert.equal(exactPrice(price(), configuration, { forCheckout: true }), true)
-  for (const patch of [{ currency: 'usd' }, { unit_amount: 2999 }, { tax_behavior: 'exclusive' }, { id: 'price_elsewhere' }, { livemode: true },
+  for (const patch of [{ currency: 'usd' }, { unit_amount: 3999 }, { unit_amount: 3000 }, { tax_behavior: 'exclusive' }, { id: 'price_elsewhere' }, { livemode: true },
     { active: false }, { billing_scheme: 'tiered' }, { transform_quantity: {} }, { recurring: { interval: 'year', interval_count: 1, usage_type: 'licensed' } }])
     assert.equal(exactPrice({ ...price(), ...patch }, configuration, { forCheckout: true }), false, JSON.stringify(patch))
   for (const url of ['http://checkout.stripe.com', 'https://checkout.stripe.com.evil.example/', 'https://checkout.stripe.com@evil.example/', '//checkout.stripe.com', 'javascript:alert(1)'])
@@ -130,15 +135,33 @@ test('billing states fail closed when unknown, stale, unpaid or past the paid pe
 })
 
 test('the public production browser key fallback is confined to SayGday live billing and explicit configuration wins', () => {
-  const live = { ...settings, SAYGDAY_STRIPE_SECRET_KEY: 'sk_live_example', SAYGDAY_STRIPE_MODE: 'live',
-    SAYGDAY_STRIPE_PUBLISHABLE_KEY: undefined, SAYGDAY_STRIPE_PRICE_ID: 'price_1UOA0sR8qEoKoynxWAoOrDeA' }
+  const live = liveSettings
   const read = values => billingConfiguration(name => values[name])
   assert.match(read(live).publishableKey, /^pk_live_/)
   assert.equal(read(live).checkoutReady, true)
   for (const patch of [{ SAYGDAY_PUBLIC_URL: 'https://preview.saygday.ai' }, { SAYGDAY_STRIPE_MODE: 'test' },
-    { SAYGDAY_STRIPE_PRICE_ID: 'price_other' }, { SAYGDAY_STRIPE_PUBLISHABLE_KEY: '' }, { SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_test_example' }])
+    { SAYGDAY_STRIPE_PRICE_ID: 'price_other' }, { SAYGDAY_STRIPE_PRICE_ID: previousPriceId },
+    { SAYGDAY_STRIPE_PUBLISHABLE_KEY: '' }, { SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_test_example' }])
     assert.equal(read({ ...live, ...patch }).checkoutReady, false, JSON.stringify(patch))
   assert.equal(read({ ...live, SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_live_explicit' }).publishableKey, 'pk_live_explicit')
+})
+
+test('the A$40 rollout recognises only the exact previous live price for existing entitlement, never new checkout', async () => {
+  const legacy = { ...price(), id: previousPriceId, livemode: true, unit_amount: 3000, active: false }
+  assert.equal(exactPrice(legacy, liveConfiguration), true)
+  assert.equal(exactPrice({ ...legacy, active: true }, liveConfiguration, { forCheckout: true }), false)
+  assert.equal(exactPrice(legacy, { ...liveConfiguration, publicUrl: 'https://preview.saygday.ai' }), false)
+  assert.equal(exactPrice({ ...legacy, id: 'price_other' }, liveConfiguration), false)
+  const stripe = fakeStripe(liveConfiguration), account = { stripe_customer_id: 'cus_owner' }
+  stripe.subscriptions = [subscription({ livemode: true,
+    items: { data: [{ quantity: 1, price: legacy, current_period_end: now() + 86400 }] },
+    latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 3000, total: 3000 } })]
+  assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, true)
+  stripe.subscriptions[0].items.data[0].price = stripe.price
+  assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, false,
+    'an old A$30 invoice does not establish payment of the A$40 monthly price')
+  stripe.subscriptions[0].latest_invoice = { status: 'paid', currency: 'aud', amount_paid: 4000, total: 4000 }
+  assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, true)
 })
 
 test('Checkout is authenticated and ignores every client customer, price, user, trial and redirect field', async () => {
@@ -181,12 +204,14 @@ test('Checkout retries reuse the one session and simultaneous clicks cannot crea
   assert.equal(s.stripe.calls.filter(([name]) => name === 'customer').length, 1)
 })
 
-async function hostedAttempt(s, { created = true, responseLost = false } = {}) {
+async function hostedAttempt(s, { created = true, responseLost = false, priceId = configuration.priceId, uiMode = null } = {}) {
   const account = await s.account(), key = 'sg-checkout-before-elements'
   const params = { mode: 'subscription', customer: 'cus_owner', payment_method_collection: 'always',
-    line_items: [{ price: configuration.priceId, quantity: 1 }], metadata: { saygday_checkout_key: key },
-    success_url: 'https://saygday.ai/app/settings?business=owner&checkout=success',
-    cancel_url: 'https://saygday.ai/app/settings?business=owner&checkout=canceled',
+    line_items: [{ price: priceId, quantity: 1 }], metadata: { saygday_checkout_key: key },
+    ...(uiMode ? { ui_mode: uiMode } : {}),
+    ...(uiMode === 'elements' ? { return_url: 'https://saygday.ai/app/settings?business=owner&checkout=success' }
+      : { success_url: 'https://saygday.ai/app/settings?business=owner&checkout=success',
+        cancel_url: 'https://saygday.ai/app/settings?business=owner&checkout=canceled' }),
     expires_at: now() + 86400, subscription_data: { trial_end: Math.floor(Date.parse(account.trial_ends_at) / 1000),
       metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key } } }
   const session = created ? await s.stripe.client.checkout.sessions.create(params, { idempotencyKey: key }) : null
@@ -233,6 +258,40 @@ test('a customer completing the hosted link during migration blocks replacement 
   s.stripe.subscriptions = [subscription({ id: 'sub_racing', status: 'trialing', trial_end: legacy.operation.params.subscription_data.trial_end })]
   await refused(billingCheckout(s.args), 'SUBSCRIPTION_EXISTS')
   assert.equal(s.stripe.sessions.length, 1)
+})
+
+test('an unfinished A$30 Elements checkout is retired before A$40, including lost create responses', async () => {
+  for (const created of [true, false]) {
+    const s = await setup({ customer: true, config: liveConfiguration })
+    const legacy = await hostedAttempt(s, { created, responseLost: true, priceId: previousPriceId, uiMode: 'elements' })
+    const before = await s.account()
+    const result = await billingCheckout(s.args)
+    const attempts = s.stripe.calls.filter(([name]) => name === 'checkout')
+    assert.equal(attempts.length, 2)
+    assert.deepEqual(attempts[0][1], legacy.operation.params, 'recovery never changes saved parameters under an existing idempotency key')
+    assert.equal(attempts[0][2].idempotencyKey, legacy.operation.key)
+    assert.equal(s.stripe.sessions[0].status, 'expired')
+    assert.equal(attempts[1][1].line_items[0].price, liveConfiguration.priceId)
+    assert.notEqual(attempts[1][2].idempotencyKey, legacy.operation.key)
+    assert.equal(result.clientSecret, 'cs_test_1_secret_example')
+    assert.equal((await s.account()).trial_ends_at, before.trial_ends_at)
+    assert.ok(s.stripe.calls.findIndex(([name]) => name === 'expire')
+      < s.stripe.calls.findIndex(([name, params]) => name === 'checkout' && params.line_items[0].price === liveConfiguration.priceId))
+  }
+})
+
+test('an A$30 completion racing price migration blocks a second subscription', async () => {
+  const s = await setup({ customer: true, config: liveConfiguration })
+  const legacy = await hostedAttempt(s, { priceId: previousPriceId, uiMode: 'elements' })
+  s.stripe.expireRace = true
+  await refused(billingCheckout(s.args), 'BILLING_PENDING')
+  assert.equal(s.stripe.sessions.length, 1)
+  s.stripe.subscriptions = [subscription({ id: 'sub_racing', livemode: true, status: 'trialing',
+    trial_end: legacy.operation.params.subscription_data.trial_end,
+    items: { data: [{ quantity: 1, price: { ...price(), id: previousPriceId, livemode: true, unit_amount: 3000 }, current_period_end: now() + 86400 }] } })]
+  await refused(billingCheckout(s.args), 'SUBSCRIPTION_EXISTS')
+  assert.equal(s.stripe.sessions.length, 1)
+  assert.equal((await s.account()).price_valid, true)
 })
 
 test('a lost expiration response is recovered without leaving two usable Checkout sessions', async () => {
@@ -304,7 +363,7 @@ test('the Checkout integration label and Managed Payments opt-out survive retrie
 
 test('dynamic delayed-payment events cannot grant access until Stripe confirms the exact paid invoice', async () => {
   const s = await setup({ expired: true, customer: true })
-  s.stripe.subscriptions = [subscription({ latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
+  s.stripe.subscriptions = [subscription({ latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 4000 } })]
   for (const [id, type, payment_status] of [
     ['evt_checkoutPending', 'checkout.session.completed', 'unpaid'],
     ['evt_asyncEarly', 'checkout.session.async_payment_succeeded', 'paid'],
@@ -317,7 +376,7 @@ test('dynamic delayed-payment events cannot grant access until Stripe confirms t
   const paid = event({ id: 'evt_asyncPaid', type: 'checkout.session.async_payment_succeeded', data: { object: { customer: 'cus_owner', payment_status: 'paid' } } })
   await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, paid) })
   assert.equal(publicBilling(await s.account(), configuration).accessAllowed, true)
-  s.stripe.subscriptions = [subscription({ status: 'past_due', latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
+  s.stripe.subscriptions = [subscription({ status: 'past_due', latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 4000 } })]
   const failed = event({ id: 'evt_asyncFailed', type: 'checkout.session.async_payment_failed', data: { object: { customer: 'cus_owner', payment_status: 'unpaid' } } })
   await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, failed) })
   assert.equal(publicBilling(await s.account(), configuration).accessAllowed, false)
@@ -369,7 +428,7 @@ test('snapshot validates paid invoice, exact quantity, price, currency, period, 
   const stripe = fakeStripe(), account = { stripe_customer_id: 'cus_owner' }
   stripe.subscriptions = [subscription()]
   assert.equal((await subscriptionSnapshot(stripe.client, account, configuration)).price_valid, true)
-  const cases = [ { latest_invoice: { status: 'open', amount_paid: 0, total: 3000, currency: 'aud' } }, { pause_collection: { behavior: 'void' } },
+  const cases = [ { latest_invoice: { status: 'open', amount_paid: 0, total: 4000, currency: 'aud' } }, { pause_collection: { behavior: 'void' } },
     { discounts: ['di_coupon'] }, { collection_method: 'send_invoice' }, { items: { data: [{ quantity: 2, price: price(), current_period_end: now() + 86400 }] } },
     { items: { data: [{ quantity: 1, price: { ...price(), currency: 'usd' }, current_period_end: now() + 86400 }] } }, { latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 1, total: 1 } } ]
   for (const patch of cases) {

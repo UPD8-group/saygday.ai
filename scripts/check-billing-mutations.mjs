@@ -6,6 +6,18 @@ import assert from 'node:assert/strict'
 
 const mutations = [
   {
+    file: 'netlify/functions/_lib/billing.mjs',
+    from: 'price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT)',
+    to: '(price.unit_amount === 3000 || price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT))',
+    test: 'configuration pins the SDK API, secret mode, origin and exact AUD monthly inclusive price',
+  },
+  {
+    file: 'netlify/functions/_lib/billing.mjs',
+    from: "if (session?.status === 'open' && !retiresPrice && session.ui_mode === 'elements' && session.expires_at > current)",
+    to: "if (session?.status === 'open' && session.ui_mode === 'elements' && session.expires_at > current)",
+    test: 'an unfinished A$30 Elements checkout is retired before A$40, including lost create responses',
+  },
+  {
     file: 'supabase/billing-card-activation.sql',
     from: 'if a.trial_started_at is not null or a.card_required then return; end if;',
     to: 'if a.trial_started_at is not null then return; end if;',
@@ -45,7 +57,14 @@ try {
     if (!originals.has(mutation.file)) originals.set(mutation.file, source)
     writeFileSync(mutation.file, normalized.replace(mutation.from, mutation.to))
   }
-  const run = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['test'], {
+  // npm.cmd cannot be spawned directly on Windows. Use npm's Node entry
+  // point when run by npm, with an explicit TAP reporter for stable parsing.
+  const npmCli = process.env.npm_execpath
+  const command = npmCli ? process.execPath : process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : 'npm'
+  const args = npmCli ? [npmCli, 'test', '--', '--test-reporter=tap']
+    : process.platform === 'win32' ? ['/d', '/s', '/c', 'npm.cmd test -- --test-reporter=tap'] : ['test', '--', '--test-reporter=tap']
+  const run = spawnSync(command, args, {
+    env: { ...process.env, NODE_OPTIONS: [process.env.NODE_OPTIONS, '--test-reporter=tap'].filter(Boolean).join(' ') },
     encoding: 'utf8', timeout: 240000, maxBuffer: 8 * 1024 * 1024,
   })
   assert.ifError(run.error)

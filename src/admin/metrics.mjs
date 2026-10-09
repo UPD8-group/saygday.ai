@@ -6,7 +6,7 @@
 // are listed, but counted in no total.
 
 export const TRIAL_DAYS = 14 // site/pricing.html: "Your first 14 days are free."
-export const PRICE = 30 // A$ a month, site/pricing.html
+export const PRICE = 40 // A$ a month, site/pricing.html
 export const SCAN_COST = Object.freeze([0.25, 0.45]) // A$ a website scan, README.md
 const DAY = 86400000
 
@@ -45,7 +45,7 @@ const addDays = (day, days) => {
 const WHOLE = new Intl.NumberFormat('en-AU', { maximumFractionDigits: 0 })
 const CENTS = new Intl.NumberFormat('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const number = value => WHOLE.format(Math.round(Number(value) || 0))
-// "A$30", "A$5.40"; cents: true for both ends of a range to match.
+// "A$40", "A$5.40"; cents: true for both ends of a range to match.
 export function dollars(value, { cents } = {}) {
   const amount = Number(value) || 0
   return `A$${(cents ?? !Number.isInteger(amount)) ? CENTS.format(amount) : WHOLE.format(amount)}`

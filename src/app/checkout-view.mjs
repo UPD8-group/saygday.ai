@@ -29,11 +29,11 @@ export function checkoutView(session, checkout, now = Date.now()) {
   const due = session.total?.total
   const recurring = session.recurring
   const next = recurring?.dueNext?.total
-  if (session.currency !== 'aud' || session.minorUnitsAmountDivisor !== 100 || recurring?.interval !== 'month' || recurring?.intervalCount !== 1 || next?.minorUnitsAmount !== 3000 || ![0, 3000].includes(due?.minorUnitsAmount) || typeof due?.amount !== 'string' || !due.amount.trim() || due.amount.length > 80) throw new Error(moneyError)
+  if (session.currency !== 'aud' || session.minorUnitsAmountDivisor !== 100 || recurring?.interval !== 'month' || recurring?.intervalCount !== 1 || next?.minorUnitsAmount !== 4000 || ![0, 4000].includes(due?.minorUnitsAmount) || typeof due?.amount !== 'string' || !due.amount.trim() || due.amount.length > 80) throw new Error(moneyError)
   const trial = recurring.trial
   const trialEnd = trial?.trialEnd
   if (trial != null && (!Number.isSafeInteger(trialEnd) || trialEnd * 1000 <= now || due.minorUnitsAmount !== 0)) throw new Error('We could not confirm your free period. Please reload checkout.')
-  if (trial == null && due.minorUnitsAmount !== 3000) throw new Error(moneyError)
+  if (trial == null && due.minorUnitsAmount !== 4000) throw new Error(moneyError)
   const date = trial == null ? '' : checkoutDate(trialEnd)
   return {
     complete: false,
@@ -42,7 +42,7 @@ export function checkoutView(session, checkout, now = Date.now()) {
     dueToday: due.amount,
     dueTodayMinor: due.minorUnitsAmount,
     title: date ? `Your billing starts on ${date}` : 'Start your monthly subscription',
-    button: date ? 'Confirm card & activate' : 'Subscribe for A$30/month',
-    quoteKey: `${date}|${due.minorUnitsAmount}|3000|aud|month`,
+    button: date ? 'Confirm card & activate' : 'Subscribe for A$40/month',
+    quoteKey: `${date}|${due.minorUnitsAmount}|4000|aud|month`,
   }
 }

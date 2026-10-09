@@ -19,7 +19,7 @@ export const PAGES = Object.freeze([
   { slug: 'getting-started', file: 'getting-started.html', name: 'Getting started', hint: 'Set up your business in an afternoon.' },
   { slug: 'meet-the-mob', file: 'meet-the-mob.html', name: 'Meet the mob', hint: 'Pick a local for the corner of your website.' },
   { slug: 'story', file: 'story.html', name: 'Our story', hint: 'Made in Canberra by James, Luna and Stormi.' },
-  { slug: 'pricing', file: 'pricing.html', name: 'Pricing', hint: '14 days free. Card required. Then A$30/month.' },
+  { slug: 'pricing', file: 'pricing.html', name: 'Pricing', hint: '14 days free. Card required. Then A$40/month.' },
   { slug: 'contact', file: 'contact.html', name: 'Contact', hint: 'Where to find us, and how to get in touch.' },
   { slug: 'thanks', file: 'thanks.html' },
   { slug: 'privacy', file: 'privacy.html' },
@@ -79,7 +79,7 @@ export function phoneNext(slug) {
   const label = home ? 'Next: The honest answer' : next ? `Next: ${next.name}` : 'Start your free 14 days'
   const go = `<a class="btn btn--big ${home ? 'btn--light' : 'btn--green'}" href="${next ? pathFor(next) : '/login'}">${label} ${ARROW}</a>`
   const more = home ? '' : `<button class="phone-next__more" type="button" aria-expanded="false" aria-controls="more" data-more><span>Learn more</span> ${CHEVRON}</button>`
-  return `<div class="phone-next">${go}${!next ? '<p class="trial-note">14 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.</p>' : ''}${more}</div>`
+  return `<div class="phone-next">${go}${!next ? '<p class="trial-note">14 days free. Card required to activate. Then A$40/month AUD automatically unless you cancel.</p>' : ''}${more}</div>`
 }
 
 // The bar on every page, and the menu its burger opens. The page being shown
@@ -104,7 +104,7 @@ export function bar(slug) {
 ${links}
     </ul>
     <div class="menu__foot"><a class="btn btn--light" href="/login">Try 14 days free ${ARROW}</a><a class="menu__login" href="/login">Log in</a></div>
-    <p class="trial-note">14 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.</p>
+    <p class="trial-note">14 days free. Card required to activate. Then A$40/month AUD automatically unless you cancel.</p>
   </div>
 </nav>`
 }

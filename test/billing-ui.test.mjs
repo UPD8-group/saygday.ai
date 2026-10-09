@@ -60,11 +60,11 @@ test('a trial never implies consent to charge; scheduled subscriptions are shown
     assert.match(billingView(billing).description, /Monthly billing is not set up for this existing trial/)
     assert.equal(billingConfirmed(billing), false)
     assert.equal(billingConfirmed({ ...billing, portalAvailable: true }), false, 'a Stripe customer alone is not a paid commitment')
-    assert.match(billingView({ ...billing, subscriptionScheduled: true }).description, /subscription is scheduled at A\$30 a month \(AUD\) after your free period/)
+    assert.match(billingView({ ...billing, subscriptionScheduled: true }).description, /subscription is scheduled at A\$40 a month \(AUD\) after your free period/)
     assert.equal(billingConfirmed({ ...billing, subscriptionScheduled: true }), true)
     const canceling = billingView({ ...billing, subscriptionScheduled: true, cancelAtPeriodEnd: true }).description
     assert.match(canceling, /will not renew or start monthly billing/)
-    assert.doesNotMatch(canceling, /scheduled at A\$30/)
+    assert.doesNotMatch(canceling, /scheduled at A\$40/)
   }
 })
 
@@ -91,8 +91,11 @@ test('Checkout and portal destinations must be server-returned Stripe HTTPS URLs
 
 test('rendered billing controls honour server capability flags and explain price, cancellation and recovery', () => {
   const expired = render({ state: 'trial_expired', accessAllowed: false, checkoutAvailable: true, portalAvailable: false })
-  assert.match(expired, /Upgrade — A\$30\/month/)
+  assert.match(expired, /Upgrade — A\$40\/month/)
   assert.match(expired, /month AUD/)
+  assert.match(expired, /SayGday Website \+ Assistant/)
+  assert.match(expired, /four small updates to existing website content each month/)
+  assert.doesNotMatch(expired, /A\$30/)
   assert.match(expired, /Card details are required to activate a new chat/)
   assert.doesNotMatch(expired, />Manage billing</)
   const active = render({ state: 'active', accessAllowed: true, portalAvailable: true, checkoutAvailable: false })

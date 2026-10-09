@@ -10,7 +10,7 @@ const configuration = { key: 'sk_test_example', live: false, keyReady: true, str
   publishableKey: 'pk_test_example',
   portalReady: true, webhookReady: true, priceId: 'price_monthly', portalConfigurationId: 'bpc_safe',
   webhookSecret: 'whsec_example', publicUrl: 'https://saygday.ai' }
-const price = { id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 3000, tax_behavior: 'inclusive',
+const price = { id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 4000, tax_behavior: 'inclusive',
   type: 'recurring', billing_scheme: 'per_unit', recurring: { interval: 'month', interval_count: 1, usage_type: 'licensed' } }
 
 async function setup() {
