@@ -176,7 +176,30 @@ test('billing and cancellation remain reachable while a website scan is running'
   for (const page of ['questions', 'asked', 'button']) assert.match(app, new RegExp(`path="${page}" element=\\{<RequireBusiness>`), `${page} keeps the existing scan gate`)
   assert.match(dashboard, /RequireBusiness\(\{ children, allowWhileScanning = false \}\)/)
   assert.match(dashboard, /!dash\.business \|\| \(!allowWhileScanning && SCANNING\.includes\(dash\.scan\?\.status\)\)/)
-  assert.match(dashboard, /\{dash\.business && <nav className="tabs"/)
-  assert.match(dashboard, /<\/NavLink>\s*<\/>\}\s*<NavLink to="\/app\/settings">/, 'Settings stays visible outside the scan-gated editing links')
+  assert.match(dashboard, /aria-label="Account and help"/)
+  assert.match(dashboard, /dash\.business && <NavLink to="\/app\/settings"/, 'Settings stays visible outside the scan-gated editing links')
 })
 
+
+
+test('cancelling during a trial displays a cancellation banner while preserving remaining access', () => {
+  for (const state of ['trial', 'trial_ending', 'active', 'canceling']) {
+    const billing = { state, accessAllowed: true, subscriptionScheduled: true, cancelAtPeriodEnd: true, trialEndsAt: '2026-10-22T09:07:00Z', currentPeriodEnd: '2026-11-22T09:07:00Z' }
+    const view = billingView(billing)
+    assert.match(view.title, /cancelled/)
+    assert.equal(view.needsAttention, true)
+    assert.equal(view.accessAllowed, true, 'cancellation messaging must not cut short remaining access')
+    const html = renderToStaticMarkup(React.createElement(StaticRouter, { location: '/app' }, React.createElement(BillingNotice, { billing })))
+    assert.match(html, /subscription is cancelled/)
+    assert.match(html, /remains available until/)
+    assert.match(html, /will not renew/)
+    assert.doesNotMatch(html, /scheduled at A\$40/)
+    assert.ok(html.includes(billingDate(state.startsWith('trial') ? billing.trialEndsAt : billing.currentPeriodEnd)))
+  }
+  const ended = billingView({ state: 'canceled', accessAllowed: false })
+  assert.match(ended.title, /cancelled/)
+  assert.match(ended.description, /chat is paused/)
+  const restored = billingView({ state: 'trial', subscriptionScheduled: true, accessAllowed: true, cancelAtPeriodEnd: false })
+  assert.equal(restored.cancellationScheduled, false)
+  assert.equal(restored.needsAttention, false)
+})

@@ -6,6 +6,7 @@ import Chat, { Avatar } from '../chat/Chat.jsx'
 import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
 import { billingView } from './billing-view.mjs'
+import { setupPath } from './setup-flow.mjs'
 
 const PLATFORMS = [
   { key: 'any', label: 'Any website', steps: ['Copy the line of code above.', 'Paste it into your website just before </body>, or wherever your site lets you add custom code to every page.', 'Publish your website, verify it below, then activate billing to show the button.'] },
@@ -92,19 +93,20 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   const [platform, setPlatform] = useState('any')
   const [copied, setCopied] = useState(false)
   const [open, setOpen] = useState(true)
-  useEffect(() => { document.title = 'Chat button · SayGday' }, [])
+  useEffect(() => { if (!stage) document.title = 'Chat appearance · SayGday' }, [stage])
   const code = `<script src="${location.origin}/widget.js" data-business="${business.slug}" defer></script>`
   const simple = !characterFor(character)
   const launcherStyle = simple ? { background: colour, color: buttonInk(colour) } : undefined
   const changed = colour !== buttonColour(business.buttonColour) || character !== business.character || greeting.trim() !== business.greeting || signedBy.trim() !== (business.signedBy || '')
-  useEffect(() => { if (stage === 'preview') onDirtyChange?.(changed) }, [stage, changed, onDirtyChange])
+  useEffect(() => { if (stage === 'appearance') onDirtyChange?.(changed) }, [stage, changed, onDirtyChange])
   const live = (dash.faqs || []).filter(faq => faq.status === 'approved')
-  const showLook = !stage || stage === 'preview'
+  const showLook = !stage || stage === 'appearance'
+  const showPreview = showLook || stage === 'preview'
   const showInstall = !stage || stage === 'install'
 
   async function save() {
     setBusy(true); setError(''); setSaved('')
-    try { const result = await dash.request('updateBusiness', { character, buttonColour: colour, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); setSaved('Saved. Your chat button shows this now.') }
+    try { const result = await dash.request('updateBusiness', { character, buttonColour: colour, greeting, signedBy: signedBy.trim() }); dash.setBusiness(result.business); dash.confirmChatAppearance?.(result.business); setSaved('Saved. Your chat button shows this now.') }
     catch (failure) { setError(failure.message) }
     finally { setBusy(false) }
   }
@@ -114,8 +116,9 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   }
   if (stage === 'verify') return <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} guided />
   return <div className="button-page">
-    <div className="section-head"><div><h1>{stage === 'install' ? 'Add it to your website' : stage === 'preview' ? 'Test your assistant' : 'Your chat button'}</h1><p className="lead">{stage === 'install' ? 'Add this code to your website, then continue to check it.' : stage === 'preview' ? 'Try the chat below. Adjust its look and greeting, then save your changes before continuing.' : 'Choose how it looks, then add it to your website with one line of code.'}</p></div></div>
-    <div className={showLook ? 'button-grid' : undefined}>
+    {!stage && <div className="section-head"><div><h1>Your chat appearance</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>}
+    {stage === 'preview' && <section className="card final-preview-summary"><Avatar character={business.character} size={56} colour={business.buttonColour} /><div><h2>{business.name}</h2><p>Your chosen icon: <strong>{characterLabel(business.character)}</strong></p><p className="small">{live.length} approved {live.length === 1 ? 'answer' : 'answers'} · Your saved greeting and colours</p></div><Link className="btn btn--ghost" to={setupPath('appearance', business.slug)}>Change appearance</Link><Link className="text-button" to={setupPath('answers', business.slug)}>Edit answers</Link></section>}
+    <div className={stage === 'preview' ? 'final-preview' : showLook ? 'button-grid' : undefined}>
       <div className="button-grid__settings">
         {showLook && <section className="card">
           <h2>{stage ? 'Choose its look' : '1. Choose its look'}</h2>
@@ -144,14 +147,14 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
         </section>}
         {!stage && <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />}
       </div>
-      {showLook && <section className="preview" aria-label="Preview">
+      {showPreview && <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>
         <div className="preview__site">
           <div className="preview__bar"><span /><span /><span /><em>{business.website?.replace(/^https:\/\//, '')}</em></div>
           <div className="preview__page" aria-hidden="true"><i /><i /><i /><i className="short" /></div>
           {open && <div className="preview__panel"><Chat key={`${character}-${greeting}-${signedBy}-${live.length}`} widget={{ name: business.name, character, buttonColour: colour, greeting: greeting.trim() || business.greeting, signedBy: signedBy.trim(), faqs: live, slug: business.slug }} preview onClose={() => setOpen(false)} /></div>}
-          <button type="button" className="preview__launcher" style={launcherStyle} onClick={() => setOpen(value => !value)} aria-label={open ? 'Close the preview chat' : 'Open the preview chat'}>
-            {open ? <Icon name="close" size={24} /> : <Avatar character={character} size={56} colour={colour} />}
+          <button type="button" className="preview__launcher" style={launcherStyle} onClick={() => setOpen(value => !value)} aria-expanded={open} aria-label={open ? 'Close the preview chat' : 'Open the preview chat'}>
+            {open && stage !== 'preview' ? <Icon name="close" size={24} /> : <Avatar character={character} size={56} colour={colour} />}
           </button>
         </div>
         {live.length === 0 && <p className="small">Approve some questions and they’ll appear here.</p>}

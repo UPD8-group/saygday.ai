@@ -10,7 +10,7 @@ test('dashboard renders the saved colour in its picker, all simple swatches and 
   const require = createRequire(import.meta.url)
   const { build } = require(require.resolve('esbuild', { paths: [dirname(require.resolve('vite/package.json'))] }))
   const result = await build({
-    stdin: { contents: `import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import ChatButton from './src/app/ChatButton.jsx'; export const render = () => renderToStaticMarkup(React.createElement(ChatButton));`, resolveDir: fileURLToPath(new URL('../', import.meta.url)), loader: 'jsx' },
+    stdin: { contents: `import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {StaticRouter} from 'react-router-dom'; import ChatButton from './src/app/ChatButton.jsx'; export const render = (props = {}) => renderToStaticMarkup(React.createElement(StaticRouter, {location:'/app/setup/preview'}, React.createElement(ChatButton, props)));`, resolveDir: fileURLToPath(new URL('../', import.meta.url)), loader: 'jsx' },
     bundle: true, platform: 'node', format: 'cjs', write: false, jsx: 'automatic',
     plugins: [{ name: 'dashboard-data', setup(build) {
       build.onResolve({ filter: /Dashboard\.jsx$/ }, () => ({ path: 'dashboard', namespace: 'test' }))
@@ -34,5 +34,13 @@ test('dashboard renders the saved colour in its picker, all simple swatches and 
     assert.match(animal, /Animal character colours are fixed/)
     assert.match(animal, /class="preview__launcher"(?! style=)/)
     assert.match(animal, /src="\/characters\/wally.webp"/)
+    const final = render({ stage: 'preview' })
+    assert.match(final, /Your chosen icon:/)
+    assert.match(final, /wally.webp/)
+    assert.match(final, /Questions for Test Cafe/)
+    assert.match(final, /Change appearance/)
+    assert.match(final, /Edit answers/)
+    assert.doesNotMatch(final, /radiogroup|type="color"|Save changes/, 'the final approval screen presents saved choices rather than another setup form')
+    assert.match(final, /aria-expanded="true"/, 'the customer can try the real chat, not a screenshot')
   } finally { delete globalThis.location; delete globalThis.__colourPreviewDash }
 })

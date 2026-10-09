@@ -7,6 +7,12 @@ import assert from 'node:assert/strict'
 const mutations = [
   {
     file: 'src/app/billing-view.mjs',
+    from: "needsAttention: cancellationScheduled || !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state)",
+    to: "needsAttention: !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state)",
+    test: 'cancelling during a trial displays a cancellation banner while preserving remaining access',
+  },
+  {
+    file: 'src/app/billing-view.mjs',
     from: '&& billing?.accessAllowed === true && billingConfirmed(billing)',
     to: '&& billingConfirmed(billing)',
     test: 'activation celebration requires a verified website and server-confirmed subscription access after checkout',
