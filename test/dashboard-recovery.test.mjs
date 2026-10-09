@@ -34,7 +34,7 @@ test('dashboard offers recovery when answers fail after a business has loaded', 
     const html=module.exports.render()
     assert.match(html,/role="alert"/)
     assert.match(html,/Your answers could not be loaded\. Try again\./)
-    assert.match(html,/>Try again<\/button>/)
+    assert.match(html,/<span>Try again<\/span><\/button>/)
     assert.doesNotMatch(html,/Loading your answers/)
   } finally {delete globalThis.__auditDash}
 })
