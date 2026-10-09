@@ -221,7 +221,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Can I choose what the button looks like?',
-    answer: 'Yes. Pick one of the mob, eight Aussie locals, or one of twelve plain buttons for something quieter. You can change it any time from the Chat button page, and nothing else changes.',
+    answer: 'Yes. Pick one of the mob, eight Aussie locals, or one of fifteen chat and symbol buttons for something quieter. You can change it any time from the Chat button page, and nothing else changes.',
     variants: ['Can I change the button?', 'What does the button look like?', 'Can I customise the chat button?', 'Button design', 'Can I change the icon?', 'Plain buttons'],
   },
   {

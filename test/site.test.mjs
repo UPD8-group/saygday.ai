@@ -154,9 +154,9 @@ test('Meet the mob shows the looks an owner can actually pick', async () => {
   const html = await built(named('meet-the-mob'))
   const mob = [...html.matchAll(/<img src="\/characters\/([a-z]+)\.webp"/g)].map(([, key]) => key)
   assert.deepEqual(mob, CHARACTERS.map(character => character.key), 'the mob, in the dashboard’s order')
-  const plain = html.slice(html.indexOf('<div class="plain">'), html.indexOf('</div>', html.indexOf('<div class="plain">')))
+  const plain = html
   const shown = [...plain.matchAll(/<figure><span class="plain__btn">(.*?)<\/span><figcaption>([^<]+)<\/figcaption><\/figure>/g)].map(([, picture, name]) => ({ picture, name }))
-  assert.deepEqual(shown.map(button => button.name), PLAIN_BUTTONS.map(button => button.name), 'the twelve plain buttons, named as the dashboard names them')
+  assert.deepEqual(shown.map(button => button.name), PLAIN_BUTTONS.map(button => button.name), 'the available chat and symbol buttons, named as the dashboard names them')
   for (const [index, button] of PLAIN_BUTTONS.entries()) {
     if (button.key === 'gday') assert.equal(shown[index].picture, '<span class="plain__word">G’day</span>')
     else assert.equal(shown[index].picture, plainSvg(button.key, 32), `${button.name} is drawn as the button draws it`)

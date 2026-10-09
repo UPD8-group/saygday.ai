@@ -133,7 +133,7 @@ settings, which is how sign-in broke on saygday.ai before the move.
   or anything readable into a rate-limit key; test/rate-limits.test.mjs
   checks the stored keys and the page's wording.
 
-- **A chat button is one of the mob or one of twelve plain buttons** (owner,
+- **A chat button is one of the mob or one of fifteen chat and symbol buttons** (owner,
   2 October 2026: "some more versions for people - circles - + symbols").
   `shared/characters.mjs` is the one list (`PLAIN_BUTTONS`, the bubble first
   and the default); `public/widget.js` keeps an exact copy because a
@@ -349,3 +349,5 @@ settings, which is how sign-in broke on saygday.ai before the move.
   `node --test test/` (that form fails every run and proves nothing).
 - Never `git add` while a sabotage script is running.
 
+
+- **Appearance picker (owner, 10 October 2026):** keep the full chat preview only in final approval, not Choose appearance. Show colour choices openly, and group icons as The Mob, Classic Chat & Greetings, and Symbols & Shapes. Waving hand, Information and Lifebuoy are included; avoid robot/AI/live-agent imagery.

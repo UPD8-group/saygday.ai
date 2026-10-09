@@ -3,8 +3,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useDash } from './Dashboard.jsx'
 import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
-import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
+import { buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
+import ColourPicker from './ColourPicker.jsx'
 import { billingView } from './billing-view.mjs'
 import { setupPath } from './setup-flow.mjs'
 
@@ -101,7 +102,8 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   useEffect(() => { if (stage === 'appearance') onDirtyChange?.(changed) }, [stage, changed, onDirtyChange])
   const live = (dash.faqs || []).filter(faq => faq.status === 'approved')
   const showLook = !stage || stage === 'appearance'
-  const showPreview = showLook || stage === 'preview'
+  const showPreview = stage === 'preview'
+  const validColour = /^#[0-9a-f]{6}$/i.test(colour)
   const showInstall = !stage || stage === 'install'
 
   async function save() {
@@ -118,35 +120,31 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
   return <div className="button-page">
     {!stage && <div className="section-head"><div><h1>Your chat appearance</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>}
     {stage === 'preview' && <section className="card final-preview-summary"><Avatar character={business.character} size={56} colour={business.buttonColour} /><div><h2>{business.name}</h2><p>Your chosen icon: <strong>{characterLabel(business.character)}</strong></p><p className="small">{live.length} approved {live.length === 1 ? 'answer' : 'answers'} · Your saved greeting and colours</p></div><Link className="btn btn--ghost" to={setupPath('appearance', business.slug)}>Change appearance</Link><Link className="text-button" to={setupPath('answers', business.slug)}>Edit answers</Link></section>}
-    <div className={stage === 'preview' ? 'final-preview' : showLook ? 'button-grid' : undefined}>
+    <div className={stage === 'preview' ? 'final-preview' : showLook ? 'button-grid appearance-grid' : undefined}>
       <div className="button-grid__settings">
         {showLook && <section className="card">
           <h2>{stage ? 'Choose its look' : '1. Choose its look'}</h2>
           <div className="looks" role="radiogroup" aria-label="Button look">
-            <p className="looks__title">The mob</p>
+            <p className="looks__title">The Mob</p>
             {CHARACTERS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
               <img src={characterImage(item.key)} alt="" width="56" height="56" /><span>{item.name}</span>
             </button>)}
-            <p className="looks__title">Or keep it simple</p>
-            {PLAIN_BUTTONS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look look--plain${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
+            <p className="looks__title">Classic Chat &amp; Greetings</p>
+            <p className="looks__description">These are direct representations of conversation and messaging.</p>
+            {PLAIN_BUTTONS.filter(item => ['bubble', 'typing', 'bubbles', 'gday', 'hi', 'wave'].includes(item.key)).map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look look--plain${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
+              <Avatar character={item.key} size={56} colour={colour} /><span>{item.name}</span>
+            </button>)}
+            <p className="looks__title">Symbols &amp; Shapes</p>
+            <p className="looks__description">Abstract icons, minimalist geometric shapes, or emotional cues.</p>
+            {PLAIN_BUTTONS.filter(item => !['bubble', 'typing', 'bubbles', 'gday', 'hi', 'wave'].includes(item.key)).map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look look--plain${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={item.name}>
               <Avatar character={item.key} size={56} colour={colour} /><span>{item.name}</span>
             </button>)}
           </div>
-          {simple ? <Field label="Simple button colour" hint="Applies to any simple style. The icon adjusts automatically to stay readable.">{(id, note) => <div className="button-colour"><input id={id} type="color" value={colour} aria-describedby={note} onChange={event => setColour(event.target.value)} /><span>{colour.toUpperCase()}</span><Button kind="ghost" onClick={() => setColour(DEFAULT_BUTTON_COLOUR)} disabled={colour === DEFAULT_BUTTON_COLOUR}>Reset colour</Button></div>}</Field> : <p className="small">Animal character colours are fixed. Choose a simple button to customise its colour.</p>}
-          <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
-          <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
-          <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
-          <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim()} icon="check">Save changes</Button>
+
         </section>}
-        {showInstall && <section className="card">
-          <h2>{stage ? 'Your installation code' : '2. Add it to your website'}</h2>
-          <p>Copy this line and add it to your website. It works on Wix, Squarespace, WordPress, Shopify and most other sites.</p>
-          <div className="code"><textarea id="install-code" readOnly value={code} rows={2} aria-label="Your chat button code" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copy} icon={copied ? 'check' : 'copy'}>{copied ? 'Copied' : 'Copy'}</Button></div>
-          <div className="platforms" role="tablist" aria-label="Your website builder">{PLATFORMS.map(item => <button key={item.key} role="tab" aria-selected={platform === item.key} onClick={() => setPlatform(item.key)}>{item.label}</button>)}</div>
-          <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map((step, index) => <li key={step}>{stage === 'install' && platform === 'any' && index === 2 ? 'Publish your website, then continue to check it in the next step.' : step}</li>)}</ol>
-        </section>}
-        {!stage && <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />}
+
       </div>
+      {showLook && <ColourPicker value={colour} onChange={setColour} character={character} animal={!simple} />}
       {showPreview && <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>
         <div className="preview__site">
@@ -160,6 +158,21 @@ export default function ChatButton({ stage, onDirtyChange } = {}) {
         {live.length === 0 && <p className="small">Approve some questions and they’ll appear here.</p>}
       </section>}
     </div>
+    {showLook && <section className="card appearance-details">
+      <h2>Your greeting</h2>
+          <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
+          <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
+          <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
+          <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim() || !validColour} icon="check">Save changes</Button>
+    </section>}
+        {showInstall && <section className="card">
+          <h2>{stage ? 'Your installation code' : '2. Add it to your website'}</h2>
+          <p>Copy this line and add it to your website. It works on Wix, Squarespace, WordPress, Shopify and most other sites.</p>
+          <div className="code"><textarea id="install-code" readOnly value={code} rows={2} aria-label="Your chat button code" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copy} icon={copied ? 'check' : 'copy'}>{copied ? 'Copied' : 'Copy'}</Button></div>
+          <div className="platforms" role="tablist" aria-label="Your website builder">{PLATFORMS.map(item => <button key={item.key} role="tab" aria-selected={platform === item.key} onClick={() => setPlatform(item.key)}>{item.label}</button>)}</div>
+          <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map((step, index) => <li key={step}>{stage === 'install' && platform === 'any' && index === 2 ? 'Publish your website, then continue to check it in the next step.' : step}</li>)}</ol>
+        </section>}
+        {!stage && <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />}
   </div>
 }
 

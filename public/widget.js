@@ -44,7 +44,10 @@
     'heart': '<path d="M12 19.4s-7.6-4.3-7.6-9.6A4.1 4.1 0 0112 7.6a4.1 4.1 0 017.6 2.2c0 5.3-7.6 9.6-7.6 9.6z"/>',
     'ring': '<circle cx="12" cy="12" r="7.2" stroke-width="2.6"/>',
     'dot': '<circle cx="12" cy="12" r="6.4" fill="currentColor" stroke="none"/>',
-    'ring-dot': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>'
+    'ring-dot': '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="currentColor" stroke="none"/>',
+    'wave': '<path d="M8 12V5.5a1.5 1.5 0 013 0V11M11 10V4.5a1.5 1.5 0 013 0V11M14 10V6a1.5 1.5 0 013 0v7M17 11V9a1.5 1.5 0 013 0v6a6 6 0 01-6 6h-1c-2.5 0-4-1.4-5.5-3.3L4 13.5a1.5 1.5 0 012.2-2L8 13"/><path d="M2 7a6 6 0 012-4M3 20l2 1"/>',
+    'info': '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v6M10 17h4"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none"/>',
+    'lifebuoy': '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/>'
   }
   function buttonColour(value) {
     return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : '#31584a'
