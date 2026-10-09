@@ -313,8 +313,8 @@ settings, which is how sign-in broke on saygday.ai before the move.
 ## Hard rules
 
 - **Guided setup (owner, 9 October 2026):** new customers follow
-  `/app/setup/answers` -> `install` -> `verify` -> `preview` -> `billing`.
-  Each screen has a clear next action. Payment follows testing the chat;
+  `/app/setup/answers` -> `appearance` -> `install` -> `verify` -> `preview` -> `billing`.
+  Each screen has a clear next action. The sidebar shows evidence-based completion ticks. The final preview shows the saved icon and real chat; the owner explicitly approves it before continuing to billing. This acknowledgement is presentation only and never changes access. Payment follows testing the chat;
   verification remains server-owned. Billing also has a permanent
   `/app/billing` destination and stays reachable during scans. Do not hide
   an unavailable payment action without explaining its prerequisite.

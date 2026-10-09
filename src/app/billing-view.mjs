@@ -36,13 +36,23 @@ export function billingView(value) {
     paused: ['Your subscription is paused', 'Open the billing portal to check your subscription, then refresh your billing status.'],
     unavailable: ['We couldn’t check your billing', 'Refresh your billing status to try again.'],
   }
-  const [title, description] = states[billing.state]
+  const cancellationScheduled = billing.state === 'canceling' || (billing.cancelAtPeriodEnd === true && ['trial', 'trial_ending', 'active'].includes(billing.state))
+  let [title, description] = states[billing.state]
+  if (cancellationScheduled) {
+    const trial = ['trial', 'trial_ending'].includes(billing.state)
+    const ends = trial ? trialEnd : periodEnd
+    title = 'Your subscription is cancelled'
+    description = (allowed ? (ends ? `Your chat remains available until ${ends}.` : 'Your chat remains available until the end of the current period.') : 'Your subscription is cancelled.')
+      + (trial ? ' It will not renew or start monthly billing.' : ' It will not renew.')
+      + ' You can manage this in the billing portal.'
+  }
+  if (billing.state === 'canceled') title = 'Your subscription is cancelled'
   return {
-    state: billing.state, title, description: description + pause, accessAllowed: allowed,
+    state: billing.state, title, description: description + pause, accessAllowed: allowed, cancellationScheduled,
     checkoutLabel: billing.state === 'card_required' ? 'Activate — 14 days free' : 'Upgrade — A$40/month',
     checkoutAvailable: billing.checkoutAvailable === true && billing.state !== 'unavailable',
     portalAvailable: billing.portalAvailable === true,
-    needsAttention: !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state),
+    needsAttention: cancellationScheduled || !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state),
   }
 }
 

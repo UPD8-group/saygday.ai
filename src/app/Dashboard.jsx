@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth.jsx'
 import { Button, Icon, Logo, Notice, Spinner, plural } from './ui.jsx'
 import { Avatar } from '../chat/Chat.jsx'
 import { BillingNotice } from './Billing.jsx'
 import { billingView, UNAVAILABLE_BILLING } from './billing-view.mjs'
+import { chatReviewKey, setupChecklist, setupPath } from './setup-flow.mjs'
 
 // The dashboard's shared state: the sign-in's businesses, the one being worked
 // on, its latest website scan and its questions and answers. Every screen
@@ -32,6 +33,8 @@ export function DashboardProvider({ children }) {
   const { request: send, session } = useAuth()
   const [state, setState] = useState({ loading: true, error: '', email: '', businesses: [], business: null, scan: null, billing: null })
   const [faqs, setFaqs] = useState(null)
+  const [reviewedChat, setReviewedChat] = useState('')
+  const [confirmedAppearance, setConfirmedAppearance] = useState('')
   // The business every request names. A ref, so a request fired in the same
   // breath as a switch still names the right one.
   const current = useRef(null)
@@ -137,7 +140,12 @@ export function DashboardProvider({ children }) {
   }, [state.billing, refreshBilling])
 
   const setBusiness = business => setState(previous => ({ ...previous, business, businesses: previous.businesses.map(item => item.id === business.id ? business : item) }))
-  const value = { ...state, faqs, setFaqs, setBusiness, setScan: scan => setState(previous => ({ ...previous, scan })), reload: load, request, choose, added, refreshBilling, billingRefreshing, billingError }
+  const reviewKey = chatReviewKey(state.business, faqs)
+  const previewApproved = Boolean(reviewKey && reviewedChat === reviewKey)
+  const approveChatPreview = () => setReviewedChat(reviewKey)
+  const appearanceConfirmed = previewApproved || Boolean(state.business && confirmedAppearance === chatReviewKey(state.business, []))
+  const confirmChatAppearance = (business = state.business) => setConfirmedAppearance(chatReviewKey(business, []))
+  const value = { ...state, previewApproved, approveChatPreview, appearanceConfirmed, confirmChatAppearance, faqs, setFaqs, setBusiness, setScan: scan => setState(previous => ({ ...previous, scan })), reload: load, request, choose, added, refreshBilling, billingRefreshing, billingError }
   return <Dash.Provider value={value}>{children}</Dash.Provider>
 }
 
@@ -160,33 +168,65 @@ export function Layout() {
   const { signOut } = useAuth()
   const dash = useDash()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuButton = useRef(null)
+  const main = useRef(null)
   const ready = dash.business && !SCANNING.includes(dash.scan?.status)
   const drafts = dash.faqs?.filter(faq => faq.status === 'draft').length || 0
   const asked = dash.business?.counts?.newEnquiries || 0
-  return <div className="page">
-    <header className="topbar">
-      <Link to="/app" className="topbar__home" aria-label="SayGday home"><Logo /></Link>
-      {dash.business && (dash.businesses.length > 1
-        // Several businesses under this sign-in: which one is being worked on.
-        ? <span className="topbar__business topbar__switch"><Avatar character={dash.business.character} size={28} />
-            <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { dash.choose(event.target.value); navigate('/app') }}>
-              {dash.businesses.map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}
-            </select></span>
-        : <span className="topbar__business"><Avatar character={dash.business.character} size={28} />{dash.business.name}</span>)}
-      <button type="button" className="text-button topbar__out" onClick={async () => { await signOut(); goToSignIn() }}>Sign out</button>
+  const checklist = setupChecklist(dash)
+  const selectedStep = location.pathname.split('/')[3]
+  useEffect(() => { setMenuOpen(false) }, [location.pathname, dash.business?.id])
+  function closeMenu() { setMenuOpen(false); menuButton.current?.focus() }
+  function followLink(event) {
+    if (event.target.closest('a')) { setMenuOpen(false); requestAnimationFrame(() => main.current?.focus()) }
+  }
+  return <div className="page dashboard-shell">
+    <a className="skip-link" href="#dashboard-main">Skip to content</a>
+    <header className="dashboard-mobile-bar">
+      <Link to="/app" aria-label="SayGday home"><Logo small /></Link>
+      <span>{dash.business?.name || 'Your workspace'}</span>
+      <button type="button" ref={menuButton} className="btn btn--ghost btn--small" aria-expanded={menuOpen} aria-controls="dashboard-sidebar" onClick={() => setMenuOpen(value => !value)}><Icon name={menuOpen ? 'close' : 'list'} size={18} />Menu</button>
     </header>
-    {dash.business && <nav className="tabs" aria-label="Dashboard">
-      <NavLink end to="/app"><Icon name="home" size={18} />Home</NavLink>
-      <NavLink to="/app/billing"><Icon name="card" size={18} />Billing</NavLink>
-      {ready && <>
-      <NavLink to="/app/setup"><Icon name="check" size={18} />Set up your chat</NavLink>
-      <NavLink to="/app/questions"><Icon name="list" size={18} />Questions{drafts > 0 && <span className="badge">{drafts}</span>}</NavLink>
-      <NavLink to="/app/asked"><Icon name="inbox" size={18} />Customers asked{asked > 0 && <span className="badge">{asked}</span>}</NavLink>
-      <NavLink to="/app/button"><Icon name="chat" size={18} />Chat button</NavLink>
-      </>}
-      <NavLink to="/app/settings"><Icon name="settings" size={18} />Settings</NavLink>
-    </nav>}
-    <main className="container">
+    <aside id="dashboard-sidebar" className={'dashboard-sidebar' + (menuOpen ? ' is-open' : '')} onKeyDown={event => { if (event.key === 'Escape') closeMenu() }} onClick={followLink}>
+      <Link to="/app" className="sidebar-logo" aria-label="SayGday home"><Logo /></Link>
+      {dash.business && <div className="sidebar-business">
+        <Avatar character={dash.business.character} colour={dash.business.buttonColour} size={36} />
+        <div>{dash.businesses.length > 1
+          ? <select aria-label="Which of your websites" value={dash.business.slug} onChange={event => { dash.choose(event.target.value); navigate('/app') }}>
+            {dash.businesses.map(item => <option key={item.id} value={item.slug}>{item.name}</option>)}
+          </select> : <strong>{dash.business.name}</strong>}
+          <small>{dash.business.website?.replace(/^https?:\/\//, '').replace(/\/$/, '')}</small>
+        </div>
+      </div>}
+      <nav className="sidebar-nav" aria-label="Dashboard">
+        <p className="sidebar-label">Your workspace</p>
+        <NavLink end to="/app"><Icon name="home" size={19} />Overview</NavLink>
+        {ready && <>
+          <NavLink to="/app/questions"><Icon name="list" size={19} />Questions &amp; answers{drafts > 0 && <span className="badge">{drafts}</span>}</NavLink>
+          <NavLink to="/app/asked"><Icon name="inbox" size={19} />Customer questions{asked > 0 && <span className="badge">{asked}</span>}</NavLink>
+          <NavLink to="/app/button"><Icon name="chat" size={19} />Chat appearance</NavLink>
+        </>}
+      </nav>
+      {ready && <nav className="sidebar-setup" aria-label="Set up your chat">
+        <p className="sidebar-label">Set up your chat</p>
+        <ol>{checklist.map((item, index) => <li key={item.id}>
+          <Link to={setupPath(item.id, dash.business.slug)} aria-current={location.pathname.startsWith('/app/setup') && selectedStep === item.id ? 'step' : undefined}>
+            <span className={'setup-marker' + (item.complete ? ' is-complete' : '')} aria-hidden="true">{item.complete ? <Icon name="check" size={16} /> : index + 1}</span>
+            <span><strong>{item.label}</strong><small>{item.complete ? 'Complete · ' : ''}{item.status}</small></span>
+          </Link>
+        </li>)}</ol>
+      </nav>}
+      <nav className="sidebar-nav sidebar-account" aria-label="Account and help">
+        {dash.business && <NavLink to="/app/billing"><Icon name="card" size={19} />Billing{billingView(dash.billing).cancellationScheduled && <span className="sidebar-status">Cancelled</span>}</NavLink>}
+        {dash.business && <NavLink to="/app/settings"><Icon name="settings" size={19} />Settings</NavLink>}
+        <Link to="/app/add"><Icon name="plus" size={19} />Add a website</Link>
+        <a href="/contact" target="_blank" rel="noopener noreferrer"><Icon name="mail" size={19} />Help &amp; support<Icon name="external" size={14} /></a>
+        <button type="button" onClick={async () => { await signOut(); goToSignIn() }}><Icon name="back" size={19} />Sign out</button>
+      </nav>
+    </aside>
+    <main className="container dashboard-main" id="dashboard-main" ref={main} tabIndex={-1}>
       {!dash.loading && dash.business && <BillingNotice billing={dash.billing} />}
       {dash.loading ? <Spinner label="Opening your dashboard…" /> : dash.error && !dash.business ? <div className="card"><Notice kind="error">{dash.error}</Notice><Button onClick={dash.reload} icon="refresh">Try again</Button></div> : <Outlet key={dash.business?.id} />}
     </main>
@@ -226,7 +266,7 @@ function Start({ another = false }) {
   }
   return <div className="start">
     <section className="hero card card--green">
-      <p className="eyebrow">{another ? 'Another website' : 'Step 1 of 3'}</p>
+      <p className="eyebrow">{another ? 'Another website' : 'Start with your website'}</p>
       <h1>{another ? 'Put the next web address in.' : 'Put your web address in.'}</h1>
       <p className="lead">{another
         ? 'We’ll read this website too and write its questions and answers from its own pages. Each website gets its own chat, answers and button, all under this sign-in.'
@@ -242,7 +282,7 @@ function Start({ another = false }) {
     <ol className="steps">
       <li><span className="steps__icon"><Icon name="globe" size={30} /></span><strong>We read your website</strong><span>Your pages, menu, prices, hours and contact details. It takes a minute or two.</span></li>
       <li><span className="steps__icon"><Icon name="check" size={30} /></span><strong>You check the answers</strong><span>Approve, edit or remove each one. Add your own any time.</span></li>
-      <li><span className="steps__icon"><Icon name="chat" size={30} /></span><strong>Add the chat to your site</strong><span>One line of code. Customers get your answers, in your words.</span></li>
+      <li><span className="steps__icon"><Icon name="chat" size={30} /></span><strong>Make it yours, then activate</strong><span>Choose your icon, install and verify. Approve the final chat preview before adding your card.</span></li>
     </ol>
   </div>
 }
@@ -293,7 +333,7 @@ function Overview() {
   const billing = billingView(dash.billing)
   const available = verified && billing.accessAllowed
   const needsSetup = ['trial_not_started', 'card_required'].includes(billing.state)
-  const setupStep = !live || drafts ? 'answers' : !verified ? 'install' : 'preview'
+  const setupStep = !live || drafts ? 'answers' : !dash.appearanceConfirmed ? 'appearance' : !verified ? 'install' : 'preview'
   async function rescan() {
     setBusy(true); setError('')
     try { const result = await dash.request('startScan'); dash.setBusiness(result.business); dash.setScan(result.scan) }
@@ -304,26 +344,30 @@ function Overview() {
     ? { tone: 'warn', title: 'We couldn’t read your website', text: scan.error || 'Please try again.', action: <><Button onClick={rescan} busy={busy} icon="refresh">Try again</Button><Button kind="ghost" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add questions myself</Button></> }
     : drafts > 0 ? { tone: 'gold', title: `${plural(drafts, 'question')} ${drafts === 1 ? 'is' : 'are'} waiting for you to check`, text: 'Nothing goes on your website until you approve it. Edit anything that isn’t quite right.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions')} iconAfter="arrow">Check them now</Button> }
     : !live ? { tone: 'gold', title: 'Add your first questions', text: 'Write the questions your customers ask, with your answers.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add a question</Button> }
-    : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, then check that the website is yours. Billing in Settings shows whether your chat can run.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
+    : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, then check that the website is yours. Billing shows whether your chat can run.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
     : !billing.accessAllowed ? { tone: 'warn', title: billing.title, text: billing.description, action: <Button kind="dark" onClick={() => navigate('/app/billing')} iconAfter="arrow">View billing</Button> }
     : !seen ? { tone: 'green', title: 'Your chat is switched on', text: `We checked ${business.website.replace(/^https:\/\//, '')} is yours. Your button shows the next time your website loads.`, action: null }
     : { tone: 'green', title: 'Your chat is live on your website', text: `Customers can see ${plural(live, 'answer')}. Questions it can’t answer come to Customers asked.`, action: null }
   return <div className="overview">
-    <h1 className="greeting">G’day, {business.name}</h1>
+    <header className="overview-heading"><div><p className="eyebrow">Your workspace</p><h1 className="greeting">G’day, {business.name}</h1><p className="lead">Here’s how your website chat is going.</p></div><Link className="btn btn--ghost" to={setupPath('preview', business.slug)}><Icon name="eye" size={18} />Preview chat</Link></header>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     {needsSetup ? <section className="next card card--gold">
-      <div><h2>Let's get your chat ready</h2><p>Check your answers, add the code, verify your website, then test your chat. Add your card at the final step.</p></div>
+      <div><h2>Let's get your chat ready</h2><p>Check your answers, choose your icon, then install and verify. Approve your finished chat before adding your card at the final step.</p></div>
       <div className="next__actions"><Button size="big" kind="gold" onClick={() => navigate(`/app/setup/${setupStep}?business=${encodeURIComponent(business.slug)}`)} iconAfter="arrow">Continue setup</Button></div>
     </section> : <section className={`next card card--${next.tone}`}>
       <div><h2>{next.title}</h2><p>{next.text}</p></div>
       {next.action && <div className="next__actions">{next.action}</div>}
     </section>}
+    <h2 className="overview-subheading">At a glance</h2>
     <div className="tiles">
-      <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`${available ? 'live on your website' : 'approved answers saved'}${drafts ? ` · ${drafts} to check` : ''}`} />
-      <Tile to="/app/asked" icon="inbox" title="Customers asked" big={business.counts?.newEnquiries || 0} label="new questions for you" />
-      <Tile to="/app/button" icon="chat" title="Chat button" big={available ? 'Live' : verified ? 'Paused' : 'Not yet'} label={available ? 'on your website' : verified ? 'check your billing' : 'switched on'} />
+      <Tile to="/app/questions" icon="list" title="Approved answers" big={live} label={`${available ? 'live on your website' : 'approved answers saved'}${drafts ? ` · ${drafts} to check` : ''}`} />
+      <Tile to="/app/asked" icon="inbox" title="Customer questions" big={business.counts?.newEnquiries || 0} label="new questions for you" />
       <Tile to="/app/questions?show=live" icon="eye" title="Answers read" big={business.counts?.views || 0} label="times by customers" />
     </div>
+    <section className="card overview-chat">
+      <div className="overview-chat__identity"><Avatar character={business.character} colour={business.buttonColour} size={56} /><div><p className="eyebrow">Your website chat</p><h2>{available ? seen ? 'Live on your website' : 'Ready on your website' : verified ? 'Your chat is paused' : 'Finish setting up your chat'}</h2><p>{billing.cancellationScheduled ? billing.description : available ? 'Customers see the answers you have approved.' : verified ? billing.description : 'Complete the setup steps in the side menu.'}</p></div></div>
+      <Link className="btn btn--ghost" to="/app/button">Manage appearance<Icon name="arrow" size={18} /></Link>
+    </section>
   </div>
 }
 

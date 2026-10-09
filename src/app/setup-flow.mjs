@@ -1,10 +1,11 @@
 // Setup progress is presentation only. Verification, checkout and public access
 // continue to be decided by the server, never by the current URL or step.
 export const SETUP_STEPS = Object.freeze([
-  { id: 'answers', label: 'Check answers', nextLabel: 'Continue to installation' },
+  { id: 'answers', label: 'Check answers', nextLabel: 'Choose your chat icon' },
+  { id: 'appearance', label: 'Choose appearance', nextLabel: 'Continue to installation' },
   { id: 'install', label: 'Add to website', nextLabel: 'Continue to verification' },
   { id: 'verify', label: 'Verify website', nextLabel: 'Continue to preview' },
-  { id: 'preview', label: 'Preview your chat', nextLabel: 'Continue to payment' },
+  { id: 'preview', label: 'Approve your chat', nextLabel: 'Approve my chat & continue' },
   { id: 'billing', label: 'Add payment details', nextLabel: '' },
 ])
 
@@ -30,4 +31,29 @@ export function setupFlow({ step = 'answers', business, faqs } = {}) {
     next: SETUP_STEPS[index + 1]?.id || null,
     nextLabel: SETUP_STEPS[index].nextLabel,
   }
+}
+
+// UI-only review: changing the selected business, appearance or approved answers
+// invalidates the tick. This value never grants verification or billing access.
+export function chatReviewKey(business, faqs) {
+  if (!business || !Array.isArray(faqs)) return ''
+  return JSON.stringify([business.id, business.website, business.character, business.buttonColour, business.greeting, business.signedBy,
+    faqs.filter(item => item.status === 'approved').map(item => [item.id, item.question, item.answer, item.variants, item.featured]).sort((a, b) => String(a[0]).localeCompare(String(b[0])))])
+}
+
+export function setupChecklist({ business, faqs, billing, previewApproved = false, appearanceConfirmed = false } = {}) {
+  const approved = Array.isArray(faqs) && faqs.some(item => item.status === 'approved')
+  const installed = Boolean(business?.buttonSeenAt) || Boolean(business?.websiteVerifiedAt && business?.verifiedBy === 'button')
+  const verified = Boolean(business?.websiteVerifiedAt)
+  const cancelling = billing?.cancelAtPeriodEnd === true || ['canceling', 'canceled'].includes(billing?.state)
+  const paidSetup = !cancelling && (billing?.state === 'active' || (['trial', 'trial_ending'].includes(billing?.state) && billing?.subscriptionScheduled === true))
+  const details = {
+    answers: [approved, approved ? 'Ready' : 'Review answers'],
+    appearance: [appearanceConfirmed, appearanceConfirmed ? 'Chosen' : 'Ready to customise'],
+    install: [installed, installed ? 'Code detected' : 'Add your code'],
+    verify: [verified, verified ? 'Verified' : 'Check ownership'],
+    preview: [previewApproved, previewApproved ? 'Approved' : 'Review your chat'],
+    billing: [paidSetup, cancelling ? 'Cancelled' : paidSetup ? 'Activated' : billing?.state === 'internal' ? 'Not required' : 'Final step'],
+  }
+  return SETUP_STEPS.map(item => ({ ...item, complete: details[item.id][0], status: details[item.id][1] }))
 }
