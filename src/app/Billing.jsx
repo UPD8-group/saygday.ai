@@ -52,8 +52,8 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
 
   return <section className="card billing" id="billing" aria-labelledby="billing-title">
     <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">A$40 <span>/ month AUD</span></span></div>
-    <p><strong>SayGday Website + Assistant</strong></p>
-    <p className="small">Your package includes a small-business website and hosting if you need them, your SayGday assistant with owner-approved answers and enquiry capture, and up to four small updates to existing website content each month. See the <a href="/terms">package terms</a> for scope.</p>
+    <p><strong>SayGday Assistant</strong></p>
+    <p className="small">Your website assistant shows the answers you approve and captures customer enquiries. Manage your answers, chat button and enquiries from your SayGday dashboard.</p>
     <p className="small"><strong>Card details are required to activate a new chat.</strong> Verify your website, then add your card securely through Stripe. Your first 14 live days are free, then A$40/month AUD automatically unless you cancel. You can build and preview before activating.</p>
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>

@@ -2,7 +2,7 @@
 
 ## Current integration (9 October 2026)
 
-The current offer is SayGday Website + Assistant at A$40/month AUD: the assistant, creation and hosting of a simple small-business website if needed (up to five pages using supplied content), and four small existing-content updates monthly. Domain and paid-platform costs and larger work are separate. The separate job-request dashboard is not yet advertised as available.
+The current offer is SayGday Assistant at A$40/month AUD: the website assistant, owner-approved answers, enquiry capture and the SayGday dashboard. Website creation, hosting and content updates are separate oo.studio services and are not included in this subscription. The oo.studio job-request dashboard is not a SayGday feature.
 
 Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
 
