@@ -173,7 +173,7 @@ test('Checkout is authenticated and ignores every client customer, price, user, 
     expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id })
   const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
-  assert.equal(params.return_url, 'https://saygday.ai/app/settings?business=owner&checkout=success')
+  assert.equal(params.return_url, 'https://saygday.ai/app/billing?business=owner&checkout=success')
   assert.equal(params.ui_mode, 'elements')
   assert.equal('success_url' in params, false)
   assert.equal('cancel_url' in params, false)

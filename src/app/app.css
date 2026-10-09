@@ -345,6 +345,28 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .setup-actions { margin-top: 24px; border-top: 3px solid var(--gold); }
 .setup-actions .billing__actions { justify-content: space-between; }
 .setup .button-grid:not(:has(.preview)) { display: block; }
+
+/* A brief celebration after server-confirmed activation. */
+.activation-success { text-align: center; padding: clamp(24px, 4vw, 36px) 24px; background: #fff9ed; border: 1px solid #e9d5b1; overflow-wrap: anywhere; }
+.activation-success__mark { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 50%; background: var(--green); color: white; }
+.activation-success .eyebrow { color: var(--green); margin-bottom: 10px; }
+.activation-success h2 { font-size: clamp(36px, 7vw, 48px); line-height: 1.08; margin-bottom: 14px; color: var(--green-dark); }
+.activation-success h2:focus { outline: none; }
+.activation-success__message { max-width: 490px; margin: 0 auto 22px; font-size: 18px; line-height: 1.5; }
+.btn--celebrate { background: #b93b35; border-color: #b93b35; color: #fff; }
+.btn--celebrate:hover { background: #a3312c; border-color: #a3312c; color: #fff; }
+.btn--celebrate:focus-visible { outline: 3px solid var(--green-dark); outline-offset: 4px; }
+.activation-confetti { position: fixed; inset: 0; z-index: 100; pointer-events: none; overflow: hidden; }
+.activation-confetti > i { position: absolute; top: -24px; opacity: 0; animation-name: activation-confetti-fall; animation-timing-function: cubic-bezier(.2,.5,.65,1); animation-fill-mode: both; }
+@keyframes activation-confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  8%, 80% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift), 110vh, 0) rotate(var(--spin)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activation-confetti { display: none; }
+  .activation-confetti > i { animation: none; }
+}
 @media (max-width: 600px) {
   .setup-steps { gap: 5px; }
   .setup-steps a { padding: 10px 5px; align-items: center; text-align: center; font-size: 11px; }

@@ -5,7 +5,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router-dom'
 import { transformWithEsbuild } from 'vite'
-import { billingConfirmed, billingDate, billingRedirect, billingReturn, billingView, UNAVAILABLE_BILLING } from '../src/app/billing-view.mjs'
+import { billingActivationConfirmed, billingConfirmed, billingDate, billingRedirect, billingReturn, billingView, UNAVAILABLE_BILLING } from '../src/app/billing-view.mjs'
 
 // Use the project's own JSX transformer and React renderer. No browser or
 // Stripe account is needed to check what an owner actually sees.
@@ -78,6 +78,22 @@ test('checkout returns request confirmation and cannot grant a subscription', ()
   assert.match(html, /customer chat is paused/)
   assert.doesNotMatch(html, /subscription is active|status has been confirmed/)
   assert.match(html, /disabled=""/, 'actions cannot race the initial confirmation')
+})
+
+test('activation celebration requires a verified website and server-confirmed subscription access after checkout', () => {
+  const business = { id: 'one', websiteVerifiedAt: '2026-10-09T11:00:00Z' }
+  const trial = { state: 'trial', accessAllowed: true, subscriptionScheduled: true }
+  const active = { state: 'active', accessAllowed: true }
+  for (const billing of [trial, active]) {
+    assert.equal(billingActivationConfirmed(business, billing, 'confirming'), true)
+    for (const returned of ['', 'returned', 'canceled']) assert.equal(billingActivationConfirmed(business, billing, returned), false, 'ordinary visits and portal returns do not celebrate')
+    assert.equal(billingActivationConfirmed(business, { ...billing, accessAllowed: false }, 'confirming'), false, 'a subscription without access must not claim the chat is live')
+    assert.equal(billingActivationConfirmed(business, { ...billing, accessAllowed: 'true' }, 'confirming'), false)
+    assert.equal(billingActivationConfirmed({ ...business, websiteVerifiedAt: null }, billing, 'confirming'), false)
+  }
+  for (const billing of [null, UNAVAILABLE_BILLING, { ...trial, subscriptionScheduled: false }, { state: 'incomplete', accessAllowed: false }, { state: 'internal', accessAllowed: true }, { state: 'past_due', accessAllowed: true }]) {
+    assert.equal(billingActivationConfirmed(business, billing, billingReturn('?checkout=success')), false, 'a URL, old free trial or failed confirmation cannot trigger success')
+  }
 })
 
 test('Checkout and portal destinations must be server-returned Stripe HTTPS URLs', () => {

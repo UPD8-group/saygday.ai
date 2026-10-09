@@ -20,8 +20,8 @@ export function CheckoutForBusiness({ business, ownerEmail, request }) {
   const [emailLocked, setEmailLocked] = useState(false)
   const [error, setError] = useState('')
   const [paymentReady, setPaymentReady] = useState(false)
-  const settings = `/app/settings?business=${encodeURIComponent(business.slug)}#billing`
-  const completed = `/app/settings?business=${encodeURIComponent(business.slug)}&checkout=success#billing`
+  const settings = `/app/billing?business=${encodeURIComponent(business.slug)}`
+  const completed = `/app/billing?business=${encodeURIComponent(business.slug)}&checkout=success`
 
   useEffect(() => { document.title = `Checkout — ${business.name} — SayGday` }, [business.name])
 

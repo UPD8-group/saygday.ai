@@ -70,3 +70,10 @@ export function billingConfirmed(billing) {
   return billing?.state === 'active' || billing?.state === 'canceling' || (['trial', 'trial_ending'].includes(billing?.state) && billing?.subscriptionScheduled === true)
 }
 
+// A checkout return only asks for a fresh server check. Celebrate only when
+// that response confirms a subscription and permits this verified chat to run.
+export function billingActivationConfirmed(business, billing, returned) {
+  return returned === 'confirming' && Boolean(business?.websiteVerifiedAt)
+    && billing?.accessAllowed === true && billingConfirmed(billing)
+}
+
