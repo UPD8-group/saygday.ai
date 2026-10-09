@@ -38,7 +38,7 @@ export default function Settings() {
     <div className="section-head"><div><h1>Settings</h1></div></div>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="success" onClose={() => setSaved('')}>{saved}</Notice>
-    <Billing key={business.id} billing={dash.billing} request={dash.request} refreshBilling={dash.refreshBilling} refreshing={dash.billingRefreshing} refreshError={dash.billingError} />
+    <Billing key={business.id} business={business} billing={dash.billing} request={dash.request} refreshBilling={dash.refreshBilling} refreshing={dash.billingRefreshing} refreshError={dash.billingError} />
     <form className="card" onSubmit={save}>
       <h2>Your business</h2>
       <Field label="Business name" hint="Shown at the top of your chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={name} maxLength={120} onChange={event => setName(event.target.value)} />}</Field>

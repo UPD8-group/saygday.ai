@@ -1,6 +1,7 @@
 import { useId } from 'react'
 
 const PATHS = {
+  card: 'M3 5h18v14H3zM3 9h18M7 15h4',
   arrow: 'M5 12h14M13 6l6 6-6 6',
   home: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z',
   back: 'M19 12H5M11 18l-6-6 6-6',

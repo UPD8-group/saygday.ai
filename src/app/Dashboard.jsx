@@ -177,7 +177,9 @@ export function Layout() {
     </header>
     {dash.business && <nav className="tabs" aria-label="Dashboard">
       <NavLink end to="/app"><Icon name="home" size={18} />Home</NavLink>
+      <NavLink to="/app/billing"><Icon name="card" size={18} />Billing</NavLink>
       {ready && <>
+      <NavLink to="/app/setup"><Icon name="check" size={18} />Set up your chat</NavLink>
       <NavLink to="/app/questions"><Icon name="list" size={18} />Questions{drafts > 0 && <span className="badge">{drafts}</span>}</NavLink>
       <NavLink to="/app/asked"><Icon name="inbox" size={18} />Customers asked{asked > 0 && <span className="badge">{asked}</span>}</NavLink>
       <NavLink to="/app/button"><Icon name="chat" size={18} />Chat button</NavLink>
@@ -290,6 +292,8 @@ function Overview() {
   const verified = Boolean(business.websiteVerifiedAt)
   const billing = billingView(dash.billing)
   const available = verified && billing.accessAllowed
+  const needsSetup = ['trial_not_started', 'card_required'].includes(billing.state)
+  const setupStep = !live || drafts ? 'answers' : !verified ? 'install' : 'preview'
   async function rescan() {
     setBusy(true); setError('')
     try { const result = await dash.request('startScan'); dash.setBusiness(result.business); dash.setScan(result.scan) }
@@ -301,16 +305,19 @@ function Overview() {
     : drafts > 0 ? { tone: 'gold', title: `${plural(drafts, 'question')} ${drafts === 1 ? 'is' : 'are'} waiting for you to check`, text: 'Nothing goes on your website until you approve it. Edit anything that isn’t quite right.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions')} iconAfter="arrow">Check them now</Button> }
     : !live ? { tone: 'gold', title: 'Add your first questions', text: 'Write the questions your customers ask, with your answers.', action: <Button size="big" kind="gold" onClick={() => navigate('/app/questions?add=1')} icon="plus">Add a question</Button> }
     : !verified ? { tone: 'gold', title: 'Put the chat button on your website', text: `${plural(live, 'answer')} ${live === 1 ? 'is' : 'are'} ready. Add one line to your website, then check that the website is yours. Billing in Settings shows whether your chat can run.`, action: <Button size="big" kind="gold" onClick={() => navigate('/app/button')} iconAfter="arrow">Show me how</Button> }
-    : !billing.accessAllowed ? { tone: 'warn', title: billing.title, text: billing.description, action: <Button kind="dark" onClick={() => navigate('/app/settings#billing')} iconAfter="arrow">View billing</Button> }
+    : !billing.accessAllowed ? { tone: 'warn', title: billing.title, text: billing.description, action: <Button kind="dark" onClick={() => navigate('/app/billing')} iconAfter="arrow">View billing</Button> }
     : !seen ? { tone: 'green', title: 'Your chat is switched on', text: `We checked ${business.website.replace(/^https:\/\//, '')} is yours. Your button shows the next time your website loads.`, action: null }
     : { tone: 'green', title: 'Your chat is live on your website', text: `Customers can see ${plural(live, 'answer')}. Questions it can’t answer come to Customers asked.`, action: null }
   return <div className="overview">
     <h1 className="greeting">G’day, {business.name}</h1>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
-    <section className={`next card card--${next.tone}`}>
+    {needsSetup ? <section className="next card card--gold">
+      <div><h2>Let's get your chat ready</h2><p>Check your answers, add the code, verify your website, then test your chat. Add your card at the final step.</p></div>
+      <div className="next__actions"><Button size="big" kind="gold" onClick={() => navigate(`/app/setup/${setupStep}?business=${encodeURIComponent(business.slug)}`)} iconAfter="arrow">Continue setup</Button></div>
+    </section> : <section className={`next card card--${next.tone}`}>
       <div><h2>{next.title}</h2><p>{next.text}</p></div>
       {next.action && <div className="next__actions">{next.action}</div>}
-    </section>
+    </section>}
     <div className="tiles">
       <Tile to="/app/questions" icon="list" title="Questions & answers" big={live} label={`${available ? 'live on your website' : 'approved answers saved'}${drafts ? ` · ${drafts} to check` : ''}`} />
       <Tile to="/app/asked" icon="inbox" title="Customers asked" big={business.counts?.newEnquiries || 0} label="new questions for you" />

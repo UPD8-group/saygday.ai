@@ -165,20 +165,10 @@ settings, which is how sign-in broke on saygday.ai before the move.
   variants and run it. Writing those found `does` singularised to `doe` and
   slipping past the stopwords (like `this` → `thi`); `doe` is a stopword now.
 
-- **The dashboard hands every business a paragraph for its privacy policy**
-  (owner, 4 October 2026: "Ok add it please", after hear.is's own Privacy
-  statement was written to name SayGday and he asked whether other platforms
-  do this). Most privacy policies list the services a website uses, and the
-  chat vendors a business already knows hand out wording for exactly that.
-  src/app/privacy-paragraph.mjs is the ONE paragraph, card "4. Tell your
-  customers" on the Chat button page (after Switch on), a textarea and Copy.
-  Every sentence is true for every business on SayGday and says the same as
-  site/privacy.html: what the settings request carries, no cookies, no AI,
-  matching in the browser, which answer was opened but never what was typed,
-  a sent question kept and emailed on through Resend (US), Supabase in
-  Sydney, the scrambled spam count cleared within a day, deletion within 30
-  days of the account closing. test/chat-look.test.mjs holds the paragraph
-  and the privacy page together fact by fact: change one, change both.
+- **No privacy-policy paragraph in the dashboard** (owner, 9 October 2026).
+  Remove the optional "Tell your customers" copy-and-paste card from the
+  Chat button setup page. The public privacy page and its commitments stay
+  in place; do not reintroduce this extra setup step.
 - **The chat window fetches nothing from Google** (4 October 2026, caught by
   hear.is's Google-free sweep the day its Privacy statement went to name
   SayGday). chat.html opens inside other businesses' websites, and it was
@@ -321,6 +311,13 @@ settings, which is how sign-in broke on saygday.ai before the move.
   Preserve website verification, card activation and the 14-day trial.
 
 ## Hard rules
+
+- **Guided setup (owner, 9 October 2026):** new customers follow
+  `/app/setup/answers` -> `install` -> `verify` -> `preview` -> `billing`.
+  Each screen has a clear next action. Payment follows testing the chat;
+  verification remains server-owned. Billing also has a permanent
+  `/app/billing` destination and stays reachable during scans. Do not hide
+  an unavailable payment action without explaining its prerequisite.
 
 - **Billing is server-owned.** Owner decision, 8 October 2026: build, scan,
   approve and preview free without a card. A new business must verify its

@@ -9,20 +9,23 @@ export function BillingNotice({ billing }) {
   // Reserve dashboard banners for billing problems or upcoming service changes.
   if (['internal', 'setup_pending', 'trial_not_started', 'card_required'].includes(view.state) || !view.needsAttention) return null
   return <div className="billing-notice"><Notice kind={view.needsAttention ? 'warning' : 'info'}>
-    <strong>{view.title}.</strong> {view.description} <Link to="/app/settings#billing">View billing</Link>
+    <strong>{view.title}.</strong> {view.description} <Link to="/app/billing">View billing</Link>
   </Notice></div>
 }
 
-export default function Billing({ billing, request, refreshBilling, refreshing, refreshError }) {
+export default function Billing({ business, billing, request, refreshBilling, refreshing, refreshError }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const selectedBusiness = new URLSearchParams(location.search).get('business')
-  const checkoutPath = `/app/checkout${selectedBusiness ? `?business=${encodeURIComponent(selectedBusiness)}` : ''}`
+  const selectedBusiness = business?.slug || new URLSearchParams(location.search).get('business')
+  const businessQuery = selectedBusiness ? `?business=${encodeURIComponent(selectedBusiness)}` : ''
+  const checkoutPath = `/app/checkout${businessQuery}`
+  const verificationPath = `/app/setup/install${businessQuery}`
   const returned = billingReturn(location.search)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [waiting, setWaiting] = useState(returned === 'confirming')
   const view = billingView(billing)
+  const verificationNeeded = view.state === 'trial_not_started' && !view.checkoutAvailable
 
   useEffect(() => {
     let alive = true
@@ -65,8 +68,14 @@ export default function Billing({ billing, request, refreshBilling, refreshing, 
     {returned === 'returned' && <Notice>Welcome back. We’ve requested your latest billing status. Portal changes appear here once confirmed.</Notice>}
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="error">{refreshError}</Notice>
+    {verificationNeeded && <div className="billing__state">
+      <h3>Verify your website to continue</h3>
+      <p id="billing-verification-note">Add your chat code to your website or verify your domain. Then return here to add your card and activate. Your 14 free days start when activation is complete.</p>
+      <Link className="btn btn--gold" to={verificationPath}>Verify my website</Link>
+    </div>}
     <div className="billing__actions">
-      {view.checkoutAvailable && <Button kind="gold" disabled={Boolean(busy) || refreshing || waiting} onClick={() => navigate(checkoutPath)} iconAfter="arrow">{view.checkoutLabel}</Button>}
+      {verificationNeeded && <Button kind="gold" disabled aria-describedby="billing-verification-note">Add card and activate</Button>}
+      {view.checkoutAvailable && <Button kind="gold" disabled={Boolean(busy) || refreshing || waiting} onClick={() => navigate(checkoutPath)} iconAfter="arrow">{view.state === 'card_required' ? 'Add card - 14 days free' : view.checkoutLabel}</Button>}
       {view.portalAvailable && <Button kind="dark" busy={busy === 'billingPortal'} disabled={Boolean(busy)} onClick={() => open('billingPortal')} iconAfter="external">Manage billing</Button>}
       <Button kind="ghost" busy={refreshing} disabled={Boolean(busy) || waiting} onClick={refreshBilling} icon="refresh">Refresh billing status</Button>
     </div>

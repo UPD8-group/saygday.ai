@@ -113,7 +113,7 @@ test('rendered billing controls honour server capability flags and explain price
 
 test('billing explains card collection after verification and automatic monthly renewal', () => {
   const activation = render({ state: 'card_required', accessAllowed: false, checkoutAvailable: true })
-  assert.match(activation, /Activate.*14 days free/)
+  assert.match(activation, /Add card.*14 days free/)
   assert.match(activation, /Nothing to pay today/)
   const start = /verify your website first/
   assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)
@@ -122,11 +122,16 @@ test('billing explains card collection after verification and automatic monthly 
   assert.match(html, /Verify your website, then add your card securely through Stripe/)
   assert.match(html, /Card details are required to activate a new chat/)
   assert.match(html, /automatically unless you cancel/)
+  assert.match(html, /href="\/app\/setup\/install"/)
+  assert.match(html, /Verify my website/)
+  assert.match(html, /disabled=""[^>]*aria-describedby="billing-verification-note"|aria-describedby="billing-verification-note"[^>]*disabled=""/)
+  assert.match(html, /Add card and activate/)
+  assert.doesNotMatch(activation, /Verify my website/)
 })
 
 test('dashboard notice links directly to billing without hiding owner tools', () => {
   const html = renderToStaticMarkup(React.createElement(StaticRouter, { location: '/app' }, React.createElement(BillingNotice, { billing: { state: 'past_due', accessAllowed: false } })))
-  assert.match(html, /href="\/app\/settings#billing"/)
+  assert.match(html, /href="\/app\/billing"/)
   assert.match(html, /payment needs attention/)
   assert.match(html, /edit answers and read enquiries/)
 })
@@ -150,6 +155,8 @@ test('billing and cancellation remain reachable while a website scan is running'
   const app = await readFile(new URL('../src/App.jsx', import.meta.url), 'utf8')
   const dashboard = await readFile(new URL('../src/app/Dashboard.jsx', import.meta.url), 'utf8')
   assert.match(app, /path="settings" element=\{<RequireBusiness allowWhileScanning><Settings \/><\/RequireBusiness>\}/)
+  assert.match(app, /path="billing" element=\{<RequireBusiness allowWhileScanning><BillingPage \/><\/RequireBusiness>\}/)
+  assert.match(dashboard, /to="\/app\/billing"/)
   for (const page of ['questions', 'asked', 'button']) assert.match(app, new RegExp(`path="${page}" element=\\{<RequireBusiness>`), `${page} keeps the existing scan gate`)
   assert.match(dashboard, /RequireBusiness\(\{ children, allowWhileScanning = false \}\)/)
   assert.match(dashboard, /!dash\.business \|\| \(!allowWhileScanning && SCANNING\.includes\(dash\.scan\?\.status\)\)/)
