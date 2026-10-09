@@ -6,7 +6,7 @@ import { respond, variantClashes } from '../../shared/matcher.mjs'
 
 // The owner's questions and answers: check the scan's drafts, edit, remove,
 // add their own, choose which show when the chat opens, and try the chat.
-export default function Questions() {
+export default function Questions({ guided = false }) {
   const dash = useDash()
   const [params, setParams] = useSearchParams()
   const faqs = dash.faqs || []
@@ -74,7 +74,7 @@ export default function Questions() {
     </Empty> : <ul className="faq-list">{list.map(faq => <FaqCard key={faq.id} faq={faq} featuredCount={live.filter(item => item.featured).length} onSave={fields => save(fields, faq)}
       onDelete={() => act(async () => { await dash.request('deleteFaq', { id: faq.id }); dash.setFaqs(current => current.filter(item => item.id !== faq.id)) })}
       onError={setError} />)}</ul>}
-    {live.length > 0 && <TryIt faqs={live} name={dash.business.name} />}
+    {!guided && live.length > 0 && <TryIt faqs={live} name={dash.business.name} />}
   </div>
 }
 

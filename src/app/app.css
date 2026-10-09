@@ -207,8 +207,6 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .look--plain .chat-avatar { background: var(--green); color: #fff; box-shadow: none; }
 .code { display: flex; gap: 10px; align-items: stretch; margin: 14px 0; }
 .code textarea { flex: 1; min-width: 0; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--paper); resize: none; color: var(--ink); }
-.code--prose textarea { font: 400 15px/1.55 'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif; white-space: pre-wrap; }
-.code--prose { align-items: flex-start; }
 .platforms { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .platforms button { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 13px; font-weight: 600; font-size: 14.5px; cursor: pointer; color: var(--muted); }
 .platforms button[aria-selected=true] { border-color: var(--green); background: var(--mint); color: var(--green-dark); }
@@ -332,5 +330,26 @@ textarea.input { resize: vertical; line-height: 1.5; }
   .checkout__summary, .checkout__payment { padding: 20px; }
   .checkout__totals > div { flex-direction: column; gap: 2px; }
   .checkout__totals dd { text-align: left; }
+}
+
+/* A clear, ordered path from approved answers to activation. */
+.setup-heading { margin: 0 0 20px; }
+.setup-heading h1 { margin-bottom: 8px; }
+.setup-heading .lead { max-width: 720px; }
+.setup-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 0 0 28px; list-style: none; }
+.setup-steps a { display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; height: 100%; border: 1px solid var(--line); border-radius: 14px; background: var(--white); color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.35; }
+.setup-steps a > span { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: var(--paper); color: var(--green); font-weight: 700; }
+.setup-steps .is-current a { background: var(--green); color: white; border-color: var(--green); }
+.setup-steps .is-current a > span { background: var(--gold); color: var(--ink); }
+.setup-steps .is-done a { color: var(--green); }
+.setup-actions { margin-top: 24px; border-top: 3px solid var(--gold); }
+.setup-actions .billing__actions { justify-content: space-between; }
+.setup .button-grid:not(:has(.preview)) { display: block; }
+@media (max-width: 600px) {
+  .setup-steps { gap: 5px; }
+  .setup-steps a { padding: 10px 5px; align-items: center; text-align: center; font-size: 11px; }
+  .setup-actions .billing__actions { flex-direction: column-reverse; }
+  .setup-actions .btn { width: 100%; justify-content: center; }
+  .setup .preview { order: -1; }
 }
 

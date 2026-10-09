@@ -5,7 +5,6 @@ import { Button, Field, Icon, Notice, when } from './ui.jsx'
 import Chat, { Avatar } from '../chat/Chat.jsx'
 import { DEFAULT_BUTTON_COLOUR, buttonColour, buttonInk } from '../../shared/button-colour.mjs'
 import { CHARACTERS, PLAIN_BUTTONS, characterImage, characterLabel, characterFor } from '../../shared/characters.mjs'
-import { PRIVACY_PARAGRAPH } from './privacy-paragraph.mjs'
 import { billingView } from './billing-view.mjs'
 
 const PLATFORMS = [
@@ -26,7 +25,7 @@ const NOT_YET = {
 // The chat stays hidden until the business proves the website is its own
 // (owner, 3 October 2026): the chat button on its home page, or a DNS record.
 // The server also checks by itself the first time the button loads there.
-export function SwitchOn({ business, request, onBusiness }) {
+export function SwitchOn({ business, request, onBusiness, guided = false }) {
   const dash = useDash()
   const billing = billingView(dash.billing)
   const site = business.website?.replace(/^https:\/\//, '') || 'your website'
@@ -46,18 +45,20 @@ export function SwitchOn({ business, request, onBusiness }) {
     finally { if (!quiet) setBusy(false) }
   }, [request, onBusiness, site, dash.refreshBilling])
   // If the button is already on the website, opening this page switches it on.
-  useEffect(() => { if (!verified && business.website) check(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!guided && !verified && business.website) check(true) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   async function copyRecord() {
     try { await navigator.clipboard.writeText(record); setCopied(true); setTimeout(() => setCopied(false), 2500) }
     catch { /* the value stays on screen to copy by hand */ }
   }
-  return <section className="card switch-on">
-    <h2>3. Switch it on</h2>
+  return <section id="verification" className="card switch-on">
+    <h2>{guided ? 'Confirm your website' : '3. Switch it on'}</h2>
     {verified ? <>
       <p className="live-state"><Icon name="shield" size={18} />{`Website verified. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
-      <p className={`live-state${billing.accessAllowed && business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={billing.accessAllowed && business.buttonSeenAt ? 'check' : 'globe'} size={18} />
-        {!billing.accessAllowed ? (billing.state === 'card_required' ? 'Ready to activate. Add your card to start your 14 free live days.' : 'Your customer chat is paused. Check Billing in Settings.') : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
-      {!billing.accessAllowed && <Link className="btn btn--gold" to="/app/settings#billing">{billing.state === 'card_required' ? 'Activate — 14 days free' : 'View billing'}</Link>}
+      {guided ? <p className="live-state"><Icon name="check" size={18} />Website verified. Next, test your chat.</p> : <>
+        <p className={`live-state${billing.accessAllowed && business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={billing.accessAllowed && business.buttonSeenAt ? 'check' : 'globe'} size={18} />
+          {!billing.accessAllowed ? (billing.state === 'card_required' ? 'Ready to activate. Add your card to start your 14 free live days.' : 'Your customer chat is paused. Check Billing.') : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+        {!billing.accessAllowed && <Link className="btn btn--gold" to="/app/billing">{billing.state === 'card_required' ? 'Activate - 14 days free' : 'View billing'}</Link>}
+      </>}
     </> : <>
       <p>Your chat stays hidden until we’ve checked the button is on {site}, so nobody else can put answers out under your business’s name.</p>
       <p className="small">Published the change? Press the button below. We also check by ourselves the first time your website shows the button.</p>
@@ -78,7 +79,7 @@ export function SwitchOn({ business, request, onBusiness }) {
 }
 
 // How the button looks, and how to put it on the website.
-export default function ChatButton() {
+export default function ChatButton({ stage, onDirtyChange } = {}) {
   const dash = useDash()
   const { business } = dash
   const [character, setCharacter] = useState(business.character)
@@ -90,14 +91,16 @@ export default function ChatButton() {
   const [saved, setSaved] = useState('')
   const [platform, setPlatform] = useState('any')
   const [copied, setCopied] = useState(false)
-  const [copiedParagraph, setCopiedParagraph] = useState(false)
   const [open, setOpen] = useState(true)
   useEffect(() => { document.title = 'Chat button · SayGday' }, [])
   const code = `<script src="${location.origin}/widget.js" data-business="${business.slug}" defer></script>`
   const simple = !characterFor(character)
   const launcherStyle = simple ? { background: colour, color: buttonInk(colour) } : undefined
   const changed = colour !== buttonColour(business.buttonColour) || character !== business.character || greeting.trim() !== business.greeting || signedBy.trim() !== (business.signedBy || '')
+  useEffect(() => { if (stage === 'preview') onDirtyChange?.(changed) }, [stage, changed, onDirtyChange])
   const live = (dash.faqs || []).filter(faq => faq.status === 'approved')
+  const showLook = !stage || stage === 'preview'
+  const showInstall = !stage || stage === 'install'
 
   async function save() {
     setBusy(true); setError(''); setSaved('')
@@ -109,16 +112,13 @@ export default function ChatButton() {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2500) }
     catch { document.getElementById('install-code')?.select() }
   }
-  async function copyParagraph() {
-    try { await navigator.clipboard.writeText(PRIVACY_PARAGRAPH); setCopiedParagraph(true); setTimeout(() => setCopiedParagraph(false), 2500) }
-    catch { document.getElementById('privacy-paragraph')?.select() }
-  }
+  if (stage === 'verify') return <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} guided />
   return <div className="button-page">
-    <div className="section-head"><div><h1>Your chat button</h1><p className="lead">Choose how it looks, then add it to your website with one line of code.</p></div></div>
-    <div className="button-grid">
+    <div className="section-head"><div><h1>{stage === 'install' ? 'Add it to your website' : stage === 'preview' ? 'Test your assistant' : 'Your chat button'}</h1><p className="lead">{stage === 'install' ? 'Add this code to your website, then continue to check it.' : stage === 'preview' ? 'Try the chat below. Adjust its look and greeting, then save your changes before continuing.' : 'Choose how it looks, then add it to your website with one line of code.'}</p></div></div>
+    <div className={showLook ? 'button-grid' : undefined}>
       <div className="button-grid__settings">
-        <section className="card">
-          <h2>1. Choose its look</h2>
+        {showLook && <section className="card">
+          <h2>{stage ? 'Choose its look' : '1. Choose its look'}</h2>
           <div className="looks" role="radiogroup" aria-label="Button look">
             <p className="looks__title">The mob</p>
             {CHARACTERS.map(item => <button key={item.key} type="button" role="radio" aria-checked={character === item.key} className={`look${character === item.key ? ' is-on' : ''}`} onClick={() => setCharacter(item.key)} title={characterLabel(item.key)}>
@@ -133,24 +133,18 @@ export default function ChatButton() {
           <Field label="Greeting" hint="The first thing customers read when they open the chat.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={greeting} maxLength={200} onChange={event => setGreeting(event.target.value)} />}</Field>
           <Field label="Who signs off your answers (optional)" hint="A first name, like Sam. The chat says “Answers from Sam and the team”, and customers’ new questions are “one for Sam”. Leave it empty to show your business name.">{(id, note) => <input id={id} aria-describedby={note} className="input" value={signedBy} maxLength={40} autoComplete="given-name" onChange={event => setSignedBy(event.target.value)} />}</Field>
           <Notice kind="error">{error}</Notice><Notice kind="success">{saved}</Notice>
-          <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim()} icon="check">Save</Button>
-        </section>
-        <section className="card">
-          <h2>2. Add it to your website</h2>
+          <Button onClick={save} busy={busy} disabled={!changed || !greeting.trim()} icon="check">Save changes</Button>
+        </section>}
+        {showInstall && <section className="card">
+          <h2>{stage ? 'Your installation code' : '2. Add it to your website'}</h2>
           <p>Copy this line and add it to your website. It works on Wix, Squarespace, WordPress, Shopify and most other sites.</p>
           <div className="code"><textarea id="install-code" readOnly value={code} rows={2} aria-label="Your chat button code" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copy} icon={copied ? 'check' : 'copy'}>{copied ? 'Copied' : 'Copy'}</Button></div>
           <div className="platforms" role="tablist" aria-label="Your website builder">{PLATFORMS.map(item => <button key={item.key} role="tab" aria-selected={platform === item.key} onClick={() => setPlatform(item.key)}>{item.label}</button>)}</div>
-          <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map(step => <li key={step}>{step}</li>)}</ol>
-        </section>
-        <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />
-        <section className="card tell-customers">
-          <h2>4. Tell your customers</h2>
-          <p>Most privacy policies list the services a website uses. Here is a paragraph you can paste into yours. It says exactly what the chat button sends and keeps, in plain words.</p>
-          <div className="code code--prose"><textarea id="privacy-paragraph" readOnly value={PRIVACY_PARAGRAPH} rows={9} aria-label="A paragraph for your privacy policy" onFocus={event => event.target.select()} /><Button kind="dark" onClick={copyParagraph} icon={copiedParagraph ? 'check' : 'copy'}>{copiedParagraph ? 'Copied' : 'Copy'}</Button></div>
-          <p className="small">Our own privacy page says the same in more detail: <a href="https://saygday.ai/privacy" target="_blank" rel="noreferrer">saygday.ai/privacy</a>.</p>
-        </section>
+          <ol className="platform-steps">{PLATFORMS.find(item => item.key === platform).steps.map((step, index) => <li key={step}>{stage === 'install' && platform === 'any' && index === 2 ? 'Publish your website, then continue to check it in the next step.' : step}</li>)}</ol>
+        </section>}
+        {!stage && <SwitchOn business={business} request={dash.request} onBusiness={dash.setBusiness} />}
       </div>
-      <section className="preview" aria-label="Preview">
+      {showLook && <section className="preview" aria-label="Preview">
         <p className="preview__label"><Icon name="eye" size={16} /> Preview: what customers see</p>
         <div className="preview__site">
           <div className="preview__bar"><span /><span /><span /><em>{business.website?.replace(/^https:\/\//, '')}</em></div>
@@ -161,7 +155,7 @@ export default function ChatButton() {
           </button>
         </div>
         {live.length === 0 && <p className="small">Approve some questions and they’ll appear here.</p>}
-      </section>
+      </section>}
     </div>
   </div>
 }
