@@ -326,7 +326,7 @@ export async function billingCheckout({ db, user, business = null, configuration
         integration_identifier: `saygday-monthly-${Array.from({ length: 8 }, () => String.fromCharCode(97 + randomInt(26))).join('')}`,
         allow_promotion_codes: false, automatic_tax: { enabled: false }, adaptive_pricing: { enabled: false },
         client_reference_id: account.business_id, metadata: { saygday_checkout_key: key },
-        return_url: `${configuration.publicUrl}/app/settings?business=${encodeURIComponent(account.business_slug)}&checkout=success`,
+        return_url: `${configuration.publicUrl}/app/billing?business=${encodeURIComponent(account.business_slug)}&checkout=success`,
         expires_at: current + (remaining > 0 ? Math.min(86400, remaining - 48 * 3600) : 86400),
         subscription_data: { metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key },
           trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },

@@ -6,6 +6,12 @@ import assert from 'node:assert/strict'
 
 const mutations = [
   {
+    file: 'src/app/billing-view.mjs',
+    from: '&& billing?.accessAllowed === true && billingConfirmed(billing)',
+    to: '&& billingConfirmed(billing)',
+    test: 'activation celebration requires a verified website and server-confirmed subscription access after checkout',
+  },
+  {
     file: 'src/app/checkout-stripe.mjs',
     from: "return actions.confirm({\n    ...(!emailLocked ? { email: email.trim() } : {}),",
     to: "return actions.confirm({\n    returnUrl: 'https://saygday.ai/app/billing',\n    ...(!emailLocked ? { email: email.trim() } : {}),",
