@@ -4,6 +4,7 @@ import { goToSignIn, useDash } from './Dashboard.jsx'
 import { useAuth } from './auth.jsx'
 import { Button, Field, Notice } from './ui.jsx'
 import Billing from './Billing.jsx'
+import { StudioConnections } from './StudioConnect.jsx'
 
 export default function Settings() {
   const dash = useDash()
@@ -62,6 +63,7 @@ export default function Settings() {
       <Field label="Website address">{id => <div className="url-input url-input--light"><span aria-hidden="true">https://</span><input id={id} value={website} onChange={event => setWebsite(event.target.value.replace(/^https?:\/\//i, ''))} inputMode="url" autoCapitalize="none" spellCheck={false} /></div>}</Field>
       <Button type="submit" kind="dark" busy={busy === 'scan'} icon="refresh">Scan my website</Button>
     </form>
+    <StudioConnections key={business.id} business={business} />
     <section className="card">
       <h2>Your account</h2>
       <p>Signed in as <strong>{dash.email}</strong>.</p>

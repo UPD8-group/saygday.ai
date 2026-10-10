@@ -162,7 +162,10 @@ export function RequireSignIn({ children }) {
 // screen of the dashboard, so getting there is a full page load.
 export const goToSignIn = () => window.location.replace('/login')
 function GoToSignIn() {
-  useEffect(goToSignIn, [])
+  useEffect(() => {
+    if (window.location.pathname === '/app/connect/oo-studio') window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    else goToSignIn()
+  }, [])
   return <div className="page"><Spinner label="Opening sign-in…" /></div>
 }
 
