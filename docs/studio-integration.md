@@ -74,6 +74,32 @@ service role access to auth tables. It changes no existing customer rows.
 Use the normal migration workflow after checking the CLI help
 and the target project. Run the Supabase advisors after application.
 
+Production record (10 October 2026): the reviewed SQL in that local file was
+applied to SayGday project `plcowhnsmrgenzsohbrl` by the connector as migration
+`20261010133314_studio_delegated_access`. The generated remote timestamp is
+different from the source filename; migration history was not rewritten.
+Both tables have RLS enabled, both browser roles are denied table access and
+execution of every integration RPC, and the private helper does not grant
+the service role access to `auth.users`. There were no codes or grants at
+verification, and existing business, answer, enquiry and user counts were
+unchanged. PR #51 was squash-merged as
+`e6a69772add9c95e6136ddced551340840333eab`.
+Netlify production deploy `6aca3efc6006040008e91b82` published that exact
+commit at `2026-10-10T13:36:09.828Z`; state was ready, the integration function
+was present, and secret scanning reported no matches.
+
+Production smoke checks: `GET /api/integrations` returns 405,
+unauthenticated summary and consent requests return 401 with `no-store`,
+and `/app/connect/oo-studio` serves its page with HTTP 200. An unknown scoped
+token is rejected without creating a grant. No sign-in emails were sent,
+no customer connections were created, and the legacy studio endpoints were
+not retired as part of this provider rollout.
+
+Security advisors report the existing leaked-password-protection warning and
+the expected no-policy information for service-only RLS tables. Performance
+advisors also note that the two new business foreign keys have no covering
+business-only index; these tables are empty at rollout.
+
 The production callback works without a new secret or environment setting.
 For an isolated test environment only, `SAYGDAY_STUDIO_CALLBACK_URL` may be set
 server-side to one exact HTTPS callback on its matching studio staging site.
