@@ -8,10 +8,12 @@ import Settings from './app/Settings.jsx'
 import Checkout from './app/Checkout.jsx'
 import BillingPage from './app/BillingPage.jsx'
 import Setup from './app/Setup.jsx'
+import StudioConnect from './app/StudioConnect.jsx'
 
 export default function App() {
   return <AuthProvider>
     <Routes>
+      <Route path="/app/connect/oo-studio" element={<RequireSignIn><StudioConnect /></RequireSignIn>} />
       <Route path="/app" element={<RequireSignIn><DashboardProvider><Layout /></DashboardProvider></RequireSignIn>}>
         <Route index element={<Home />} />
         <Route path="add" element={<AddWebsite />} />

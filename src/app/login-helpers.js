@@ -1,5 +1,13 @@
 export const cleanEmailCode = value => String(value || '').replace(/\D/g, '').slice(0, 10)
 
+// Only the dedicated consent route may survive a sign-in. This is not a
+// generic redirect parameter, so external URLs and other app routes fail shut.
+export function studioReturnPath(value) {
+  if (typeof value !== 'string' || value.length > 2000 || !value.startsWith('/app/connect/oo-studio?')) return '/app'
+  const url = new URL(value, 'https://saygday.ai')
+  return url.origin === 'https://saygday.ai' && url.pathname === '/app/connect/oo-studio' ? url.pathname + url.search : '/app'
+}
+
 export function friendlyAuthError(error) {
   const details = `${error?.code || ''} ${error?.message || ''}`
   if (/expired|invalid.*token|otp_expired/i.test(details)) return 'That code has expired or isn’t quite right. Use the latest email, or request a new code below.'

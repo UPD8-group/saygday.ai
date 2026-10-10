@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../app/auth.jsx'
 import { withDeadline } from '../app/request-lifecycle.js'
-import { cleanEmailCode, friendlyAuthError } from '../app/login-helpers.js'
+import { cleanEmailCode, friendlyAuthError, studioReturnPath } from '../app/login-helpers.js'
 
 // The card on /login: sign in or sign up in one, with an email address and
 // then the code we email. No passwords. A signed-in owner goes straight to
@@ -23,7 +23,7 @@ export default function SignIn({ initialEmail = '' }) {
   const [resendAt, setResendAt] = useState(0)
   const [now, setNow] = useState(Date.now())
   const codeInput = useRef(null)
-  useEffect(() => { if (session) window.location.replace('/app') }, [session])
+  useEffect(() => { if (session) window.location.replace(studioReturnPath(new URLSearchParams(window.location.search).get('next'))) }, [session])
   useEffect(() => { if (!resendAt) return; const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [resendAt])
   useEffect(() => { if (sentTo) codeInput.current?.focus() }, [sentTo])
   const wait = Math.max(0, Math.ceil((resendAt - now) / 1000))

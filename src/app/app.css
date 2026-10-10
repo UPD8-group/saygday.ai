@@ -546,3 +546,8 @@ textarea.input { resize: vertical; line-height: 1.5; }
 
 /* Native fieldset locks the appearance controls while their save is in flight. */
 fieldset.button-page { min-width: 0; margin: 0; padding: 0; border: 0; }
+.studio-connect { max-width: 680px; margin: 32px auto; }
+.studio-connect > a { display: inline-block; margin-bottom: 24px; }
+.studio-connect .card { padding: clamp(24px, 5vw, 48px); }
+.studio-connect li { margin-bottom: 12px; }
+.studio-connect__actions { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-top: 28px; }
