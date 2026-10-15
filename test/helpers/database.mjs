@@ -30,6 +30,7 @@ export async function database({ cardRequired = true } = {}) {
   // Compatibility scripts predate complimentary access; apply its current
   // entitlement and reporting definitions last, as in the production rollout.
   await pg.exec(await readFile(new URL('../../supabase/migrations/20261015093032_complimentary_client_codes.sql', import.meta.url), 'utf8'))
+  await pg.exec(await readFile(new URL('../../supabase/migrations/20261015104029_thirty_dollar_monthly_price.sql', import.meta.url), 'utf8'))
   // Legacy regression fixtures explicitly retain the previously promised no-card policy.
   if (!cardRequired) await pg.exec('update public.billing_settings set require_card_for_new_trials=false')
   return pg

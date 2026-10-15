@@ -43,15 +43,15 @@ const mutations = [
   },
   {
     file: 'netlify/functions/_lib/billing.mjs',
-    from: 'price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT))',
-    to: '(price.unit_amount === 3000 || price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)))',
+    from: 'price.unit_amount === (legacy ? 4000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT))',
+    to: '(price.unit_amount === 4000 || price.unit_amount === (legacy ? 4000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)))',
     test: 'configuration pins the SDK API, secret mode, origin and exact AUD monthly inclusive price',
   },
   {
     file: 'netlify/functions/_lib/billing.mjs',
     from: "if (session?.status === 'open' && !retiresPrice && session.ui_mode === 'elements' && session.expires_at > current)",
     to: "if (session?.status === 'open' && session.ui_mode === 'elements' && session.expires_at > current)",
-    test: 'an unfinished A$30 Elements checkout is retired before A$40, including lost create responses',
+    test: 'an unfinished A$40 Elements checkout is retired before A$30, including lost create responses',
   },
   {
     file: 'supabase/billing-card-activation.sql',

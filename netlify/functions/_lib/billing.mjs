@@ -24,9 +24,9 @@ const busy = () => new HttpError(409, 'We’re updating your billing. Please try
 // keys remain server environment values. Scope this production fallback to
 // this exact site and price; other deployments must supply their own pk_*.
 const SAYGDAY_PUBLIC_STRIPE_KEY = 'pk_live_51UA2P7R8qEoKoynxKDV4Q6I5JpVH9q80xSh3VJLzNWvizyQgWfsEqlGfjJb6qPTMcGaWFrc1YZgf0QXgCeCov5ak00i3j7v0Qm'
-const SAYGDAY_MONTHLY_PRICE = 'price_1UOX45R8qEoKoynxBDir6jA0'
-const SAYGDAY_PREVIOUS_MONTHLY_PRICE = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
-const MONTHLY_AMOUNT = 4000
+const SAYGDAY_MONTHLY_PRICE = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
+const SAYGDAY_PREVIOUS_MONTHLY_PRICE = 'price_1UOX45R8qEoKoynxBDir6jA0'
+const MONTHLY_AMOUNT = 3000
 // Agreed business prices are stored by the service, never taken from a browser.
 export function accountBillingConfiguration(account, configuration) {
   const id = account?.price_override_id, amount = account?.price_override_amount
@@ -80,7 +80,7 @@ export function stripeUrl(value, purpose) {
 export function exactPrice(price, configuration, { forCheckout = false } = {}) {
   const legacy = !forCheckout && previousPrice(price?.id, configuration)
   return !!price && (price.id === configuration.priceId || legacy) && price.livemode === configuration.live
-    && price.currency === 'aud' && price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)) && price.tax_behavior === 'inclusive' && price.type === 'recurring'
+    && price.currency === 'aud' && price.unit_amount === (legacy ? 4000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)) && price.tax_behavior === 'inclusive' && price.type === 'recurring'
     && price.billing_scheme === 'per_unit' && price.recurring?.interval === 'month'
     && price.recurring.interval_count === 1 && price.recurring.usage_type === 'licensed'
     && !price.transform_quantity && (!forCheckout || price.active === true)

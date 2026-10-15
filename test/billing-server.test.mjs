@@ -12,15 +12,15 @@ const settings = { SAYGDAY_STRIPE_SECRET_KEY: 'sk_test_example', SAYGDAY_STRIPE_
   SAYGDAY_STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_safe', SAYGDAY_STRIPE_WEBHOOK_SECRET: 'whsec_example', SAYGDAY_PUBLIC_URL: 'https://saygday.ai' }
 const configuration = billingConfiguration(name => settings[name])
 const liveSettings = { ...settings, SAYGDAY_STRIPE_SECRET_KEY: 'sk_live_example', SAYGDAY_STRIPE_MODE: 'live',
-  SAYGDAY_STRIPE_PUBLISHABLE_KEY: undefined, SAYGDAY_STRIPE_PRICE_ID: 'price_1UOX45R8qEoKoynxBDir6jA0' }
+  SAYGDAY_STRIPE_PUBLISHABLE_KEY: undefined, SAYGDAY_STRIPE_PRICE_ID: 'price_1UOA0sR8qEoKoynxWAoOrDeA' }
 const liveConfiguration = billingConfiguration(name => liveSettings[name])
-const previousPriceId = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
+const previousPriceId = 'price_1UOX45R8qEoKoynxBDir6jA0'
 const now = () => Math.floor(Date.now() / 1000)
-const price = () => ({ id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 4000, tax_behavior: 'inclusive',
+const price = () => ({ id: 'price_monthly', active: true, livemode: false, currency: 'aud', unit_amount: 3000, tax_behavior: 'inclusive',
   type: 'recurring', billing_scheme: 'per_unit', recurring: { interval: 'month', interval_count: 1, usage_type: 'licensed' } })
 const subscription = (overrides = {}) => ({ id: 'sub_plan', customer: 'cus_owner', created: now(), livemode: false, status: 'active',
   collection_method: 'charge_automatically', cancel_at_period_end: false, items: { data: [{ quantity: 1, price: price(), current_period_end: now() + 86400 }] },
-  latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 4000, total: 4000 }, ...overrides })
+  latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 3000, total: 3000 }, ...overrides })
 const portal = () => ({ id: 'bpc_safe', active: true, livemode: false, features: { payment_method_update: { enabled: true }, invoice_history: { enabled: true },
   customer_update: { enabled: false }, subscription_cancel: { enabled: true, mode: 'at_period_end', proration_behavior: 'none' },
   subscription_update: { enabled: false } } })
@@ -112,7 +112,7 @@ test('an agreed business price binds checkout, entitlement and reporting without
   const admin = await s.pg.query('select admin_business_json(b) as business from businesses b where id=$1', [s.business.id])
   assert.equal(admin.rows[0].business.billing.monthlyAmount, 6000)
   await assert.rejects(s.pg.query('update billing_accounts set price_override_id=null where business_id=$1', [s.business.id]), /billing_price_override_check/)
-  assert.equal(exactPrice(price(), configuration), true, 'ordinary businesses keep the public A$40 offer')
+  assert.equal(exactPrice(price(), configuration), true, 'ordinary businesses keep the public A$30 offer')
 })
 const event = (overrides = {}) => ({ id: 'evt_event', api_version: STRIPE_API_VERSION, object: 'event', livemode: false,
   type: 'customer.subscription.updated', created: now(), data: { object: { customer: 'cus_owner', status: 'canceled' } }, ...overrides })
@@ -139,7 +139,7 @@ test('configuration pins the SDK API, secret mode, origin and exact AUD monthly 
     assert.equal(billingConfiguration(name => name === key ? value : settings[name]).checkoutReady, false)
   }
   assert.equal(exactPrice(price(), configuration, { forCheckout: true }), true)
-  for (const patch of [{ currency: 'usd' }, { unit_amount: 3999 }, { unit_amount: 3000 }, { tax_behavior: 'exclusive' }, { id: 'price_elsewhere' }, { livemode: true },
+  for (const patch of [{ currency: 'usd' }, { unit_amount: 2999 }, { unit_amount: 4000 }, { tax_behavior: 'exclusive' }, { id: 'price_elsewhere' }, { livemode: true },
     { active: false }, { billing_scheme: 'tiered' }, { transform_quantity: {} }, { recurring: { interval: 'year', interval_count: 1, usage_type: 'licensed' } }])
     assert.equal(exactPrice({ ...price(), ...patch }, configuration, { forCheckout: true }), false, JSON.stringify(patch))
   for (const url of ['http://checkout.stripe.com', 'https://checkout.stripe.com.evil.example/', 'https://checkout.stripe.com@evil.example/', '//checkout.stripe.com', 'javascript:alert(1)'])
@@ -170,8 +170,8 @@ test('the public production browser key fallback is confined to SayGday live bil
   assert.equal(read({ ...live, SAYGDAY_STRIPE_PUBLISHABLE_KEY: 'pk_live_explicit' }).publishableKey, 'pk_live_explicit')
 })
 
-test('the A$40 rollout recognises only the exact previous live price for existing entitlement, never new checkout', async () => {
-  const legacy = { ...price(), id: previousPriceId, livemode: true, unit_amount: 3000, active: false }
+test('the A$30 rollout recognises only the exact previous live price for existing entitlement, never new checkout', async () => {
+  const legacy = { ...price(), id: previousPriceId, livemode: true, unit_amount: 4000, active: false }
   assert.equal(exactPrice(legacy, liveConfiguration), true)
   assert.equal(exactPrice({ ...legacy, active: true }, liveConfiguration, { forCheckout: true }), false)
   assert.equal(exactPrice(legacy, { ...liveConfiguration, publicUrl: 'https://preview.saygday.ai' }), false)
@@ -179,12 +179,12 @@ test('the A$40 rollout recognises only the exact previous live price for existin
   const stripe = fakeStripe(liveConfiguration), account = { stripe_customer_id: 'cus_owner' }
   stripe.subscriptions = [subscription({ livemode: true,
     items: { data: [{ quantity: 1, price: legacy, current_period_end: now() + 86400 }] },
-    latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 3000, total: 3000 } })]
+    latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 4000, total: 4000 } })]
   assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, true)
   stripe.subscriptions[0].items.data[0].price = stripe.price
   assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, false,
-    'an old A$30 invoice does not establish payment of the A$40 monthly price')
-  stripe.subscriptions[0].latest_invoice = { status: 'paid', currency: 'aud', amount_paid: 4000, total: 4000 }
+    'an old A$40 invoice does not establish payment of the A$30 monthly price')
+  stripe.subscriptions[0].latest_invoice = { status: 'paid', currency: 'aud', amount_paid: 3000, total: 3000 }
   assert.equal((await subscriptionSnapshot(stripe.client, account, liveConfiguration)).price_valid, true)
 })
 
@@ -194,7 +194,7 @@ test('Checkout is authenticated and ignores every client customer, price, user, 
   const result = await ownerAction({ request, db: s.db, origin: 'https://evil.example', body: { action: 'billingCheckout', customerId: 'cus_attacker',
     priceId: 'price_free', user: { id: 'attacker' }, businessId: 'other', trialDays: 100, returnUrl: 'https://evil.example' }, dependencies: { billing: s.args } })
   assert.deepEqual(result, { clientSecret: 'cs_test_0_secret_example', publishableKey: 'pk_test_example',
-    expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id, monthlyAmount: 4000 })
+    expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id, monthlyAmount: 3000 })
   const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
   assert.equal(params.return_url, 'https://saygday.ai/app/billing?business=owner&checkout=success')
@@ -284,7 +284,7 @@ test('a customer completing the hosted link during migration blocks replacement 
   assert.equal(s.stripe.sessions.length, 1)
 })
 
-test('an unfinished A$30 Elements checkout is retired before A$40, including lost create responses', async () => {
+test('an unfinished A$40 Elements checkout is retired before A$30, including lost create responses', async () => {
   for (const created of [true, false]) {
     const s = await setup({ customer: true, config: liveConfiguration })
     const legacy = await hostedAttempt(s, { created, responseLost: true, priceId: previousPriceId, uiMode: 'elements' })
@@ -304,7 +304,7 @@ test('an unfinished A$30 Elements checkout is retired before A$40, including los
   }
 })
 
-test('an A$30 completion racing price migration blocks a second subscription', async () => {
+test('an A$40 completion racing price migration blocks a second subscription', async () => {
   const s = await setup({ customer: true, config: liveConfiguration })
   const legacy = await hostedAttempt(s, { priceId: previousPriceId, uiMode: 'elements' })
   s.stripe.expireRace = true
@@ -312,7 +312,7 @@ test('an A$30 completion racing price migration blocks a second subscription', a
   assert.equal(s.stripe.sessions.length, 1)
   s.stripe.subscriptions = [subscription({ id: 'sub_racing', livemode: true, status: 'trialing',
     trial_end: legacy.operation.params.subscription_data.trial_end,
-    items: { data: [{ quantity: 1, price: { ...price(), id: previousPriceId, livemode: true, unit_amount: 3000 }, current_period_end: now() + 86400 }] } })]
+    items: { data: [{ quantity: 1, price: { ...price(), id: previousPriceId, livemode: true, unit_amount: 4000 }, current_period_end: now() + 86400 }] } })]
   await refused(billingCheckout(s.args), 'SUBSCRIPTION_EXISTS')
   assert.equal(s.stripe.sessions.length, 1)
   assert.equal((await s.account()).price_valid, true)
@@ -387,7 +387,7 @@ test('the Checkout integration label and Managed Payments opt-out survive retrie
 
 test('dynamic delayed-payment events cannot grant access until Stripe confirms the exact paid invoice', async () => {
   const s = await setup({ expired: true, customer: true })
-  s.stripe.subscriptions = [subscription({ latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 4000 } })]
+  s.stripe.subscriptions = [subscription({ latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
   for (const [id, type, payment_status] of [
     ['evt_checkoutPending', 'checkout.session.completed', 'unpaid'],
     ['evt_asyncEarly', 'checkout.session.async_payment_succeeded', 'paid'],
@@ -400,7 +400,7 @@ test('dynamic delayed-payment events cannot grant access until Stripe confirms t
   const paid = event({ id: 'evt_asyncPaid', type: 'checkout.session.async_payment_succeeded', data: { object: { customer: 'cus_owner', payment_status: 'paid' } } })
   await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, paid) })
   assert.equal(publicBilling(await s.account(), configuration).accessAllowed, true)
-  s.stripe.subscriptions = [subscription({ status: 'past_due', latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 4000 } })]
+  s.stripe.subscriptions = [subscription({ status: 'past_due', latest_invoice: { status: 'open', currency: 'aud', amount_paid: 0, total: 3000 } })]
   const failed = event({ id: 'evt_asyncFailed', type: 'checkout.session.async_payment_failed', data: { object: { customer: 'cus_owner', payment_status: 'unpaid' } } })
   await stripeWebhook({ ...s.args, request: signedRequest(s.stripe.client, failed) })
   assert.equal(publicBilling(await s.account(), configuration).accessAllowed, false)
@@ -452,7 +452,7 @@ test('snapshot validates paid invoice, exact quantity, price, currency, period, 
   const stripe = fakeStripe(), account = { stripe_customer_id: 'cus_owner' }
   stripe.subscriptions = [subscription()]
   assert.equal((await subscriptionSnapshot(stripe.client, account, configuration)).price_valid, true)
-  const cases = [ { latest_invoice: { status: 'open', amount_paid: 0, total: 4000, currency: 'aud' } }, { pause_collection: { behavior: 'void' } },
+  const cases = [ { latest_invoice: { status: 'open', amount_paid: 0, total: 3000, currency: 'aud' } }, { pause_collection: { behavior: 'void' } },
     { discounts: ['di_coupon'] }, { collection_method: 'send_invoice' }, { items: { data: [{ quantity: 2, price: price(), current_period_end: now() + 86400 }] } },
     { items: { data: [{ quantity: 1, price: { ...price(), currency: 'usd' }, current_period_end: now() + 86400 }] } }, { latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 1, total: 1 } } ]
   for (const patch of cases) {

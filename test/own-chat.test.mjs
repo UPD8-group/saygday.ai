@@ -49,7 +49,7 @@ test('SayGday’s own chat: the G’day button, a pulse, and well over 20 answer
 test('the chat’s facts are the website’s facts', async () => {
   const site = async slug => words(await built(slug))
   const facts = [
-    ['How much does it cost?', 'A$40 a month', await site('pricing'), 'A$40 a month'],
+    ['How much does it cost?', 'A$30 a month', await site('pricing'), 'A$30 a month'],
     ['How much does it cost?', '7 days free', await site('pricing'), '7 days free'],
     ['Is there a free trial?', 'Build and preview without a card', await site('pricing'), 'No card needed to build and preview your assistant'],
     ['Is there a free trial?', 'add your card through Stripe to activate your chat', await site('pricing'), 'add your card through Stripe to activate your chat'],
