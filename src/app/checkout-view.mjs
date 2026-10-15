@@ -26,7 +26,7 @@ export function checkoutView(session, checkout, now = Date.now()) {
   if (session?.status?.type === 'complete') return { complete: true }
   if (session?.status?.type !== 'open') throw new Error('This checkout is not available. Please return to Billing.')
   // Reading AND showing this value is required by Stripe before confirm().
-  const monthlyAmount = checkout.monthlyAmount ?? 4000
+  const monthlyAmount = checkout.monthlyAmount ?? 3000
   if (!Number.isSafeInteger(monthlyAmount) || monthlyAmount <= 0 || monthlyAmount > 1000000) throw new Error(moneyError)
   const monthlyPrice = 'A$' + monthlyAmount / 100
   const due = session.total?.total

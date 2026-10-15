@@ -9,7 +9,7 @@ export function billingDate(value) {
 
 export function billingView(value) {
   const billing = value && STATES.has(value.state) ? value : UNAVAILABLE_BILLING
-  const monthlyAmount = Number.isSafeInteger(billing.monthlyAmount) && billing.monthlyAmount > 0 ? billing.monthlyAmount : 4000
+  const monthlyAmount = Number.isSafeInteger(billing.monthlyAmount) && billing.monthlyAmount > 0 ? billing.monthlyAmount : 3000
   const monthlyPrice = 'A$' + monthlyAmount / 100
   const allowed = billing.accessAllowed === true && billing.state !== 'unavailable'
   const trialEnd = billingDate(billing.trialEndsAt)

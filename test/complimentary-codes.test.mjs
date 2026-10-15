@@ -114,6 +114,7 @@ test('owner actions use authenticated identity, and complimentary clients count 
   assert.equal((await act(s.client,{action:'me'})).canManageCodes,false)
   await assert.rejects(act(s.client,{action:'listComplimentaryCodes'}),error=>error.code==='CODE_ADMIN_REQUIRED')
   const business=(await call(s.db,'admin_business',{p_business:s.business.id})).business
+  assert.equal(business.billing.monthlyAmount,3000,'standard client reporting uses the A$30 public price')
   await s.pg.query("update billing_accounts set price_override_id='price_agreed',price_override_amount=6000 where business_id=$1",[s.second.id])
   const agreed=(await call(s.db,'admin_business',{p_business:s.second.id})).business
   assert.equal(agreed.billing.monthlyAmount,6000,'complimentary reporting preserves agreed business prices')
