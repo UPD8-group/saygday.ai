@@ -30,7 +30,7 @@
     "scopeAgreedBeforeStarting": true, "paymentProcessingFeesSeparate": true,
     "extraThirdPartyCostsAgreedFirst": true, "outOfScopeWorkQuotedSeparately": true,
     "softwareTrialIncludesWebsiteWork": false,
-    "existingSubscriberTransition": "Contact Jay to coordinate billing and included access before moving. No automatic cancellation, upgrade or second charge."
+    "existingSubscriberTransition": "Contact James to coordinate billing and included access before moving. No automatic cancellation, upgrade or second charge."
   },
   "release": { "existingSubscriptionsChanged": false, "applyNewDefaultTo": "new_billing_accounts_only", "preserveExistingAccountPrices": true, "preserveSavedTrialDates": true, "preserveExistingAccess": true },
   "accountMessageRules": { "price": "Use the verified account-specific amount, not the public new-customer price", "dates": "Use verified account-specific trial and billing dates" }
