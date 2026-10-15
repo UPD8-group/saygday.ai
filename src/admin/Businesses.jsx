@@ -11,6 +11,7 @@ const FILTERS = [
   { key: 'trial', label: 'In free trial', test: business => ['trial', 'ending'].includes(business.stage.key) },
   { key: 'ended', label: 'Free days over', test: business => business.stage.key === 'ended' },
   { key: 'paying', label: 'Paying', test: business => business.stage.key === 'paying' },
+  { key: 'complimentary', label: 'Complimentary', test: business => business.stage.key === 'complimentary' },
   { key: 'cancelled', label: 'Cancelled', test: business => business.stage.key === 'cancelled' },
   { key: 'internal', label: 'Ours / test', test: business => business.stage.key === 'internal' },
 ]

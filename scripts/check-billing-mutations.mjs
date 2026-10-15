@@ -6,6 +6,24 @@ import assert from 'node:assert/strict'
 
 const mutations = [
   {
+    file: 'netlify/functions/_lib/complimentary.mjs',
+    from: '    const ended = await client.subscriptions.cancel(item.id, { invoice_now: false, prorate: false })',
+    to: "    const ended = { ...item, status: 'canceled' }",
+    test: 'existing subscriptions and open checkouts stop before free access; provider failure remains retryable without a free grant',
+  },
+  {
+    file: 'supabase/migrations/20261015093032_complimentary_client_codes.sql',
+    from: 'or c.recipient_email is distinct from lower(btrim(p_email))',
+    to: 'or false',
+    test: 'only founder can issue codes; a single email-bound code grants one website free access with no Stripe purchase',
+  },
+  {
+    file: 'supabase/migrations/20261015085648_admin_billing_exemption.sql',
+    from: "    new.plan := 'internal';",
+    to: "    new.plan := 'trial';",
+    test: 'verified founder profiles stay free, future profiles inherit it, and checkout never reaches Stripe',
+  },
+  {
     file: 'src/app/billing-view.mjs',
     from: "needsAttention: cancellationScheduled || !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state)",
     to: "needsAttention: !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state)",

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Notice } from './ui.jsx'
+import { Button, Field, Notice } from './ui.jsx'
 import { billingActivationConfirmed, billingConfirmed, billingRedirect, billingReturn, billingView } from './billing-view.mjs'
 import ActivationSuccess from './ActivationSuccess.jsx'
 
@@ -24,6 +24,10 @@ export default function Billing({ business, billing, request, refreshBilling, re
   const returned = billingReturn(location.search)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
+  const [code, setCode] = useState('')
+  const [codeApplied, setCodeApplied] = useState(false)
+  const activeBusiness = useRef(business?.id)
+  activeBusiness.current = business?.id
   const [waiting, setWaiting] = useState(returned === 'confirming')
   const [activatedBusiness, setActivatedBusiness] = useState(null)
   const view = billingView(billing)
@@ -32,7 +36,7 @@ export default function Billing({ business, billing, request, refreshBilling, re
   const activationVisible = activatedBusiness === business?.id
     && billingActivationConfirmed(business, billing, 'confirming')
 
-  useEffect(() => { setActivatedBusiness(null) }, [business?.id])
+  useEffect(() => { setActivatedBusiness(null); setCode(''); setCodeApplied(false); setBusy(''); setError('') }, [business?.id])
 
   useEffect(() => {
     if (activatedBusiness !== business?.id || returned !== 'confirming') return
@@ -77,23 +81,45 @@ export default function Billing({ business, billing, request, refreshBilling, re
     } catch (failure) { setError(failure.message); setBusy('') }
   }
 
+  async function applyCode(event) {
+    event.preventDefault()
+    if (busy) return
+    const applyingFor = business?.id
+    setBusy('complimentary'); setError(''); setCodeApplied(false)
+    try {
+      const result = await request('redeemComplimentaryCode', { code })
+      if (activeBusiness.current !== applyingFor) return
+      if (result?.billing?.state !== 'complimentary') throw new Error('We couldn’t confirm free access. Please try again.')
+      setCode(''); setCodeApplied(true)
+      await refreshBilling()
+    } catch (failure) { if (activeBusiness.current === applyingFor) setError(failure.message) }
+    finally { if (activeBusiness.current === applyingFor) setBusy('') }
+  }
+
   return <>
     {activatedBusiness === business?.id && <div hidden={!activationVisible}>
       <ActivationSuccess business={business} onContinue={() => navigate(`/app${businessQuery}`)} />
     </div>}
     <section className="card billing" id="billing" aria-labelledby="billing-title">
-    <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">{view.monthlyPrice} <span>/ month AUD</span></span></div>
+    <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">{['internal', 'complimentary'].includes(view.state) ? 'Free access' : <>{view.monthlyPrice} <span>/ month AUD</span></>}</span></div>
     <p><strong>SayGday Assistant</strong></p>
     <p className="small">Your website assistant shows the answers you approve and captures customer enquiries. Manage your answers, chat button and enquiries from your SayGday dashboard.</p>
-    {(view.checkoutAvailable || ['trial_not_started', 'card_required'].includes(view.state)) && <p className="small"><strong>Card details are required to activate a new chat.</strong> Verify your website, then add your card securely through Stripe. Your first 7 live days are free, then {view.monthlyPrice}/month AUD automatically unless you cancel. You can build and preview before activating.</p>}
+    {(view.checkoutAvailable || ['trial_not_started', 'card_required'].includes(view.state)) && <p className="small"><strong>Activate with a card or a complimentary code.</strong> Verify your website, then add your card securely through Stripe or apply your code below. With a card, your first 7 live days are free, then {view.monthlyPrice}/month AUD automatically unless you cancel. You can build and preview before activating.</p>}
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>
     </div>
+    {!['internal', 'complimentary'].includes(view.state) && <form className="complimentary-redeem" onSubmit={applyCode}>
+      <h3>Have a complimentary code?</h3>
+      <p className="small">Use the code issued to your sign-in email for free access to this website. If you already subscribe, applying it stops future subscription charges. Previous payments are not refunded.</p>
+      <Field label="Complimentary code">{(id, note) => <input id={id} aria-describedby={note} className="input complimentary-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={35} required value={code} onChange={event => setCode(event.target.value)} disabled={Boolean(busy)} placeholder="SG-…" />}</Field>
+      <Button type="submit" kind="dark" busy={busy === 'complimentary'} disabled={Boolean(busy) || refreshing}>Apply code for free access</Button>
+    </form>}
     {returned === 'confirming' && <Notice>{waiting ? 'You’re back from Checkout. We’re checking your subscription with the server…' : billingConfirmed(billing) ? 'Your subscription status has been confirmed.' : 'Your subscription has not been confirmed yet. Confirmation can take a moment. Refresh below before trying another checkout.'}</Notice>}
     {returned === 'canceled' && <Notice>Checkout was closed. Your billing status below comes from the server; you can upgrade whenever you’re ready.</Notice>}
     {returned === 'returned' && <Notice>Welcome back. We’ve requested your latest billing status. Portal changes appear here once confirmed.</Notice>}
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <Notice kind="error">{refreshError}</Notice>
+    <Notice kind="success">{codeApplied ? 'Complimentary access is active for this website. No subscription is needed.' : ''}</Notice>
     {verificationNeeded && <div className="billing__state">
       <h3>Verify your website to continue</h3>
       <p id="billing-verification-note">Add your chat code to your website or verify your domain. Then return here to add your card and activate. Your 7 free days start when activation is complete.</p>

@@ -67,6 +67,7 @@ export function dateLabel(value, { short = false } = {}) {
 export function stageOf(business, now = Date.now()) {
   const billing = business.billing
   if (business.plan === 'internal') return { endsAt: null, key: 'internal', label: 'Ours / test' }
+  if (billing?.complimentary) return { endsAt: null, key: 'complimentary', label: 'Complimentary' }
   if (billing?.enabled) {
     const paid = billing.subscriptionStatus === 'active' && billing.priceValid === true
       && time(billing.currentPeriodEnd) > now && time(billing.syncedAt) > now - DAY && time(billing.syncedAt) <= now
@@ -131,7 +132,7 @@ export function summarise(data, now = time(data?.generatedAt) ?? Date.now()) {
     signIns30: count(signedIn, account => within(account.createdAt, 30)),
     businesses: counted.length, businesses7: count(counted, business => within(business.createdAt, 7)),
     businesses30: count(counted, business => within(business.createdAt, 30)),
-    inTrial: at('trial').length + at('ending').length, endingSoon: at('ending').length, trialEnded: ended, paying, cancelled,
+    inTrial: at('trial').length + at('ending').length, endingSoon: at('ending').length, trialEnded: ended, paying, cancelled, complimentary: at('complimentary').length,
     mrr: sum(at('paying'), b => (b.billing?.monthlyAmount ?? PRICE * 100) / 100),
     arr: sum(at('paying'), b => (b.billing?.monthlyAmount ?? PRICE * 100) / 100) * 12, waiting: ended * PRICE,
     // Of the businesses whose free days are over (or that already pay), the share paying.

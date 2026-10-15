@@ -53,7 +53,7 @@ export function setupChecklist({ business, faqs, billing, previewApproved = fals
     install: [installed, installed ? 'Code detected' : 'Add your code'],
     verify: [verified, verified ? 'Verified' : 'Check ownership'],
     preview: [previewApproved, previewApproved ? 'Approved' : 'Review your chat'],
-    billing: [paidSetup, cancelling ? 'Cancelled' : paidSetup ? 'Activated' : billing?.state === 'internal' ? 'Not required' : 'Final step'],
+    billing: [paidSetup || ['internal', 'complimentary'].includes(billing?.state), cancelling ? 'Cancelled' : paidSetup ? 'Activated' : ['internal', 'complimentary'].includes(billing?.state) ? 'Not required' : 'Final step'],
   }
   return SETUP_STEPS.map(item => ({ ...item, complete: details[item.id][0], status: details[item.id][1] }))
 }

@@ -20,13 +20,16 @@ export async function database({ cardRequired = true } = {}) {
   await pg.exec(`
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
     create schema auth;
-    create table auth.users(id uuid primary key, email text, created_at timestamptz not null default now());
+    create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz, created_at timestamptz not null default now());
   `)
   const folder = new URL('../../supabase/migrations/', import.meta.url)
   for (const name of (await readdir(folder)).filter(file => file.endsWith('.sql')).sort())
     await pg.exec(await readFile(new URL(name, folder), 'utf8'))
   await pg.exec(await readFile(new URL('../../supabase/billing-upgrade.sql', import.meta.url), 'utf8'))
   await pg.exec(await readFile(new URL('../../supabase/billing-card-activation.sql', import.meta.url), 'utf8'))
+  // Compatibility scripts predate complimentary access; apply its current
+  // entitlement and reporting definitions last, as in the production rollout.
+  await pg.exec(await readFile(new URL('../../supabase/migrations/20261015093032_complimentary_client_codes.sql', import.meta.url), 'utf8'))
   // Legacy regression fixtures explicitly retain the previously promised no-card policy.
   if (!cardRequired) await pg.exec('update public.billing_settings set require_card_for_new_trials=false')
   return pg
@@ -34,7 +37,7 @@ export async function database({ cardRequired = true } = {}) {
 
 export async function user(pg, email = `${randomUUID().slice(0, 8)}@example.com`) {
   const id = randomUUID()
-  await pg.query('insert into auth.users(id, email) values ($1, $2)', [id, email])
+  await pg.query('insert into auth.users(id, email, email_confirmed_at) values ($1, $2, now())', [id, email])
   return { id, email, email_confirmed_at: new Date().toISOString() }
 }
 

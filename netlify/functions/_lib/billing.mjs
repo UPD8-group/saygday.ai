@@ -94,6 +94,8 @@ export function publicBilling(account, configuration = billingConfiguration(), n
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
   if (account.internal === true) return { state: 'internal', accessAllowed: true, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: !!(account.stripe_customer_id && configuration.portalReady), subscriptionScheduled: false }
+  if (account.complimentary === true) return { state: 'complimentary', accessAllowed: true, trialEndsAt: null, currentPeriodEnd: null,
+    cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
   const current = Math.floor(now / 1000)
   const trial = seconds(account.trial_ends_at) > current
   // Recompute expiry in this response as well: a stale snapshot cannot grant
@@ -116,7 +118,7 @@ export function publicBilling(account, configuration = billingConfiguration(), n
     portalAvailable: !!(account.stripe_customer_id && configuration.portalReady) }
 }
 
-async function leaseFor(db, account, work) {
+export async function leaseFor(db, account, work) {
   const locked = await call(db, 'billing_acquire', { p_business: account.business_id })
   if (!locked) throw busy()
   try { return await work(locked.account, locked.lease) }
@@ -256,9 +258,10 @@ export async function billingCheckout({ db, user, business = null, configuration
   const original = await call(db, 'billing_owner', { p_user: user.id, p_business: business })
   if (!original) throw new HttpError(409, 'Add your website first.', 'NO_BUSINESS')
   configuration = accountBillingConfiguration(original, configuration)
-  if (original.internal || !original.enabled || (!original.trial_ends_at && !(original.card_required && original.website_verified))) throw new HttpError(409, 'Billing setup is still being completed.', 'BILLING_NOT_ENABLED')
+  if (original.internal || original.complimentary || !original.enabled || (!original.trial_ends_at && !(original.card_required && original.website_verified))) throw new HttpError(409, 'Billing setup is still being completed.', 'BILLING_NOT_ENABLED')
   const client = stripe || createStripe(configuration)
   return leaseFor(db, original, async (account, lease) => {
+    if (account.internal || account.complimentary) throw new HttpError(409, 'No subscription is needed for this website.', 'BILLING_NOT_ENABLED')
     const current = Math.floor(now / 1000)
     const price = await client.prices.retrieve(configuration.priceId)
     if (!exactPrice(price, configuration, { forCheckout: true })) throw unavailable()

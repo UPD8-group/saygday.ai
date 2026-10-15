@@ -6,6 +6,46 @@ The current offer is SayGday Assistant at A$40/month AUD: the website assistant,
 
 Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
 
+The verified `hello@oo.studio` founder account is permanently exempt. Migration
+`20261015085648_admin_billing_exemption.sql` binds that exemption to its Auth ID
+in the server-readable `billing_exempt_owners` table. Its existing and future
+profiles use the internal plan, which permits access without a subscription
+and blocks Checkout. Admin plan edits cannot remove the exemption. Transferring
+a profile to an ordinary customer restores the normal trial plan without
+resetting trial dates. A notification address never grants an exemption.
+Before exempting an account with existing Stripe subscriptions or open Checkout
+sessions, cancel/expire those provider objects: an internal plan alone does not
+stop Stripe charging. The founder account had neither when this was applied.
+
+## Complimentary client codes (15 October 2026)
+
+When signed in as the exempt founder account, open **Billing → Give a client
+free access**. Enter the client's SayGday sign-in email, create a code, copy
+the one-time display, and send it yourself. Codes contain 128 random bits;
+only their SHA-256 hash is stored. They expire after 30 days if unused.
+Each code is bound to that sign-in email and can activate one website only.
+Clients enter it under **Billing → Have a complimentary code?** in their
+dashboard. Access stays complimentary until the founder revokes it. Revocation
+never starts a subscription or charges a card; the client must choose Checkout.
+
+Applying a code expires unfinished Checkout sessions and cancels the existing
+subscription immediately with `invoice_now=false` and `prorate=false` before
+granting free access. Previous payments are not refunded. Stripe cancellation
+disables automatic collection of that subscription's open/draft invoices;
+the application creates no final invoice. See [Stripe's cancellation guide](https://docs.stripe.com/billing/subscriptions/cancel).
+An unavailable provider leaves a code reserved for the same website so the
+client can retry safely. A code cannot activate service from an unverified
+website, transfer free access to a new owner, or bypass the billing lease.
+Complimentary clients still count as customers, with zero recurring revenue.
+
+Rollout: after the compatibility scripts, apply
+`20261015093032_complimentary_client_codes.sql`, then deploy the matching server
+and dashboard together. If replaying `billing-upgrade.sql` later, reapply the
+complimentary migration last so its access/reporting functions remain current.
+The permanent founder exemption migration has already been applied to
+production. Apply the complimentary-code migration before publishing this
+release; deploying the server first would leave its new RPCs unavailable.
+
 Apply versioned migrations, then supabase/billing-upgrade.sql, then
 supabase/billing-card-activation.sql. Production already applied the original
 Stripe migration together with the compatibility script under version

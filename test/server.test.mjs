@@ -28,7 +28,7 @@ test('a web address is taken however the owner types it, and the scan starts at 
 
 test('the owner’s journey: website in, scan started, answers managed, look chosen', async () => {
   const { act, scans } = await owner()
-  assert.deepEqual(await act({ action: 'me' }), { email: 'jo@joescafe.com.au', businesses: [], business: null, scan: null })
+  assert.deepEqual(await act({ action: 'me' }), { email: 'jo@joescafe.com.au', canManageCodes: false, businesses: [], business: null, scan: null })
   const created = await act({ action: 'createBusiness', website: 'www.joescafe.com.au' })
   assert.equal(created.business.website, 'https://www.joescafe.com.au')
   assert.equal(created.business.notifyEmail, 'jo@joescafe.com.au', 'questions go to the sign-in email unless changed')

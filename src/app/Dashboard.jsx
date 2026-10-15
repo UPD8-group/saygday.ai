@@ -83,7 +83,7 @@ export function DashboardProvider({ children }) {
     setState(previous => ({ ...previous, business, billing: null, scan: null }))
     const scan = !business ? null : me?.business?.id === business.id ? me.scan : (await send('scanStatus', { business: business.id })).scan
     if (selection.current !== version) return
-    setState(previous => ({ ...previous, loading: false, error: '', billing: me?.business?.id === business?.id ? me.billing : null, email: me?.email ?? previous.email, businesses: me?.businesses ?? previous.businesses, business, scan }))
+    setState(previous => ({ ...previous, loading: false, error: '', canManageCodes: me?.canManageCodes ?? previous.canManageCodes ?? false, billing: me?.business?.id === business?.id ? me.billing : null, email: me?.email ?? previous.email, businesses: me?.businesses ?? previous.businesses, business, scan }))
     const questions = business ? (await send('listFaqs', { business: business.id })).faqs : null
     if (selection.current !== version) return
     setFaqs(questions)
