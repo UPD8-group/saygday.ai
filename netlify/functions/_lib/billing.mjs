@@ -27,6 +27,13 @@ const SAYGDAY_PUBLIC_STRIPE_KEY = 'pk_live_51UA2P7R8qEoKoynxKDV4Q6I5JpVH9q80xSh3
 const SAYGDAY_MONTHLY_PRICE = 'price_1UOX45R8qEoKoynxBDir6jA0'
 const SAYGDAY_PREVIOUS_MONTHLY_PRICE = 'price_1UOA0sR8qEoKoynxWAoOrDeA'
 const MONTHLY_AMOUNT = 4000
+// Agreed business prices are stored by the service, never taken from a browser.
+export function accountBillingConfiguration(account, configuration) {
+  const id = account?.price_override_id, amount = account?.price_override_amount
+  if (id == null && amount == null) return configuration
+  if (!/^price_[A-Za-z0-9]+$/.test(id || '') || !Number.isSafeInteger(amount) || amount <= 0 || amount > 1000000) throw unavailable()
+  return { ...configuration, defaultPriceId: configuration.defaultPriceId ?? configuration.priceId, priceId: id, monthlyAmount: amount }
+}
 // The earlier live price remains readable during the owner's subscription
 // migration. It can never be selected for a new checkout by this release.
 const previousPrice = (id, configuration) => configuration.live && configuration.publicUrl === 'https://saygday.ai'
@@ -73,7 +80,7 @@ export function stripeUrl(value, purpose) {
 export function exactPrice(price, configuration, { forCheckout = false } = {}) {
   const legacy = !forCheckout && previousPrice(price?.id, configuration)
   return !!price && (price.id === configuration.priceId || legacy) && price.livemode === configuration.live
-    && price.currency === 'aud' && price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT) && price.tax_behavior === 'inclusive' && price.type === 'recurring'
+    && price.currency === 'aud' && price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)) && price.tax_behavior === 'inclusive' && price.type === 'recurring'
     && price.billing_scheme === 'per_unit' && price.recurring?.interval === 'month'
     && price.recurring.interval_count === 1 && price.recurring.usage_type === 'licensed'
     && !price.transform_quantity && (!forCheckout || price.active === true)
@@ -82,6 +89,7 @@ export function exactPrice(price, configuration, { forCheckout = false } = {}) {
 export function publicBilling(account, configuration = billingConfiguration(), now = Date.now()) {
   if (!account) return { state: 'trial_not_started', accessAllowed: false, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
+  configuration = accountBillingConfiguration(account, configuration)
   if (typeof account.enabled !== 'boolean') return { state: 'unavailable', accessAllowed: false, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
   if (account.internal === true) return { state: 'internal', accessAllowed: true, trialEndsAt: null, currentPeriodEnd: null,
@@ -102,7 +110,7 @@ export function publicBilling(account, configuration = billingConfiguration(), n
   else if (['past_due', 'unpaid', 'incomplete', 'paused', 'canceled'].includes(account.subscription_status)) state = account.subscription_status
   else state = account.trial_ends_at ? 'trial_expired' : account.card_required && account.website_verified ? 'card_required' : 'trial_not_started'
   const hasSubscription = account.stripe_subscription_id && !TERMINAL.has(account.subscription_status)
-  return { state, accessAllowed, cardRequired: account.card_required === true, trialEndsAt: account.trial_ends_at || null, currentPeriodEnd: account.current_period_end || null,
+  return { state, accessAllowed, monthlyAmount: configuration.monthlyAmount ?? MONTHLY_AMOUNT, cardRequired: account.card_required === true, trialEndsAt: account.trial_ends_at || null, currentPeriodEnd: account.current_period_end || null,
     cancelAtPeriodEnd: !!account.cancel_at_period_end, subscriptionScheduled,
     checkoutAvailable: !!(account.enabled && configuration.checkoutReady && (account.trial_ends_at || (account.card_required && account.website_verified)) && !hasSubscription && state !== 'trial_ending'),
     portalAvailable: !!(account.stripe_customer_id && configuration.portalReady) }
@@ -123,6 +131,7 @@ async function commit(db, account, lease, extra) {
 }
 
 export async function subscriptionSnapshot(stripe, account, configuration) {
+  configuration = accountBillingConfiguration(account, configuration)
   const customer = account.stripe_customer_id
   if (!customer) return { stripe_subscription_id: null, subscription_status: 'none', price_valid: false,
     current_period_end: null, cancel_at_period_end: false, synced_at: true }
@@ -223,7 +232,7 @@ function customCheckout(session, account, configuration, current) {
     || !session.client_secret.startsWith(`${session.id}_secret_`) || session.client_secret.length <= session.id.length + 8) throw unavailable()
   // This response is authenticated and no-store. The client secret is held in
   // page memory only: never save it in our database, URLs or application logs.
-  return { clientSecret: session.client_secret, publishableKey: configuration.publishableKey,
+  return { clientSecret: session.client_secret, publishableKey: configuration.publishableKey, monthlyAmount: configuration.monthlyAmount ?? MONTHLY_AMOUNT,
     expiresAt: session.expires_at, businessId: account.business_id }
 }
 
@@ -246,6 +255,7 @@ export async function billingCheckout({ db, user, business = null, configuration
   if (!configuration.checkoutReady) throw unavailable()
   const original = await call(db, 'billing_owner', { p_user: user.id, p_business: business })
   if (!original) throw new HttpError(409, 'Add your website first.', 'NO_BUSINESS')
+  configuration = accountBillingConfiguration(original, configuration)
   if (original.internal || !original.enabled || (!original.trial_ends_at && !(original.card_required && original.website_verified))) throw new HttpError(409, 'Billing setup is still being completed.', 'BILLING_NOT_ENABLED')
   const client = stripe || createStripe(configuration)
   return leaseFor(db, original, async (account, lease) => {
@@ -273,6 +283,7 @@ export async function billingCheckout({ db, user, business = null, configuration
       throw new HttpError(409, 'You already have a subscription. Open Manage billing to update it.', 'SUBSCRIPTION_EXISTS')
 
     const retiresPrice = previousPrice(operation.params?.line_items?.[0]?.price, configuration)
+      || (!!configuration.defaultPriceId && operation.params?.line_items?.[0]?.price === configuration.defaultPriceId)
     if (operation.key && (operation.params?.mode !== 'subscription' || operation.params.customer !== account.stripe_customer_id
       || operation.params.line_items?.length !== 1 || (operation.params.line_items[0].price !== configuration.priceId && !retiresPrice)
       || operation.params.line_items[0].quantity !== 1)) throw unavailable()

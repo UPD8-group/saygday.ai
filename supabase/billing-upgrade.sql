@@ -127,7 +127,7 @@ returns jsonb language sql stable security invoker set search_path = '' as $$
     'character', b.character, 'buttonColour', b.button_colour, 'createdAt', b.created_at,
     'billing', (select jsonb_build_object('enabled', s.enabled, 'trialStartedAt', a.trial_started_at,
       'trialEndsAt', a.trial_ends_at, 'subscriptionStatus', a.subscription_status,
-      'currentPeriodEnd', a.current_period_end, 'syncedAt', a.synced_at, 'priceValid', a.price_valid,
+      'currentPeriodEnd', a.current_period_end, 'syncedAt', a.synced_at, 'priceValid', a.price_valid, 'monthlyAmount', coalesce(a.price_override_amount,4000),
       'hasCustomer', a.stripe_customer_id is not null)
       from public.billing_settings s left join public.billing_accounts a on a.business_id = b.id where s.singleton),
     'plan', b.plan, 'planChangedAt', b.plan_changed_at,

@@ -26,23 +26,26 @@ export function checkoutView(session, checkout, now = Date.now()) {
   if (session?.status?.type === 'complete') return { complete: true }
   if (session?.status?.type !== 'open') throw new Error('This checkout is not available. Please return to Billing.')
   // Reading AND showing this value is required by Stripe before confirm().
+  const monthlyAmount = checkout.monthlyAmount ?? 4000
+  if (!Number.isSafeInteger(monthlyAmount) || monthlyAmount <= 0 || monthlyAmount > 1000000) throw new Error(moneyError)
+  const monthlyPrice = 'A$' + monthlyAmount / 100
   const due = session.total?.total
   const recurring = session.recurring
   const next = recurring?.dueNext?.total
-  if (session.currency !== 'aud' || session.minorUnitsAmountDivisor !== 100 || recurring?.interval !== 'month' || recurring?.intervalCount !== 1 || next?.minorUnitsAmount !== 4000 || ![0, 4000].includes(due?.minorUnitsAmount) || typeof due?.amount !== 'string' || !due.amount.trim() || due.amount.length > 80) throw new Error(moneyError)
+  if (session.currency !== 'aud' || session.minorUnitsAmountDivisor !== 100 || recurring?.interval !== 'month' || recurring?.intervalCount !== 1 || next?.minorUnitsAmount !== monthlyAmount || ![0, monthlyAmount].includes(due?.minorUnitsAmount) || typeof due?.amount !== 'string' || !due.amount.trim() || due.amount.length > 80) throw new Error(moneyError)
   const trial = recurring.trial
   const trialEnd = trial?.trialEnd
   if (trial != null && (!Number.isSafeInteger(trialEnd) || trialEnd * 1000 <= now || due.minorUnitsAmount !== 0)) throw new Error('We could not confirm your free period. Please reload checkout.')
-  if (trial == null && due.minorUnitsAmount !== 4000) throw new Error(moneyError)
+  if (trial == null && due.minorUnitsAmount !== monthlyAmount) throw new Error(moneyError)
   const date = trial == null ? '' : checkoutDate(trialEnd)
   return {
-    complete: false,
+    complete: false, monthlyAmount, monthlyPrice,
     date,
     trial: trial != null,
     dueToday: due.amount,
     dueTodayMinor: due.minorUnitsAmount,
     title: date ? `Your billing starts on ${date}` : 'Start your monthly subscription',
-    button: date ? 'Confirm card & activate' : 'Subscribe for A$40/month',
-    quoteKey: `${date}|${due.minorUnitsAmount}|4000|aud|month`,
+    button: date ? 'Confirm card & activate' : `Subscribe for ${monthlyPrice}/month`,
+    quoteKey: `${date}|${due.minorUnitsAmount}|${monthlyAmount}|aud|month`,
   }
 }

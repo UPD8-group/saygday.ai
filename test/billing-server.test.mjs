@@ -90,6 +90,30 @@ async function setup({ enabled = true, customer = false, expired = false, config
     account: () => call(db, 'billing_owner', { p_user: person.id }) }
 }
 const refused = (promise, code) => assert.rejects(promise, error => error.code === code)
+
+test('an agreed business price binds checkout, entitlement and reporting without changing the public price', async () => {
+  const s = await setup({ customer: true })
+  await billingCheckout(s.args)
+  await s.pg.query("update billing_accounts set price_override_id='price_agreed',price_override_amount=6000 where business_id=$1", [s.business.id])
+  s.stripe.price = { ...price(), id: 'price_agreed', unit_amount: 6000 }
+  const checkout = await billingCheckout(s.args)
+  assert.equal(checkout.monthlyAmount, 6000)
+  assert.equal(s.stripe.sessions[0].status, 'expired', 'an old public-price checkout cannot remain usable')
+  assert.equal(s.stripe.calls.filter(([name]) => name === 'checkout').at(-1)[1].line_items[0].price, 'price_agreed')
+  const paid = subscription({ items: { data: [{ quantity: 1, price: s.stripe.price, current_period_end: now() + 86400 }] },
+    latest_invoice: { status: 'paid', currency: 'aud', amount_paid: 6000, total: 6000 } })
+  s.stripe.subscriptions = [paid]
+  const account = await s.account()
+  assert.equal((await subscriptionSnapshot(s.stripe.client, account, configuration)).price_valid, true)
+  assert.equal((await subscriptionSnapshot(s.stripe.client, { ...account, price_override_id: null, price_override_amount: null }, configuration)).price_valid, false)
+  const status = await billingStatus(s.args)
+  assert.equal(status.monthlyAmount, 6000)
+  assert.equal(status.accessAllowed, true)
+  const admin = await s.pg.query('select admin_business_json(b) as business from businesses b where id=$1', [s.business.id])
+  assert.equal(admin.rows[0].business.billing.monthlyAmount, 6000)
+  await assert.rejects(s.pg.query('update billing_accounts set price_override_id=null where business_id=$1', [s.business.id]), /billing_price_override_check/)
+  assert.equal(exactPrice(price(), configuration), true, 'ordinary businesses keep the public A$40 offer')
+})
 const event = (overrides = {}) => ({ id: 'evt_event', api_version: STRIPE_API_VERSION, object: 'event', livemode: false,
   type: 'customer.subscription.updated', created: now(), data: { object: { customer: 'cus_owner', status: 'canceled' } }, ...overrides })
 function signedRequest(client, payload, { timestamp, tamper = false, secret = configuration.webhookSecret } = {}) {
@@ -170,7 +194,7 @@ test('Checkout is authenticated and ignores every client customer, price, user, 
   const result = await ownerAction({ request, db: s.db, origin: 'https://evil.example', body: { action: 'billingCheckout', customerId: 'cus_attacker',
     priceId: 'price_free', user: { id: 'attacker' }, businessId: 'other', trialDays: 100, returnUrl: 'https://evil.example' }, dependencies: { billing: s.args } })
   assert.deepEqual(result, { clientSecret: 'cs_test_0_secret_example', publishableKey: 'pk_test_example',
-    expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id })
+    expiresAt: s.stripe.sessions[0].expires_at, businessId: s.business.id, monthlyAmount: 4000 })
   const params = s.stripe.calls.find(([name]) => name === 'checkout')[1]
   assert.equal(params.customer, 'cus_owner'); assert.deepEqual(params.line_items, [{ price: 'price_monthly', quantity: 1 }])
   assert.equal(params.return_url, 'https://saygday.ai/app/billing?business=owner&checkout=success')
