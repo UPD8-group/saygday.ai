@@ -120,7 +120,7 @@ test('password guesses are limited: ten an hour from one connection, fifty in al
   assert.ok(keys.includes(rateLimitKey('admin-sign-in', '203.0.113.50')))
 })
 
-test('the overview: every sign-in and business, where each is in its 14 days, and never a customer’s question or email', async () => {
+test('the overview: every sign-in and business, where each is in its 7 days, and never a customer’s question or email', async () => {
   const { pg, db, call, act } = await platform()
   const jo = await user(pg, 'jo@joescafe.com.au'), sam = await user(pg, 'sam@bakery.com.au'), new1 = await user(pg, 'never@example.com'), us = await user(pg, 'james@saygday.ai')
   const cafe = await call('create_business', { p_user: jo.id, p_email: jo.email, p_website: 'https://joescafe.com.au', p_name: 'Joe’s Cafe' })
@@ -162,7 +162,7 @@ test('the overview: every sign-in and business, where each is in its 14 days, an
   assert.deepEqual(stages, { 'Joe’s Cafe': 'trial', 'The Bakery': 'ended', SayGday: 'internal' })
   assert.equal(summary.totals.trialEnded, 1); assert.equal(summary.totals.inTrial, 1)
   assert.deepEqual([summary.totals.trialToPaid, summary.totals.trialFinished], [0, 1], 'the one business past its free days isn’t paying yet')
-  assert.match(investorSummary(summary), /Trial to paid: 0% \(0 of 1 businesses whose free 14 days are over, or that already pay\)/)
+  assert.match(investorSummary(summary), /Trial to paid: 0% \(0 of 1 businesses whose free 7 days are over, or that already pay\)/)
   assert.equal(summary.totals.answersRead, 2); assert.equal(summary.totals.questions30, 2)
   assert.equal(summary.weeks.at(-1).businesses, 1, 'this week’s new business; the bakery came earlier and ours counts nowhere')
   assert.equal(summary.weeks.at(-1).answersRead, 2)
@@ -239,20 +239,23 @@ test('answers read and button loads are counted by the day, as numbers only', as
   assert.match(migration, /update public\.businesses set plan = 'internal', plan_changed_at = now\(\) where slug = 'saygday'/, 'SayGday’s own chat counts in no total')
 })
 
-test('where a business is in its free 14 days, and how far it has got', () => {
+test('where a business is in its free 7 days, and how far it has got', () => {
   const now = Date.parse('2026-10-20T00:00:00Z')
   const ago = days => new Date(now - days * DAY).toISOString()
-  assert.equal(TRIAL_DAYS, 14); assert.equal(PRICE, 40)
-  assert.deepEqual([stageOf({ createdAt: ago(0) }, now).label, stageOf({ createdAt: ago(0) }, now).daysLeft], ['Day 1 of 14', 14])
-  assert.deepEqual([stageOf({ createdAt: ago(5.5) }, now).key, stageOf({ createdAt: ago(5.5) }, now).label], ['trial', 'Day 6 of 14'])
-  assert.deepEqual([stageOf({ createdAt: ago(11.5) }, now).key, stageOf({ createdAt: ago(11.5) }, now).daysLeft], ['ending', 3])
-  assert.equal(stageOf({ createdAt: ago(13.9) }, now).label, 'Day 14 of 14')
-  assert.deepEqual([stageOf({ createdAt: ago(14) }, now).key, stageOf({ createdAt: ago(14) }, now).label], ['ended', 'Trial ended today'])
-  assert.equal(stageOf({ createdAt: ago(15.2) }, now).label, 'Trial ended 1 day ago')
-  assert.equal(stageOf({ createdAt: ago(40) }, now).label, 'Trial ended 26 days ago')
+  assert.equal(TRIAL_DAYS, 7); assert.equal(PRICE, 40)
+  assert.deepEqual([stageOf({ createdAt: ago(0) }, now).label, stageOf({ createdAt: ago(0) }, now).daysLeft], ['Day 1 of 7', 7])
+  assert.deepEqual([stageOf({ createdAt: ago(5.5) }, now).key, stageOf({ createdAt: ago(5.5) }, now).label], ['ending', 'Day 6 of 7'])
+  assert.deepEqual([stageOf({ createdAt: ago(4.5) }, now).key, stageOf({ createdAt: ago(4.5) }, now).daysLeft], ['ending', 3])
+  assert.equal(stageOf({ createdAt: ago(6.9) }, now).label, 'Day 7 of 7')
+  assert.deepEqual([stageOf({ createdAt: ago(7) }, now).key, stageOf({ createdAt: ago(7) }, now).label], ['ended', 'Trial ended today'])
+  assert.equal(stageOf({ createdAt: ago(8.2) }, now).label, 'Trial ended 1 day ago')
+  assert.equal(stageOf({ createdAt: ago(40) }, now).label, 'Trial ended 33 days ago')
   assert.equal(stageOf({ createdAt: ago(40), plan: 'paying' }, now).key, 'paying', 'the plan the owner sets wins')
   assert.equal(stageOf({ createdAt: ago(2), plan: 'internal' }, now).key, 'internal')
-  assert.equal(stageOf({ createdAt: ago(0) }, now).endsAt, new Date(now + 14 * DAY).toISOString())
+  assert.equal(stageOf({ createdAt: ago(0) }, now).endsAt, new Date(now + 7 * DAY).toISOString())
+  const legacy = stageOf({ billing: { enabled: true, trialStartedAt: ago(5), trialEndsAt: ago(-9) } }, now)
+  assert.equal(legacy.label, 'Day 6 of 14', 'an existing trial displays its actual duration')
+  assert.equal(legacy.trialDays, 14)
 
   const business = { answers: { approved: 0, drafts: 0, read: 0 } }
   assert.deepEqual(progressOf(business).next.key, 'drafted')

@@ -2,7 +2,7 @@
 
 The application setup is below. See [billing.md](billing.md) for the current
 card-before-activation policy (owner, 8 October 2026): free building and
-preview, then verify the website and add a card for 14 live days free.
+preview, then verify the website and add a card for 7 live days free.
 
 ## 1. The database (Supabase, Sydney)
 
@@ -66,7 +66,7 @@ day's counts).
 ## 3. The admin page
 
 `https://saygday.ai/admin` shows every sign-in and business, where each business
-is in its free 14 days, and the numbers an investor asks for. It opens with
+is in its free 7 days, and the numbers an investor asks for. It opens with
 `SAYGDAY_ADMIN_PASSWORD`; without it (or with one shorter than 12 characters) the
 page says it's switched off. Netlify uses a new or changed variable from the
 next deploy, so deploy again after setting it. Changing the password signs
@@ -79,7 +79,7 @@ counted day by day from the day the migration runs.
 ## 4. Stripe billing: configure before activating
 
 Follow [the billing runbook](billing.md) before offering paid Checkout.
-The plan is **14 live days free, then A$40/month AUD automatically unless cancelled**. Building and preview need no card; public activation requires one.
+The plan is **7 live days free, then A$40/month AUD automatically unless cancelled**. Building and preview need no card; public activation requires one.
 Public answers still come exclusively from the business's approved answers.
 
 Add these environment variables in **Functions scope only**, with separate

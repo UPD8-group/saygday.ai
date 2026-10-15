@@ -88,7 +88,7 @@ function PlanCard({ detail, stage, onChange }) {
   return <section className="card">
     <h2>Plan</h2>
     <p className="plan__days">Free days: {dateLabel(business.billing?.enabled ? business.billing.trialStartedAt : business.createdAt) || 'not started'} to {dateLabel(stage.endsAt) || 'not started'}{business.plan === 'trial' ? '.'
-      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : trialStage.key === 'not_started' ? 'not started' : `day ${trialStage.day} of ${TRIAL_DAYS}`}).</span>}</p>
+      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : trialStage.key === 'not_started' ? 'not started' : `day ${trialStage.day} of ${trialStage.trialDays || TRIAL_DAYS}`}).</span>}</p>
     {business.plan === 'trial' && <p><TrialMeter stage={stage} /></p>}
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <div className="segmented segmented--wrap" role="radiogroup" aria-label="Plan">

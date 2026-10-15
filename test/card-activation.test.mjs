@@ -48,9 +48,9 @@ async function setup() {
   const trial = () => {
     const start = Math.floor(Date.now() / 1000)
     return { id: 'sub_card', customer: 'cus_card', livemode: false, created: start, status: 'trialing',
-      collection_method: 'charge_automatically', default_payment_method: 'pm_card', trial_start: start, trial_end: start + 14 * 86400,
+      collection_method: 'charge_automatically', default_payment_method: 'pm_card', trial_start: start, trial_end: start + 7 * 86400,
       metadata: state.calls[0].params.subscription_data.metadata,
-      items: { data: [{ quantity: 1, price, current_period_end: start + 14 * 86400 }] } }
+      items: { data: [{ quantity: 1, price, current_period_end: start + 7 * 86400 }] } }
   }
   return { pg, db, business, args, state, account, verify, deliver, trial }
 }
@@ -71,7 +71,7 @@ test('new card activation requires verification and a confirmed payment method b
   await billingCheckout(s.args)
   const params = s.state.calls[0].params
   assert.equal(params.payment_method_collection, 'always')
-  assert.equal(params.subscription_data.trial_period_days, 14)
+  assert.equal(params.subscription_data.trial_period_days, 7)
   assert.equal(params.subscription_data.trial_end, undefined)
   assert.equal(params.subscription_data.trial_settings.end_behavior.missing_payment_method, 'cancel')
   assert.equal(params.line_items[0].price, 'price_monthly')
@@ -81,6 +81,7 @@ test('new card activation requires verification and a confirmed payment method b
   await s.deliver('evt_nosub')
   assert.equal((await s.account()).trial_started_at, null, 'a completion notification without provider state grants nothing')
   for (const patch of [{ default_payment_method: null }, { metadata: {} }, { trial_end: s.trial().trial_end + 86400 },
+    { trial_end: s.trial().trial_end + 7 * 86400 },
     { items: { data: [{ quantity: 2, price, current_period_end: s.trial().trial_end }] } }]) {
     s.state.subscriptions = [{ ...s.trial(), ...patch }]
     await billingStatus(s.args)
@@ -93,7 +94,7 @@ test('new card activation requires verification and a confirmed payment method b
   await s.deliver()
   const saved = await s.account()
   assert.equal(Date.parse(saved.trial_started_at), trial.trial_start * 1000)
-  assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 14 * 86400000)
+  assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 7 * 86400000)
   assert.equal(saved.access_allowed, true)
   assert.ok(await call(s.db, 'widget', { p_slug: s.business.slug }))
   assert.equal((await billingStatus(s.args)).subscriptionScheduled, true)
@@ -106,6 +107,23 @@ test('new card activation requires verification and a confirmed payment method b
   assert.equal((await s.account()).trial_started_at, saved.trial_started_at, 'cancellation cannot reset trial dates')
   await s.pg.exec(await readFile(new URL('../supabase/billing-card-activation.sql', import.meta.url), 'utf8'))
   assert.equal((await s.account()).card_required, true, 'reapplying does not grandfather new card-backed trials')
+})
+
+test('a previously opened fourteen-day card Checkout keeps its exact original offer', async () => {
+  const s = await setup()
+  await s.verify()
+  await billingCheckout(s.args)
+  await s.pg.query("update billing_accounts set checkout=jsonb_set(checkout, '{params,subscription_data,trial_period_days}', '14'::jsonb) where business_id=$1", [s.business.id])
+  const trial = s.trial()
+  trial.trial_end = trial.trial_start + 14 * 86400
+  trial.items.data[0].current_period_end = trial.trial_end
+  s.state.subscriptions = [trial]
+  await s.deliver('evt_existingoffer')
+  const saved = await s.account()
+  assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 14 * 86400000)
+  assert.equal(saved.access_allowed, true)
+  await billingStatus(s.args)
+  assert.equal((await s.account()).trial_ends_at, saved.trial_ends_at)
 })
 
 test('card rollout preserves legacy trial dates and grants no fresh trial on migration', async () => {

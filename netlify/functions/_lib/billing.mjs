@@ -148,7 +148,8 @@ export async function subscriptionSnapshot(stripe, account, configuration) {
     && /^pm_[A-Za-z0-9]+$/.test(objectId(sub.default_payment_method) || '')
     && ['trialing', 'active', 'canceled'].includes(sub.status)
     && stripeTimestamp(sub.trial_start) && stripeTimestamp(sub.trial_end)
-    && sub.trial_end - sub.trial_start === 14 * 86400
+    && [7, 14].includes(account.checkout?.params?.subscription_data?.trial_period_days ?? 14)
+    && sub.trial_end - sub.trial_start === (account.checkout?.params?.subscription_data?.trial_period_days ?? 14) * 86400
     && sub.trial_start >= seconds(account.first_website_verified_at)
     && sub.trial_start <= Math.floor(Date.now() / 1000)
   const trialMatches = sub.status !== 'trialing' || startsTrial
@@ -330,7 +331,7 @@ export async function billingCheckout({ db, user, business = null, configuration
         expires_at: current + (remaining > 0 ? Math.min(86400, remaining - 48 * 3600) : 86400),
         subscription_data: { metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key },
           trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
-          ...(firstCardTrial ? { trial_period_days: 14 } : remaining > 0 ? { trial_end: seconds(account.trial_ends_at) } : {}) } }
+          ...(firstCardTrial ? { trial_period_days: 7 } : remaining > 0 ? { trial_end: seconds(account.trial_ends_at) } : {}) } }
       operation = { key, created_at: now, params }
       account = (await commit(db, account, lease, { p_checkout: operation })).account
     }

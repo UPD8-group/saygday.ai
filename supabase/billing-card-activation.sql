@@ -87,7 +87,9 @@ begin
         or p_state->>'trial_started_at' is null or p_state->>'trial_ends_at' is null
         or (p_state->>'trial_started_at')::timestamptz < date_trunc('second', a.first_website_verified_at)
         or (p_state->>'trial_started_at')::timestamptz > clock_timestamp()
-        or (p_state->>'trial_ends_at')::timestamptz <> (p_state->>'trial_started_at')::timestamptz + interval '14 days' then
+        or coalesce((a.checkout #>> '{params,subscription_data,trial_period_days}')::integer, 14) not in (7, 14)
+        or (p_state->>'trial_ends_at')::timestamptz <> (p_state->>'trial_started_at')::timestamptz
+          + make_interval(days => coalesce((a.checkout #>> '{params,subscription_data,trial_period_days}')::integer, 14)) then
         raise exception 'INVALID_CARD_TRIAL' using errcode = '22023';
       end if;
     end if;

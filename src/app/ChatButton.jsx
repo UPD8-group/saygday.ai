@@ -58,8 +58,8 @@ export function SwitchOn({ business, request, onBusiness, guided = false }) {
       <p className="live-state"><Icon name="shield" size={18} />{`Website verified. We checked ${site} is yours${business.verifiedBy === 'dns' ? ' using your domain' : ''}, ${when(business.websiteVerifiedAt)}.`}</p>
       {guided ? <p className="live-state"><Icon name="check" size={18} />Website verified. Next, test your chat.</p> : <>
         <p className={`live-state${billing.accessAllowed && business.buttonSeenAt ? ' is-live' : ''}`}><Icon name={billing.accessAllowed && business.buttonSeenAt ? 'check' : 'globe'} size={18} />
-          {!billing.accessAllowed ? (billing.state === 'card_required' ? 'Ready to activate. Add your card to start your 14 free live days.' : 'Your customer chat is paused. Check Billing.') : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
-        {!billing.accessAllowed && <Link className="btn btn--gold" to="/app/billing">{billing.state === 'card_required' ? 'Activate - 14 days free' : 'View billing'}</Link>}
+          {!billing.accessAllowed ? (billing.state === 'card_required' ? 'Ready to activate. Add your card to start your 7 free live days.' : 'Your customer chat is paused. Check Billing.') : business.buttonSeenAt ? `Live on your website. Last seen ${when(business.buttonSeenAt)}.` : 'Your button shows the next time your website loads.'}</p>
+        {!billing.accessAllowed && <Link className="btn btn--gold" to="/app/billing">{billing.state === 'card_required' ? 'Activate - 7 days free' : 'View billing'}</Link>}
       </>}
     </> : <>
       <p>Your chat stays hidden until we’ve checked the button is on {site}, so nobody else can put answers out under your business’s name.</p>
