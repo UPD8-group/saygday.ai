@@ -147,6 +147,7 @@ test('consent inputs and sign-in continuation reject open redirects and malforme
   const body = { state: 's'.repeat(43), codeChallenge: 'c'.repeat(43), redirectUri: STUDIO_CALLBACK }
   assert.equal(connectionRequest(body, () => undefined).redirectUri, STUDIO_CALLBACK)
   for (const value of ['', 'x', 'x'.repeat(42), 'x'.repeat(44), '+'.repeat(43)]) assert.throws(() => connectionRequest({ ...body, codeChallenge: value }, () => undefined))
-  for (const value of ['https://evil.example', '//evil.example', '/app?next=https://evil.example', '/app/connect/oo-studio/../evil?x=1', '/app/connect/oo-studio']) assert.equal(studioReturnPath(value), '/app')
+  for (const value of ['https://evil.example', '//evil.example', '/app?next=https://evil.example', '/app/connect/oo-studio/../evil?x=1', '/app/connect/oo-studio', '/app/client-codes/../evil', '/app/client-codes?next=https://evil.example']) assert.equal(studioReturnPath(value), '/app')
+  assert.equal(studioReturnPath('/app/client-codes'), '/app/client-codes')
   assert.equal(studioReturnPath('/app/connect/oo-studio?state=abc'), '/app/connect/oo-studio?state=abc')
 })

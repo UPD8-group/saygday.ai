@@ -1,8 +1,9 @@
 export const cleanEmailCode = value => String(value || '').replace(/\D/g, '').slice(0, 10)
 
-// Only the dedicated consent route may survive a sign-in. This is not a
-// generic redirect parameter, so external URLs and other app routes fail shut.
+// Only these exact destinations may survive a sign-in. This is not a generic
+// redirect parameter, so external URLs and other app routes fail shut.
 export function studioReturnPath(value) {
+  if (value === '/app/client-codes') return value
   if (typeof value !== 'string' || value.length > 2000 || !value.startsWith('/app/connect/oo-studio?')) return '/app'
   const url = new URL(value, 'https://saygday.ai')
   return url.origin === 'https://saygday.ai' && url.pathname === '/app/connect/oo-studio' ? url.pathname + url.search : '/app'

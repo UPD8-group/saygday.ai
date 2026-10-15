@@ -7,6 +7,7 @@ import ChatButton from './app/ChatButton.jsx'
 import Settings from './app/Settings.jsx'
 import Checkout from './app/Checkout.jsx'
 import BillingPage from './app/BillingPage.jsx'
+import ClientCodesPage from './app/ClientCodesPage.jsx'
 import Setup from './app/Setup.jsx'
 import StudioConnect from './app/StudioConnect.jsx'
 
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="button" element={<RequireBusiness><ChatButton /></RequireBusiness>} />
         <Route path="settings" element={<RequireBusiness allowWhileScanning><Settings /></RequireBusiness>} />
         <Route path="billing" element={<RequireBusiness allowWhileScanning><BillingPage /></RequireBusiness>} />
+        <Route path="client-codes" element={<ClientCodesPage />} />
         <Route path="checkout" element={<RequireBusiness allowWhileScanning><Checkout /></RequireBusiness>} />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>

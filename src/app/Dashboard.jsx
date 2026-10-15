@@ -163,7 +163,7 @@ export function RequireSignIn({ children }) {
 export const goToSignIn = () => window.location.replace('/login')
 function GoToSignIn() {
   useEffect(() => {
-    if (window.location.pathname === '/app/connect/oo-studio') window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    if (['/app/connect/oo-studio', '/app/client-codes'].includes(window.location.pathname)) window.location.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
     else goToSignIn()
   }, [])
   return <div className="page"><Spinner label="Opening sign-in…" /></div>
@@ -240,6 +240,7 @@ export function Layout() {
       <nav className="sidebar-nav" aria-label="Dashboard">
         <p className="sidebar-label">Your workspace</p>
         <NavLink end to="/app"><Icon name="home" size={19} />Overview</NavLink>
+        {dash.canManageCodes && <NavLink to="/app/client-codes"><Icon name="users" size={19} />Client codes</NavLink>}
         {ready && <>
           <NavLink to="/app/questions"><Icon name="list" size={19} />Questions &amp; answers{drafts > 0 && <span className="badge">{drafts}</span>}</NavLink>
           <NavLink to="/app/asked"><Icon name="inbox" size={19} />Customer questions{asked > 0 && <span className="badge">{asked}</span>}</NavLink>
@@ -387,7 +388,7 @@ function Overview() {
     : !seen ? { tone: 'green', title: 'Your chat is switched on', text: `We checked ${business.website.replace(/^https:\/\//, '')} is yours. Your button shows the next time your website loads.`, action: null }
     : { tone: 'green', title: 'Your chat is live on your website', text: `Customers can see ${plural(live, 'answer')}. Questions it can’t answer come to Customers asked.`, action: null }
   return <div className="overview">
-    <header className="overview-heading"><div><p className="eyebrow">Your workspace</p><h1 className="greeting">G’day, {business.name}</h1><p className="lead">Here’s how your website chat is going.</p></div><Link className="btn btn--ghost" to={setupPath('preview', business.slug)}><Icon name="eye" size={18} />Preview chat</Link></header>
+    <header className="overview-heading"><div><p className="eyebrow">Your workspace</p><h1 className="greeting">G’day, {business.name}</h1><p className="lead">Here’s how your website chat is going.</p></div><div className="overview-heading__actions">{dash.canManageCodes && <Link className="btn btn--primary" to="/app/client-codes"><Icon name="plus" size={18} />Create client code</Link>}<Link className="btn btn--ghost" to={setupPath('preview', business.slug)}><Icon name="eye" size={18} />Preview chat</Link></div></header>
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     {needsSetup ? <section className="next card card--gold">
       <div><h2>Let's get your chat ready</h2><p>Check your answers, choose your icon, then install and verify. Approve your finished chat before adding your card at the final step.</p></div>

@@ -19,7 +19,7 @@ export default function Overview() {
         <h1>How SayGday is going</h1>
         <p className="small">SayGday’s own and test businesses are left out of every number. Days and weeks run on Canberra time.</p>
       </div>
-      <div className="admin-actions"><DownloadCsv summary={summary} /></div>
+      <div className="admin-actions"><a className="btn btn--primary" href="/app/client-codes">Create client code</a><DownloadCsv summary={summary} /></div>
     </div>
 
     <section className="kpis" aria-label="The numbers">

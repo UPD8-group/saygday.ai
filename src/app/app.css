@@ -419,11 +419,11 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .dashboard-mobile-bar { display: none; }
 .skip-link { position: fixed; top: -100px; left: 20px; background: var(--green-dark); color: white; z-index: 100; padding: 12px 20px; border-radius: 10px; }
 .skip-link:focus { top: 10px; }
-.overview-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 30px; }
+.overview-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin: 0 0 30px; }
 .overview-heading .greeting { margin: 0 0 8px; }
 .overview-heading .lead { margin: 0; font-size: 18px; }
 .overview-heading .eyebrow { font-size: 11px; }
-.overview-heading > .btn { flex: none; }
+.overview-heading__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .dashboard-shell .next { padding: 26px 28px; }
 .dashboard-shell .next h2 { font-size: 24px; }
 .dashboard-shell .next.card--green { background: #eef5ee; color: var(--green-dark); border-color: #d5e4d8; }
