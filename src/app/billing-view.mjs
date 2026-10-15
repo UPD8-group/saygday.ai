@@ -1,6 +1,6 @@
 // Display only. Access and all subscription changes are decided by the server.
 export const UNAVAILABLE_BILLING = Object.freeze({ state: 'unavailable', accessAllowed: false, checkoutAvailable: false, portalAvailable: false })
-const STATES = new Set(['internal', 'setup_pending', 'card_required', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
+const STATES = new Set(['complimentary', 'internal', 'setup_pending', 'card_required', 'trial_not_started', 'trial', 'trial_ending', 'trial_expired', 'active', 'canceling', 'past_due', 'unpaid', 'incomplete', 'canceled', 'paused', 'unavailable'])
 
 export function billingDate(value) {
   if (!value || !Number.isFinite(Date.parse(value))) return ''
@@ -23,6 +23,7 @@ export function billingView(value) {
   const pause = allowed || ['card_required', 'trial_not_started'].includes(billing.state) ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
     internal: ['Internal business', 'This website is marked as an internal or test business. No subscription is needed.'],
+    complimentary: ['Complimentary access', 'You have free access to SayGday for this website. No card or subscription is needed.'],
     setup_pending: ['Billing is being set up', 'Paid upgrades will be available here once billing is ready. No payment is taken automatically.'],
     card_required: ['Ready to go live', `Your website is verified. Add your card through Stripe to activate your chat and start 7 free days. Then ${monthlyPrice}/month AUD automatically unless you cancel. Nothing to pay today.`],
     trial_not_started: ['Build and preview for free', `Check your answers and verify your website first. Then add your card to activate your chat and start 7 free days. ${monthlyPrice}/month AUD afterwards unless you cancel.`],

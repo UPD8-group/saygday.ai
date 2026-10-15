@@ -13,7 +13,7 @@ const INTRO = {
   install: 'Add one line of code to your website. Your chat stays hidden while you finish setup.',
   verify: 'Check that your chat code is installed, or prove ownership with a domain record.',
   preview: 'This is your finished chat, with your chosen icon and saved answers. Try it as a customer, then approve it before billing.',
-  billing: 'Add your card securely to activate your chat. Checkout shows your first billing date before you confirm.',
+  billing: 'Activate with a card or a complimentary code. Checkout shows your first billing date before you confirm.',
 }
 
 export default function Setup() {
@@ -22,13 +22,15 @@ export default function Setup() {
   const navigate = useNavigate()
   const [previewDirty, setPreviewDirty] = useState(false)
   const flow = setupFlow({ step, business: dash.business, faqs: dash.faqs })
+  const freeAccess = ['internal', 'complimentary'].includes(dash.billing?.state)
+  const heading = flow.current === 'billing' && freeAccess ? 'Your chat is ready' : SETUP_STEPS[flow.index].label
   const path = next => setupPath(next, dash.business.slug)
 
   useEffect(() => {
-    document.title = `${SETUP_STEPS[flow.index].label} - SayGday setup`
+    document.title = `${heading} - SayGday setup`
     window.scrollTo({ top: 0, behavior: 'auto' })
     setPreviewDirty(false)
-  }, [flow.current, flow.index])
+  }, [flow.current, flow.index, heading])
 
   if (!flow.loaded) return <Spinner label="Loading your answers." />
   if (step !== flow.current) return <Navigate to={path(flow.current)} replace />
@@ -37,8 +39,8 @@ export default function Setup() {
   return <div className="setup">
     <header className="setup-heading">
       <p className="eyebrow">Step {flow.index + 1} of {SETUP_STEPS.length}</p>
-      <h1>{SETUP_STEPS[flow.index].label}</h1>
-      <p className="lead">{INTRO[flow.current]}</p>
+      <h1>{heading}</h1>
+      <p className="lead">{flow.current === 'billing' && freeAccess ? 'This website has free access. No payment details are needed.' : INTRO[flow.current]}</p>
     </header>
     {flow.current === 'answers' && <Questions guided />}
     {['appearance', 'install', 'verify', 'preview'].includes(flow.current) && <ChatButton key={flow.current} stage={flow.current} onDirtyChange={setPreviewDirty} />}

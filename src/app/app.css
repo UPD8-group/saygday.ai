@@ -251,6 +251,15 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .billing__state p { margin: 0; }
 .billing__actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .billing__terms { margin: 16px 0 0; }
+.complimentary-redeem { margin: 24px 0; padding: 24px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.complimentary-redeem .field { max-width: 500px; }
+.complimentary-code { font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: .02em; }
+.complimentary-issued { margin: 20px 0; padding: 18px; background: var(--mint); border-radius: 12px; display: grid; gap: 10px; }
+.complimentary-issued p { margin: 0; }
+.complimentary-list { padding: 0; list-style: none; }
+.complimentary-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 0; border-top: 1px solid var(--line); }
+.complimentary-list strong { overflow-wrap: anywhere; }
+.complimentary-list p { margin: 4px 0 0; overflow-wrap: anywhere; }
 .billing-notice a { font-weight: 650; white-space: nowrap; }
 
 @media (max-width: 860px) {

@@ -10,7 +10,7 @@ const rejects = (promise, code) => assert.rejects(promise, error => error.code =
 const sha = value => createHash('sha256').update(value).digest('hex')
 async function setup() {
   const pg = await database(), owner = await user(pg), other = await user(pg)
-  await pg.exec('alter table auth.users add column email_confirmed_at timestamptz default now(), add column banned_until timestamptz, add column deleted_at timestamptz')
+  await pg.exec('alter table auth.users add column if not exists email_confirmed_at timestamptz default now(), add column banned_until timestamptz, add column deleted_at timestamptz')
   await pg.exec('create function auth.uid() returns uuid language sql as $$select null::uuid$$')
   const db = rpcClient(pg, { user: owner })
   let active = owner

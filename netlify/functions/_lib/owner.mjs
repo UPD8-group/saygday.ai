@@ -16,6 +16,7 @@ import { checkWebsite } from './verify-website.mjs'
 import { validButtonColour } from '../../../shared/button-colour.mjs'
 import { publicBilling, billingStatus, billingCheckout, billingPortal } from './billing.mjs'
 import { CHARACTER_KEYS } from '../../../shared/characters.mjs'
+import { createComplimentaryCode, redeemComplimentaryCode } from './complimentary.mjs'
 
 const text = (value, { max, min = 0, field }) => {
   if (value === undefined || value === null) return null
@@ -48,7 +49,8 @@ function variantsFrom(value) {
 }
 
 export const OWNER_ACTIONS = Object.freeze(['me', 'createBusiness', 'startScan', 'scanStatus', 'listFaqs', 'saveFaq', 'deleteFaq', 'approveAll',
-  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry', 'verifyWebsite', 'billingStatus', 'billingCheckout', 'billingPortal'])
+  'updateBusiness', 'listEnquiries', 'setEnquiry', 'deleteEnquiry', 'verifyWebsite', 'billingStatus', 'billingCheckout', 'billingPortal',
+  'createComplimentaryCode', 'listComplimentaryCodes', 'revokeComplimentaryCode', 'redeemComplimentaryCode'])
 
 export async function ownerAction({ request, db, body, origin, dependencies = {} }) {
   const user = await requireUser(request, db)
@@ -63,8 +65,18 @@ export async function ownerAction({ request, db, body, origin, dependencies = {}
       // the first, which is the only one for most people).
       const businesses = await call(db, 'my_businesses', { p_user })
       const business = businesses.find(item => item.id === p_business) || businesses[0] || null
-      return { email: user.email, businesses, business, scan: business ? await call(db, 'latest_scan', { p_user, p_business: business.id }) : null,
+      return { email: user.email, canManageCodes: await call(db, 'billing_code_admin', { p_user }), businesses, business, scan: business ? await call(db, 'latest_scan', { p_user, p_business: business.id }) : null,
         ...(business ? { billing: publicBilling(await call(db, 'billing_owner', { p_user, p_business: business.id }), dependencies.billing?.configuration) } : {}) }
+    }
+    case 'createComplimentaryCode': {
+      await rateLimit(db, 'complimentary-create', p_user, 30, 3600)
+      return createComplimentaryCode({ db, user, email: body.email })
+    }
+    case 'listComplimentaryCodes': return { codes: await call(db, 'billing_code_list', { p_user }) }
+    case 'revokeComplimentaryCode': return { item: await call(db, 'billing_code_revoke', { p_user, p_code: id(body.codeId) }) }
+    case 'redeemComplimentaryCode': {
+      await rateLimit(db, 'complimentary-redeem', p_user, 8, 3600)
+      return redeemComplimentaryCode({ db, user, business: p_business, code: body.code, ...dependencies.billing })
     }
     case 'billingStatus': {
       await rateLimit(db, 'billing-status', p_user, 30, 60)

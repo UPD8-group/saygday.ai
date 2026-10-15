@@ -68,6 +68,9 @@ const REFUSALS = {
   WEBSITE_CHANGED: [409, 'Your website address just changed. Check your website again.'],
   BILLING_REQUIRED: [402, 'Your free period has ended or your subscription needs attention. Open Settings → Billing to continue scanning. Your saved answers and enquiries are still available.'],
   BILLING_LEASE_LOST: [409, 'Your billing is being updated. Refresh billing status before trying again.'],
+  CODE_ADMIN_REQUIRED: [403, 'Only the SayGday administrator can manage complimentary codes.'],
+  INVALID_COMPLIMENTARY_CODE: [400, 'This code is unavailable for this website. Check the code and your sign-in email, or ask for a new code.'],
+  BILLING_CODE_BUSY: [409, 'This website’s billing is being updated. Please try again shortly.'],
 }
 export function rpcResult({ data, error }) {
   if (!error) return data
