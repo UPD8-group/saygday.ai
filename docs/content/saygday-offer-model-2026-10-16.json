@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "status": "proposal_only_not_runtime_configuration",
+  "preparedOn": "2026-10-16",
+  "brand": "SayGday",
+  "maker": "oo.studio",
+  "headline": "Looks like a chatbot. Answers like you.",
+  "supportingLine": "Your answers. Ready when customers ask.",
+  "explanation": "AI helps with the first draft. You decide what customers read.",
+  "currency": "aud",
+  "advertisedPricesAreTotalCustomerPrices": true,
+  "taxPresentation": "Verify GST status before publication; do not infer it from an inclusive Stripe price.",
+  "release": {
+    "publicOfferActivated": false,
+    "stripePricesCreated": false,
+    "checkoutUpdated": false,
+    "websiteUpdated": false,
+    "existingSubscriptionsChanged": false,
+    "applyNewDefaultTo": "new_customers_only_after_coordinated_release",
+    "preserveExistingAccountPrices": true,
+    "preserveSavedTrialDates": true,
+    "preserveExistingAccess": true
+  },
+  "plans": [
+    {
+      "id": "saygday_self_managed",
+      "name": "SayGday",
+      "label": "You manage the answers",
+      "monthlyAmountMinor": 5900,
+      "billingInterval": "month",
+      "businesses": 1,
+      "websites": 1,
+      "stripePriceId": null,
+      "primaryAction": {
+        "label": "Build my SayGday",
+        "destination": "/login"
+      },
+      "trial": {
+        "heading": "Have a week on us.",
+        "days": 7,
+        "buildAndPreviewRequiresCard": false,
+        "websiteVerificationRequiredForActivation": true,
+        "cardRequiredForActivation": true,
+        "startsOn": "confirmed_subscription",
+        "automaticRenewalAfterTrial": true,
+        "showFirstBillingDateBeforeConfirmation": true
+      },
+      "includes": [
+        "Draft questions and answers from the business website",
+        "Owner review, editing and approval dashboard",
+        "Chat appearance personalisation using existing settings",
+        "Visitor-submitted enquiries with an email address for follow-up",
+        "Product support"
+      ],
+      "excludes": [
+        "Ongoing writing or editing as a managed service",
+        "Hands-on website installation"
+      ],
+      "publishedUsageAllowance": null,
+      "usageAllowanceNote": "Do not invent a message cap or advertise unlimited usage; verify actual limits and policy before making a public claim."
+    },
+    {
+      "id": "saygday_managed",
+      "name": "SayGday Managed",
+      "label": "A hand getting started and keeping it useful",
+      "monthlyAmountMinor": 9900,
+      "billingInterval": "month",
+      "businesses": 1,
+      "websites": 1,
+      "stripePriceId": null,
+      "saleMethod": "enquiry_and_agreed_scope_before_subscription",
+      "primaryAction": {
+        "label": "Ask about Managed",
+        "destination": "/contact"
+      },
+      "softwareIncluded": true,
+      "serviceScopeStatus": "proposed_service_commitment_not_verified_existing_process",
+      "initialShortQuestionsAndAnswersUpTo": 20,
+      "installation": "Standard installation on one supported website, subject to access and compatibility",
+      "initialChecks": "Approved answers and enquiry flow",
+      "monthlyContentWorkMinutesUpTo": 20,
+      "monthlyContentWorkIncludes": "One monthly review and small answer updates within the total time allowance",
+      "unusedTimeRollsOver": false,
+      "ownerApprovalRequiredBeforePublishingBusinessAnswers": true,
+      "standardSetupFeeProposed": 0,
+      "selfManagedFreeTrialIncludesManagedWork": false,
+      "managedTrialOfferedByDefault": false,
+      "extraWork": "Quote and agree additional writing, sites, integrations or involved website work before starting",
+      "publishedUsageAllowance": null
+    }
+  ],
+  "accountMessageRules": {
+    "price": "Use the verified account-specific amount, not a hardcoded new-customer price",
+    "dates": "Use the verified account-specific trial and billing dates in the customer's relevant timezone",
+    "enquirySuccess": "Display only after confirmed server success; do not imply delivery when only storage or queueing is confirmed"
+  },
+  "publicationGates": [
+    "Agree operational capacity and scope for Managed",
+    "Verify total price and tax presentation",
+    "Coordinate new price objects, server validation, checkout and marketing",
+    "Preserve valid existing subscriptions, agreed prices and trial dates",
+    "Update SayGday's own website-chat answers with the same live offer",
+    "Test supported installation, trial activation, cancellation and renewal",
+    "Keep Managed enquiry-led until its service and billing workflow are ready"
+  ]
+}
