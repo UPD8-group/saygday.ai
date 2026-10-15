@@ -4,7 +4,7 @@ import { Button, Icon, Notice, Spinner, when } from '../app/ui.jsx'
 import { Avatar } from '../chat/Chat.jsx'
 import { CHARACTERS, PLAIN_BUTTONS } from '../../shared/characters.mjs'
 import { useAdmin } from './AdminApp.jsx'
-import { STEPS, TRIAL_DAYS, dateLabel, number, plural, progressOf, stageOf } from './metrics.mjs'
+import { STEPS, dateLabel, number, plural, progressOf, stageOf } from './metrics.mjs'
 import { Columns, Pips, StageChip, TrialMeter, host } from './parts.jsx'
 
 const PLANS = [
@@ -87,8 +87,8 @@ function PlanCard({ detail, stage, onChange }) {
   } }, Date.now())
   return <section className="card">
     <h2>Plan</h2>
-    <p className="plan__days">Free days: {dateLabel(business.billing?.enabled ? business.billing.trialStartedAt : business.createdAt) || 'not started'} to {dateLabel(stage.endsAt) || 'not started'}{business.plan === 'trial' ? '.'
-      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : trialStage.key === 'not_started' ? 'not started' : `day ${trialStage.day} of ${TRIAL_DAYS}`}).</span>}</p>
+    <p className="plan__days">Free days: {dateLabel(business.billing?.trialStartedAt || (business.billing?.enabled ? null : business.createdAt)) || 'not started'} to {dateLabel(stage.endsAt) || 'not started'}{business.plan === 'trial' ? '.'
+      : <span className="small"> ({trialStage.key === 'ended' ? 'over' : trialStage.day ? `day ${trialStage.day} of ${trialStage.trialDays}` : trialStage.label.toLowerCase()}).</span>}</p>
     {business.plan === 'trial' && <p><TrialMeter stage={stage} /></p>}
     <Notice kind="error" onClose={() => setError('')}>{error}</Notice>
     <div className="segmented segmented--wrap" role="radiogroup" aria-label="Plan">

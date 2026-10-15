@@ -85,7 +85,9 @@ export default function Billing({ business, billing, request, refreshBilling, re
     <div className="billing__heading"><h2 id="billing-title">Billing</h2><span className="billing__price">A$40 <span>/ month AUD</span></span></div>
     <p><strong>SayGday Assistant</strong></p>
     <p className="small">Your website assistant shows the answers you approve and captures customer enquiries. Manage your answers, chat button and enquiries from your SayGday dashboard.</p>
-    {(view.checkoutAvailable || ['trial_not_started', 'card_required'].includes(view.state)) && <p className="small"><strong>Card details are required to activate a new chat.</strong> Verify your website, then add your card securely through Stripe. Your first 14 live days are free, then A$40/month AUD automatically unless you cancel. You can build and preview before activating.</p>}
+    {(view.checkoutAvailable || ['trial_not_started', 'card_required'].includes(view.state)) && <p className="small"><strong>Card details are required to activate a new chat.</strong> {['trial_not_started', 'card_required'].includes(view.state)
+      ? 'Verify your website, then add your card securely through Stripe. Your first 7 live days are free, then A$40/month AUD automatically unless you cancel. You can build and preview before activating.'
+      : 'A$40/month AUD is charged automatically unless you cancel. Any existing free-period dates stay unchanged; Checkout shows your first billing date.'}</p>}
     <div className={`billing__state${view.needsAttention ? ' billing__state--attention' : ''}`} aria-live="polite">
       <h3>{view.title}</h3><p>{view.description}</p>
     </div>
@@ -96,12 +98,12 @@ export default function Billing({ business, billing, request, refreshBilling, re
     <Notice kind="error">{refreshError}</Notice>
     {verificationNeeded && <div className="billing__state">
       <h3>Verify your website to continue</h3>
-      <p id="billing-verification-note">Add your chat code to your website or verify your domain. Then return here to add your card and activate. Your 14 free days start when activation is complete.</p>
+      <p id="billing-verification-note">Add your chat code to your website or verify your domain. Then return here to add your card and activate. Your 7 free days start when activation is complete.</p>
       <Link className="btn btn--gold" to={verificationPath}>Verify my website</Link>
     </div>}
     <div className="billing__actions">
       {verificationNeeded && <Button kind="gold" disabled aria-describedby="billing-verification-note">Add card and activate</Button>}
-      {view.checkoutAvailable && <Button kind="gold" disabled={Boolean(busy) || refreshing || waiting} onClick={() => navigate(checkoutPath)} iconAfter="arrow">{view.state === 'card_required' ? 'Add card - 14 days free' : view.checkoutLabel}</Button>}
+      {view.checkoutAvailable && <Button kind="gold" disabled={Boolean(busy) || refreshing || waiting} onClick={() => navigate(checkoutPath)} iconAfter="arrow">{view.state === 'card_required' ? 'Add card - 7 days free' : view.checkoutLabel}</Button>}
       {view.portalAvailable && <Button kind="dark" busy={busy === 'billingPortal'} disabled={Boolean(busy)} onClick={() => open('billingPortal')} iconAfter="external">Manage billing</Button>}
       <Button kind="ghost" busy={refreshing} disabled={Boolean(busy) || waiting} onClick={refresh} icon="refresh">Refresh billing status</Button>
     </div>

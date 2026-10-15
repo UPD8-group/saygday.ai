@@ -219,7 +219,7 @@ settings, which is how sign-in broke on saygday.ai before the move.
   it matters are made up and say so. Up to 600px wide each of those pages
   shows its photo and few lines, a big button to the next page
   (`<!-- site:phone-next -->`, filled by `phoneNext`), and Learn more, which
-  opens everything marked `more`; Pricing's button is Start your free 14
+  opens everything marked `more`; Pricing's button is Start your free 7
   days. The front page's button says "Next: The honest answer", because the
   front page never mentions AI. Desktop shows every page whole, and its
   calls to action stand out the way the phone's big button does (owner, same
@@ -286,8 +286,10 @@ settings, which is how sign-in broke on saygday.ai before the move.
   gets a signed twelve-hour cookie (HttpOnly, Secure, SameSite=Strict, sent to
   /api/admin only) that a new password revokes, and another website's page is
   refused. The browser never holds the password; the page fetches nothing from
-  Google and is never indexed. The free 14 days run from when the website was
-  added (`src/admin/metrics.mjs`). Billing is by hand, so the owner marks each
+  Google and is never indexed. At its original launch, the free 14 days ran
+  from when the website was added; the current admin uses server-stored trial
+  dates for billing-enabled businesses and preserves the old fallback only
+  for legacy records without billing. Billing was originally by hand, so the owner marked each
   business trial, paying, cancelled or ours/test (`businesses.plan`, every
   change kept in `plan_changes`): revenue, trial to paid and paying month by
   month count from that, and ours/test (the `saygday` business from the start)
@@ -308,7 +310,8 @@ settings, which is how sign-in broke on saygday.ai before the move.
   belong to the separate oo.studio service; they are not included or advertised
   as benefits of a SayGday subscription. The oo.studio request dashboard runs
   separately at oo.studio/dashboard/; it is not a SayGday feature.
-  Preserve website verification, card activation and the 14-day trial.
+  Preserve website verification and card activation. New activations receive a
+  7-day trial (owner, 15 October 2026); existing trials keep their original dates.
 
 ## Hard rules
 
@@ -322,12 +325,16 @@ settings, which is how sign-in broke on saygday.ai before the move.
 - **Billing is server-owned.** Owner decision, 8 October 2026: build, scan,
   approve and preview free without a card. A new business must verify its
   website and complete Stripe Checkout with a payment method before public
-  activation. Its full 14 days begin with the confirmed Stripe subscription,
+  activation. Its full 7 days begin with the confirmed Stripe subscription
+  (trial length updated by the owner, 15 October 2026),
   then A$40/month AUD is charged automatically unless cancelled. Existing
   started trials retain their original dates and no-card access. Apply
   supabase/billing-card-activation.sql after billing-upgrade.sql; do not
   replay the original migration on production (applied under the combined
-  20261008073543 migration). docs/billing.md describes the rollout.
+  20261008073543 migration). For the seven-day change, apply
+  supabase/migrations/20261015075228_seven_day_trials.sql after card activation
+  and before publishing the new server. Existing 14-day Checkout attempts
+  retain their saved duration and idempotency parameters. docs/billing.md describes the rollout.
   Neither browser state nor a Checkout return URL grants service. Webhooks
   verify the raw signature, reconcile current Stripe state under a fenced
   database lease, and save state plus the event receipt atomically. All

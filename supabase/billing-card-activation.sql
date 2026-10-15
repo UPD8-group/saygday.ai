@@ -87,7 +87,11 @@ begin
         or p_state->>'trial_started_at' is null or p_state->>'trial_ends_at' is null
         or (p_state->>'trial_started_at')::timestamptz < date_trunc('second', a.first_website_verified_at)
         or (p_state->>'trial_started_at')::timestamptz > clock_timestamp()
-        or (p_state->>'trial_ends_at')::timestamptz <> (p_state->>'trial_started_at')::timestamptz + interval '14 days' then
+        -- Validate against the server-persisted Checkout promise. Older open
+        -- attempts retain 14 days; newly created attempts request 7 days.
+        or coalesce(a.checkout #>> '{params,subscription_data,trial_period_days}', '') not in ('7','14')
+        or (p_state->>'trial_ends_at')::timestamptz <> (p_state->>'trial_started_at')::timestamptz
+          + (a.checkout #>> '{params,subscription_data,trial_period_days}')::integer * interval '1 day' then
         raise exception 'INVALID_CARD_TRIAL' using errcode = '22023';
       end if;
     end if;

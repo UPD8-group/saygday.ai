@@ -47,15 +47,16 @@ async function setup() {
   }
   const trial = () => {
     const start = Math.floor(Date.now() / 1000)
+    const days = state.calls[0].params.subscription_data.trial_period_days
     return { id: 'sub_card', customer: 'cus_card', livemode: false, created: start, status: 'trialing',
-      collection_method: 'charge_automatically', default_payment_method: 'pm_card', trial_start: start, trial_end: start + 14 * 86400,
+      collection_method: 'charge_automatically', default_payment_method: 'pm_card', trial_start: start, trial_end: start + days * 86400,
       metadata: state.calls[0].params.subscription_data.metadata,
-      items: { data: [{ quantity: 1, price, current_period_end: start + 14 * 86400 }] } }
+      items: { data: [{ quantity: 1, price, current_period_end: start + days * 86400 }] } }
   }
   return { pg, db, business, args, state, account, verify, deliver, trial }
 }
 
-test('new card activation requires verification and a confirmed payment method before any public access', async () => {
+test('new card activation grants exactly seven days only after verification and confirmed payment method', async () => {
   const s = await setup()
   assert.equal((await s.account()).card_required, true)
   assert.equal((await billingStatus(s.args)).checkoutAvailable, false)
@@ -71,7 +72,7 @@ test('new card activation requires verification and a confirmed payment method b
   await billingCheckout(s.args)
   const params = s.state.calls[0].params
   assert.equal(params.payment_method_collection, 'always')
-  assert.equal(params.subscription_data.trial_period_days, 14)
+  assert.equal(params.subscription_data.trial_period_days, 7)
   assert.equal(params.subscription_data.trial_end, undefined)
   assert.equal(params.subscription_data.trial_settings.end_behavior.missing_payment_method, 'cancel')
   assert.equal(params.line_items[0].price, 'price_monthly')
@@ -81,6 +82,7 @@ test('new card activation requires verification and a confirmed payment method b
   await s.deliver('evt_nosub')
   assert.equal((await s.account()).trial_started_at, null, 'a completion notification without provider state grants nothing')
   for (const patch of [{ default_payment_method: null }, { metadata: {} }, { trial_end: s.trial().trial_end + 86400 },
+    { trial_end: s.trial().trial_start + 14 * 86400 },
     { items: { data: [{ quantity: 2, price, current_period_end: s.trial().trial_end }] } }]) {
     s.state.subscriptions = [{ ...s.trial(), ...patch }]
     await billingStatus(s.args)
@@ -93,10 +95,13 @@ test('new card activation requires verification and a confirmed payment method b
   await s.deliver()
   const saved = await s.account()
   assert.equal(Date.parse(saved.trial_started_at), trial.trial_start * 1000)
-  assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 14 * 86400000)
+  assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 7 * 86400000)
   assert.equal(saved.access_allowed, true)
   assert.ok(await call(s.db, 'widget', { p_slug: s.business.slug }))
-  assert.equal((await billingStatus(s.args)).subscriptionScheduled, true)
+  const billing = await billingStatus(s.args)
+  assert.equal(billing.subscriptionScheduled, true)
+  assert.equal(billing.trialStartedAt, saved.trial_started_at)
+  assert.equal(billing.trialEndsAt, saved.trial_ends_at)
   assert.equal((await s.deliver()).duplicate, true)
   await assert.rejects(s.pg.query("update billing_accounts set trial_ends_at=trial_ends_at+interval '1 day' where business_id=$1", [s.business.id]), /BILLING_TRIAL_IMMUTABLE/)
   s.state.subscriptions[0] = { ...trial, status: 'canceled' }
@@ -120,4 +125,39 @@ test('card rollout preserves legacy trial dates and grants no fresh trial on mig
   assert.equal(after.trial_started_at, before.trial_started_at)
   assert.equal(after.trial_ends_at, before.trial_ends_at)
   assert.equal(after.access_allowed, true)
+})
+
+test('in-flight fourteen-day Checkout keeps its original promise and idempotency parameters after the seven-day rollout', async () => {
+  for (const sessionAlreadyCreated of [true, false]) {
+    const s = await setup()
+    await s.verify()
+    const key = 'sg-checkout-before-seven-day-rollout'
+    const params = { mode: 'subscription', ui_mode: 'elements', customer: 'cus_card', payment_method_collection: 'always',
+      line_items: [{ price: configuration.priceId, quantity: 1 }], metadata: { saygday_checkout_key: key },
+      expires_at: Math.floor(Date.now() / 1000) + 86400,
+      return_url: `https://saygday.ai/app/billing?business=${s.business.slug}&checkout=success`,
+      subscription_data: { trial_period_days: 14,
+        metadata: { saygday_business_id: s.business.id, saygday_checkout_key: key },
+        trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } } }
+    if (sessionAlreadyCreated) await s.args.stripe.checkout.sessions.create(params, { idempotencyKey: key })
+    const operation = { key, created_at: Date.now(), params,
+      ...(sessionAlreadyCreated ? { session_id: 'cs_card', expires_at: params.expires_at } : {}) }
+    await s.pg.query('update billing_accounts set stripe_customer_id=$1,checkout=$2 where business_id=$3',
+      ['cus_card', operation, s.business.id])
+
+    await billingCheckout(s.args)
+    assert.equal(s.state.calls.length, 1, 'recover the old session or create the original durable request once')
+    assert.deepEqual(s.state.calls[0].params, params)
+    assert.equal(s.state.calls[0].options.idempotencyKey, key)
+    assert.deepEqual((await s.account()).checkout.params, params)
+
+    const trial = s.trial()
+    s.state.subscriptions = [trial]
+    await s.deliver()
+    const saved = await s.account()
+    assert.equal(saved.access_allowed, true)
+    assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), 14 * 86400000)
+    await billingStatus(s.args)
+    assert.equal((await s.account()).trial_ends_at, saved.trial_ends_at, 'reconciliation never shortens an existing trial')
+  }
 })

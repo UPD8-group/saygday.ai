@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Icon } from '../app/ui.jsx'
-import { STEPS, TRIAL_DAYS, businessesCsv, number, percent, plural, sydneyDay } from './metrics.mjs'
+import { STEPS, businessesCsv, number, percent, plural, sydneyDay } from './metrics.mjs'
 
 export const host = website => String(website || '').replace(/^https:\/\//, '')
 
@@ -18,10 +18,10 @@ export function StageChip({ stage }) {
   return <span className={`chip chip--${stage.key}`}><Icon name={STAGE_ICON[stage.key] || 'clock'} size={14} />{stage.label}</span>
 }
 
-// Which of its 14 days a business is on, as a bar and in words.
+// Progress through this business's stored free period, as a bar and in words.
 export function TrialMeter({ stage }) {
   if (!['trial', 'ending', 'ended'].includes(stage.key)) return <StageChip stage={stage} />
-  const share = stage.key === 'ended' ? 1 : stage.day / TRIAL_DAYS
+  const share = stage.key === 'ended' ? 1 : stage.day / stage.trialDays
   return <span className={`meter meter--${stage.key}`}>
     <span className="meter__track" aria-hidden="true"><span className="meter__fill" style={{ width: `${Math.round(share * 100)}%` }} /></span>
     <span className="meter__label">{stage.key === 'ended' ? stage.label : `${stage.label} · ${plural(stage.daysLeft, 'day')} left`}</span>

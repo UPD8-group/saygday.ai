@@ -8,6 +8,7 @@ import { call, env, HttpError } from './runtime.mjs'
 // Match the stable snapshot version offered by the live account's Workbench.
 export const STRIPE_API_VERSION = '2026-08-26.dahlia'
 export const CHECKOUT_TRIAL_BUFFER = (48 * 60 + 30) * 60
+const FIRST_CARD_TRIAL_DAYS = 7
 const TERMINAL = new Set(['canceled', 'incomplete_expired'])
 const KNOWN_STATUS = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'incomplete_expired', 'canceled', 'paused'])
 const SUPPORTED_EVENTS = new Set(['checkout.session.completed', 'checkout.session.expired', 'checkout.session.async_payment_succeeded',
@@ -80,11 +81,11 @@ export function exactPrice(price, configuration, { forCheckout = false } = {}) {
 }
 
 export function publicBilling(account, configuration = billingConfiguration(), now = Date.now()) {
-  if (!account) return { state: 'trial_not_started', accessAllowed: false, trialEndsAt: null, currentPeriodEnd: null,
+  if (!account) return { state: 'trial_not_started', accessAllowed: false, trialStartedAt: null, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
-  if (typeof account.enabled !== 'boolean') return { state: 'unavailable', accessAllowed: false, trialEndsAt: null, currentPeriodEnd: null,
+  if (typeof account.enabled !== 'boolean') return { state: 'unavailable', accessAllowed: false, trialStartedAt: null, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: false, subscriptionScheduled: false }
-  if (account.internal === true) return { state: 'internal', accessAllowed: true, trialEndsAt: null, currentPeriodEnd: null,
+  if (account.internal === true) return { state: 'internal', accessAllowed: true, trialStartedAt: null, trialEndsAt: null, currentPeriodEnd: null,
     cancelAtPeriodEnd: false, checkoutAvailable: false, portalAvailable: !!(account.stripe_customer_id && configuration.portalReady), subscriptionScheduled: false }
   const current = Math.floor(now / 1000)
   const trial = seconds(account.trial_ends_at) > current
@@ -102,7 +103,8 @@ export function publicBilling(account, configuration = billingConfiguration(), n
   else if (['past_due', 'unpaid', 'incomplete', 'paused', 'canceled'].includes(account.subscription_status)) state = account.subscription_status
   else state = account.trial_ends_at ? 'trial_expired' : account.card_required && account.website_verified ? 'card_required' : 'trial_not_started'
   const hasSubscription = account.stripe_subscription_id && !TERMINAL.has(account.subscription_status)
-  return { state, accessAllowed, cardRequired: account.card_required === true, trialEndsAt: account.trial_ends_at || null, currentPeriodEnd: account.current_period_end || null,
+  return { state, accessAllowed, cardRequired: account.card_required === true, trialStartedAt: account.trial_started_at || null,
+    trialEndsAt: account.trial_ends_at || null, currentPeriodEnd: account.current_period_end || null,
     cancelAtPeriodEnd: !!account.cancel_at_period_end, subscriptionScheduled,
     checkoutAvailable: !!(account.enabled && configuration.checkoutReady && (account.trial_ends_at || (account.card_required && account.website_verified)) && !hasSubscription && state !== 'trial_ending'),
     portalAvailable: !!(account.stripe_customer_id && configuration.portalReady) }
@@ -141,6 +143,9 @@ export async function subscriptionSnapshot(stripe, account, configuration) {
     && invoice.amount_paid === item?.price?.unit_amount && invoice.total === item?.price?.unit_amount
   // Only the current provider subscription from our persisted Checkout attempt
   // can start a card-backed trial. Neither a redirect nor a customer ID proves it.
+  // Older in-flight Checkouts keep the 14 days already offered. Trust the
+  // persisted server request, never a duration supplied by an event or browser.
+  const trialDays = account.checkout?.params?.subscription_data?.trial_period_days
   const startsTrial = account.card_required === true && !account.trial_ends_at
     && account.first_website_verified_at && account.checkout?.key
     && sub.metadata?.saygday_checkout_key === account.checkout.key
@@ -148,7 +153,8 @@ export async function subscriptionSnapshot(stripe, account, configuration) {
     && /^pm_[A-Za-z0-9]+$/.test(objectId(sub.default_payment_method) || '')
     && ['trialing', 'active', 'canceled'].includes(sub.status)
     && stripeTimestamp(sub.trial_start) && stripeTimestamp(sub.trial_end)
-    && sub.trial_end - sub.trial_start === 14 * 86400
+    && [FIRST_CARD_TRIAL_DAYS, 14].includes(trialDays)
+    && sub.trial_end - sub.trial_start === trialDays * 86400
     && sub.trial_start >= seconds(account.first_website_verified_at)
     && sub.trial_start <= Math.floor(Date.now() / 1000)
   const trialMatches = sub.status !== 'trialing' || startsTrial
@@ -330,7 +336,7 @@ export async function billingCheckout({ db, user, business = null, configuration
         expires_at: current + (remaining > 0 ? Math.min(86400, remaining - 48 * 3600) : 86400),
         subscription_data: { metadata: { saygday_business_id: account.business_id, saygday_checkout_key: key },
           trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
-          ...(firstCardTrial ? { trial_period_days: 14 } : remaining > 0 ? { trial_end: seconds(account.trial_ends_at) } : {}) } }
+          ...(firstCardTrial ? { trial_period_days: FIRST_CARD_TRIAL_DAYS } : remaining > 0 ? { trial_end: seconds(account.trial_ends_at) } : {}) } }
       operation = { key, created_at: now, params }
       account = (await commit(db, account, lease, { p_checkout: operation })).account
     }

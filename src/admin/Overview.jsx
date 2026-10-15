@@ -25,7 +25,7 @@ export default function Overview() {
     <section className="kpis" aria-label="The numbers">
       <Stat label="Businesses" value={number(t.businesses)} note={`${t.businesses7 ? `+${t.businesses7}` : 'None new'} in the last 7 days`} to="/admin/businesses" />
       <Stat label="Signed in" value={number(t.signIns)} note={`${t.signIns7 ? `+${t.signIns7}` : 'None new'} in the last 7 days`} to="/admin/sign-ins" />
-      <Stat label="In their free 14 days" value={number(t.inTrial)} note={t.endingSoon ? `${t.endingSoon} end in the next 3 days` : 'None end in the next 3 days'} to="/admin/businesses?show=trial" />
+      <Stat label="In their free trial" value={number(t.inTrial)} note={t.endingSoon ? `${t.endingSoon} end in the next 3 days` : 'None end in the next 3 days'} to="/admin/businesses?show=trial" />
       <Stat label="Free days over, not paying" value={number(t.trialEnded)} tone={t.trialEnded ? 'gold' : ''} note={t.trialEnded ? `${dollars(t.waiting)} a month if they all pay` : 'Nobody waiting'} to="/admin/businesses?show=ended" />
       <Stat label="Monthly revenue" value={dollars(t.mrr)} note={`${plural(t.paying, 'business', 'businesses')} paying · ${dollars(t.arr)} a year`} to="/admin/businesses?show=paying" />
       <Stat label="Chats live" value={number(t.live7)} note={`On a website in the last 7 days · ${number(t.proved)} proved`} />
@@ -59,7 +59,7 @@ function Trials() {
   return <section className="card">
     <div className="card-head">
       <h2>Free trials</h2>
-      <p className="small">{TRIAL_DAYS} days from when the website was added. Trial to paid so far: <strong>{percent(trialToPaid)}</strong>{trialToPaid !== null && ` (${number(paying)} paying, of ${plural(trialFinished, 'business', 'businesses')} whose free days are over or that already pay)`}.</p>
+      <p className="small">{TRIAL_DAYS} days for new card-confirmed activations. Existing trials keep their stored start and end dates. Trial to paid so far: <strong>{percent(trialToPaid)}</strong>{trialToPaid !== null && ` (${number(paying)} paying, of ${plural(trialFinished, 'business', 'businesses')} whose free days are over or that already pay)`}.</p>
     </div>
     <div className="admin-split">
       <div>

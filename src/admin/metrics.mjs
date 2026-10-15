@@ -1,11 +1,12 @@
 // The admin page's numbers (/admin), worked out from what /api/admin sends
-// (netlify/functions/_lib/admin.mjs): where each business is in its free 14
-// days, how far it has got towards a live chat, and the numbers an investor
+// (netlify/functions/_lib/admin.mjs): where each business is in its free
+// period, how far it has got towards a live chat, and the numbers an investor
 // asks for. Plain functions with no page in them, so test/admin.test.mjs
 // checks them directly. SayGday's own and test businesses (plan "internal")
 // are listed, but counted in no total.
 
-export const TRIAL_DAYS = 14 // site/pricing.html: "Your first 14 days are free."
+export const TRIAL_DAYS = 7 // Current new-activation offer in site/pricing.html.
+const LEGACY_TRIAL_DAYS = 14 // Manual-billing records have no stored trial dates.
 export const PRICE = 40 // A$ a month, site/pricing.html
 export const SCAN_COST = Object.freeze([0.25, 0.45]) // A$ a website scan, README.md
 const DAY = 86400000
@@ -62,8 +63,8 @@ export function dateLabel(value, { short = false } = {}) {
 // ---- One business ------------------------------------------------------------
 
 // Where a business is with SayGday: its plan, set by hand on the admin page,
-// and for one still on trial, which of its 14 days it's on. The free days run
-// from when the website was added.
+// and for one still on trial, its progress against its own stored trial dates.
+// Only pre-billing records fall back to their original 14 days from creation.
 export function stageOf(business, now = Date.now()) {
   const billing = business.billing
   if (business.plan === 'internal') return { endsAt: null, key: 'internal', label: 'Ours / test' }
@@ -74,16 +75,23 @@ export function stageOf(business, now = Date.now()) {
     if (!billing.trialStartedAt) return { endsAt: null, key: 'not_started', label: 'Trial not started' }
     if (time(billing.trialEndsAt) <= now && billing.hasCustomer) return { endsAt: billing.trialEndsAt, key: 'cancelled', label: 'Payment inactive' }
   }
-  const start = time(billing?.enabled ? billing.trialStartedAt : business.createdAt) ?? now
-  const endsAt = billing?.enabled ? time(billing.trialEndsAt) : start + TRIAL_DAYS * DAY
-  const base = { endsAt: new Date(endsAt).toISOString() }
+  const storedStart = time(billing?.trialStartedAt)
+  const storedEnd = time(billing?.trialEndsAt)
+  if (billing?.enabled && (storedStart === null || storedEnd === null || storedEnd <= storedStart)) {
+    return { endsAt: null, key: 'unavailable', label: 'Trial dates unavailable' }
+  }
+  const hasDates = storedStart !== null && storedEnd !== null && storedEnd > storedStart
+  const start = hasDates ? storedStart : time(business.createdAt) ?? now
+  const endsAt = hasDates ? storedEnd : start + LEGACY_TRIAL_DAYS * DAY
+  const trialDays = Math.max(1, Math.ceil((endsAt - start) / DAY))
+  const base = { endsAt: new Date(endsAt).toISOString(), trialDays }
   if (!billing?.enabled && business.plan === 'paying') return { ...base, key: 'paying', label: 'Paying' }
   if (!billing?.enabled && business.plan === 'cancelled') return { ...base, key: 'cancelled', label: 'Cancelled' }
   if (business.plan === 'internal') return { ...base, key: 'internal', label: 'Ours / test' }
   if (now < endsAt) {
-    const day = Math.min(TRIAL_DAYS, Math.max(1, Math.floor((now - start) / DAY) + 1))
+    const day = Math.min(trialDays, Math.max(1, Math.floor((now - start) / DAY) + 1))
     const daysLeft = Math.ceil((endsAt - now) / DAY)
-    return { ...base, key: daysLeft <= 3 ? 'ending' : 'trial', label: `Day ${day} of ${TRIAL_DAYS}`, day, daysLeft }
+    return { ...base, key: daysLeft <= 3 ? 'ending' : 'trial', label: `Day ${day} of ${trialDays}`, day, daysLeft }
   }
   const daysAgo = Math.floor((now - endsAt) / DAY)
   return { ...base, key: 'ended', label: daysAgo ? `Trial ended ${plural(daysAgo, 'day')} ago` : 'Trial ended today', daysAgo }
@@ -213,7 +221,7 @@ export function investorSummary(summary) {
     `Chats live on a website this week: ${number(t.live7)} (${number(t.proved)} websites proved)`,
     `Paying: ${number(t.paying)} · MRR ${dollars(t.mrr)} · ARR ${dollars(t.arr)}`,
     `In free trial: ${number(t.inTrial)} · trial over, not yet paying: ${number(t.trialEnded)}`,
-    `Trial to paid: ${percent(t.trialToPaid)} (${number(t.paying)} of ${number(t.trialFinished)} businesses whose free ${TRIAL_DAYS} days are over, or that already pay)`,
+    `Trial to paid: ${percent(t.trialToPaid)} (${number(t.paying)} of ${number(t.trialFinished)} businesses whose free period is over, or that already pay)`,
     `Answers read by customers: ${number(t.answersRead)} all time${read}`,
     `Customer questions passed on: ${number(t.questions30)} in the last 30 days`,
     `Website scans: ${number(t.scans)} · AI cost about ${dollars(t.aiCost[0], { cents: true })}–${dollars(t.aiCost[1], { cents: true })}`,

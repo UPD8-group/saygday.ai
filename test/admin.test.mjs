@@ -162,7 +162,7 @@ test('the overview: every sign-in and business, where each is in its 14 days, an
   assert.deepEqual(stages, { 'Joe’s Cafe': 'trial', 'The Bakery': 'ended', SayGday: 'internal' })
   assert.equal(summary.totals.trialEnded, 1); assert.equal(summary.totals.inTrial, 1)
   assert.deepEqual([summary.totals.trialToPaid, summary.totals.trialFinished], [0, 1], 'the one business past its free days isn’t paying yet')
-  assert.match(investorSummary(summary), /Trial to paid: 0% \(0 of 1 businesses whose free 14 days are over, or that already pay\)/)
+  assert.match(investorSummary(summary), /Trial to paid: 0% \(0 of 1 businesses whose free period is over, or that already pay\)/)
   assert.equal(summary.totals.answersRead, 2); assert.equal(summary.totals.questions30, 2)
   assert.equal(summary.weeks.at(-1).businesses, 1, 'this week’s new business; the bakery came earlier and ours counts nowhere')
   assert.equal(summary.weeks.at(-1).answersRead, 2)
@@ -239,10 +239,10 @@ test('answers read and button loads are counted by the day, as numbers only', as
   assert.match(migration, /update public\.businesses set plan = 'internal', plan_changed_at = now\(\) where slug = 'saygday'/, 'SayGday’s own chat counts in no total')
 })
 
-test('where a business is in its free 14 days, and how far it has got', () => {
+test('legacy manual-billing records keep their original 14-day display, and setup progress', () => {
   const now = Date.parse('2026-10-20T00:00:00Z')
   const ago = days => new Date(now - days * DAY).toISOString()
-  assert.equal(TRIAL_DAYS, 14); assert.equal(PRICE, 40)
+  assert.equal(TRIAL_DAYS, 7); assert.equal(PRICE, 40)
   assert.deepEqual([stageOf({ createdAt: ago(0) }, now).label, stageOf({ createdAt: ago(0) }, now).daysLeft], ['Day 1 of 14', 14])
   assert.deepEqual([stageOf({ createdAt: ago(5.5) }, now).key, stageOf({ createdAt: ago(5.5) }, now).label], ['trial', 'Day 6 of 14'])
   assert.deepEqual([stageOf({ createdAt: ago(11.5) }, now).key, stageOf({ createdAt: ago(11.5) }, now).daysLeft], ['ending', 3])
@@ -263,6 +263,26 @@ test('where a business is in its free 14 days, and how far it has got', () => {
   // Canberra's calendar: 2:30am on Monday 5 October there is still Sunday in UTC.
   assert.equal(sydneyDay('2026-10-04T15:30:00Z'), '2026-10-05')
   assert.equal(mondayOf('2026-10-11'), '2026-10-05'); assert.equal(mondayOf('2026-10-05'), '2026-10-05')
+})
+
+test('admin trial labels retain stored seven-day and fourteen-day offers, including paused billing', () => {
+  const now = Date.parse('2026-10-20T00:00:00Z')
+  for (const trialDays of [7, 14]) {
+    const start = now - 3 * DAY
+    const end = start + trialDays * DAY
+    const billing = { enabled: true, trialStartedAt: new Date(start).toISOString(), trialEndsAt: new Date(end).toISOString() }
+    const business = { createdAt: '2026-09-01T00:00:00Z', billing }
+    const stage = stageOf(business, now)
+    assert.equal(stage.label, `Day 4 of ${trialDays}`)
+    assert.equal(stage.trialDays, trialDays)
+    assert.equal(stage.daysLeft, trialDays - 3)
+    assert.equal(stage.endsAt, billing.trialEndsAt)
+    assert.equal(stageOf({ ...business, billing: { ...billing, enabled: false } }, now).label, stage.label, 'a disabled rollout does not invent different trial dates')
+    assert.equal(stageOf(business, end - 1).label, `Day ${trialDays} of ${trialDays}`)
+    assert.equal(stageOf(business, end).key, 'ended')
+  }
+  assert.equal(stageOf({ billing: { enabled: true } }, now).key, 'not_started')
+  assert.equal(stageOf({ billing: { enabled: true, trialStartedAt: new Date(now).toISOString() } }, now).key, 'unavailable', 'missing trial dates cannot become a made-up countdown')
 })
 
 test('the spreadsheet of businesses can’t run anything a business typed', () => {

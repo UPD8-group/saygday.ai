@@ -4,7 +4,27 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 
-const mutations = [
+const trialMutations = [
+  {
+    file: 'netlify/functions/_lib/billing.mjs',
+    from: 'trial_period_days: FIRST_CARD_TRIAL_DAYS',
+    to: 'trial_period_days: 14',
+    test: 'new card activation grants exactly seven days only after verification and confirmed payment method',
+  },
+  {
+    file: 'netlify/functions/_lib/billing.mjs',
+    from: 'sub.trial_end - sub.trial_start === trialDays * 86400',
+    to: '[7, 14].includes((sub.trial_end - sub.trial_start) / 86400)',
+    test: 'a first card trial must match the persisted seven or fourteen-day Checkout request',
+  },
+  {
+    file: 'supabase/migrations/20261015075228_seven_day_trials.sql',
+    from: "(p_state->>'trial_ends_at')::timestamptz <> (p_state->>'trial_started_at')::timestamptz\n          + (a.checkout #>> '{params,subscription_data,trial_period_days}')::integer * interval '1 day'",
+    to: "(p_state->>'trial_ends_at')::timestamptz not in ((p_state->>'trial_started_at')::timestamptz + interval '7 days', (p_state->>'trial_started_at')::timestamptz + interval '14 days')",
+    test: 'seven-day rollout preserves existing trial dates and only commits the persisted Checkout duration',
+  },
+]
+const existingMutations = [
   {
     file: 'src/app/billing-view.mjs',
     from: "needsAttention: cancellationScheduled || !allowed || ['trial_ending', 'canceling', 'past_due'].includes(billing.state)",
@@ -39,7 +59,7 @@ const mutations = [
     file: 'supabase/billing-card-activation.sql',
     from: 'if a.trial_started_at is not null or a.card_required then return; end if;',
     to: 'if a.trial_started_at is not null then return; end if;',
-    test: 'new card activation requires verification and a confirmed payment method before any public access',
+    test: 'new card activation grants exactly seven days only after verification and confirmed payment method',
   },
   {
     file: 'netlify/functions/_lib/billing.mjs',
@@ -66,6 +86,9 @@ const mutations = [
     test: 'admin uses verification trial dates and counts only fresh paid subscriptions',
   },
 ]
+// Separate passes prevent the older activation safeguard from masking the
+// exact-seven-day assertion in the same integration test.
+for (const mutations of [trialMutations, existingMutations]) {
 const originals = new Map()
 try {
   for (const mutation of mutations) {
@@ -97,4 +120,5 @@ try {
   for (const [file, source] of originals) writeFileSync(file, source)
 }
 console.log('Original source restored.')
+}
 

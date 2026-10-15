@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { database, rpcClient, user } from './helpers/database.mjs'
 
 async function setup({ policy, verified = true } = {}) {
@@ -30,6 +31,42 @@ async function expireTrial(pg, businessId) {
 const paidState = () => ({ stripe_customer_id: 'cus_owned123', stripe_subscription_id: 'sub_owned123',
   subscription_status: 'active', price_valid: true, cancel_at_period_end: false,
   current_period_end: new Date(Date.now() + 86400000).toISOString(), synced_at: new Date().toISOString() })
+
+test('seven-day rollout preserves existing trial dates and only commits the persisted Checkout duration', async () => {
+  const legacy = await setup({ policy: 'website_verified' })
+  const before = await legacy.account()
+  await legacy.pg.exec(await readFile(new URL('../supabase/migrations/20261015075228_seven_day_trials.sql', import.meta.url), 'utf8'))
+  const after = await legacy.account()
+  assert.equal(after.trial_started_at, before.trial_started_at)
+  assert.equal(after.trial_ends_at, before.trial_ends_at)
+  assert.equal(Date.parse(after.trial_ends_at) - Date.parse(after.trial_started_at), 14 * 86400000)
+
+  for (const days of [7, 14]) {
+    const pg = await database(), person = await user(pg), db = rpcClient(pg)
+    await pg.exec(await readFile(new URL('../supabase/migrations/20261015075228_seven_day_trials.sql', import.meta.url), 'utf8'))
+    const invoke = async (name, args) => {
+      const { data, error } = await db.rpc(name, args)
+      if (error) throw new Error(error.message)
+      return data
+    }
+    await pg.exec('update billing_settings set enabled=true')
+    const business = await invoke('create_business', { p_user: person.id, p_email: person.email, p_website: `https://trial-${days}.example.com` })
+    await invoke('mark_website_verified', { p_slug: business.slug, p_website: business.website, p_method: 'button' })
+    const held = await invoke('billing_acquire', { p_business: business.id })
+    const commit = args => invoke('billing_commit', { p_business: business.id, p_lease: held.lease, ...args })
+    const start = Math.floor(Date.now() / 1000) * 1000
+    const state = duration => ({ ...paidState(), subscription_status: 'trialing',
+      trial_started_at: new Date(start).toISOString(), trial_ends_at: new Date(start + duration * 86400000).toISOString() })
+    await commit({ p_state: { stripe_customer_id: 'cus_owned123' } })
+    await assert.rejects(commit({ p_state: state(days) }), /INVALID_CARD_TRIAL/, 'no persisted Checkout grants no trial')
+    await commit({ p_checkout: { params: { subscription_data: { trial_period_days: days } } } })
+    await assert.rejects(commit({ p_state: state(days === 7 ? 14 : 7) }), /INVALID_CARD_TRIAL/, 'a different duration cannot replace the Checkout promise')
+    await assert.rejects(commit({ p_state: state(8) }), /INVALID_CARD_TRIAL/)
+    const saved = (await commit({ p_state: state(days) })).account
+    assert.equal(Date.parse(saved.trial_ends_at) - Date.parse(saved.trial_started_at), days * 86400000)
+    await assert.rejects(pg.query("update billing_accounts set trial_ends_at=trial_ends_at+interval '7 days' where business_id=$1", [business.id]), /BILLING_TRIAL_IMMUTABLE/)
+  }
+})
 
 test('billing migration records the chosen verification policy, stays inert, and protects already-verified businesses on activation', async () => {
   const { pg, business, account, call } = await setup()

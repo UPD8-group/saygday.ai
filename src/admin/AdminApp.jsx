@@ -8,7 +8,7 @@ import { Businesses, SignIns } from './Businesses.jsx'
 import BusinessDetail from './BusinessDetail.jsx'
 
 // SayGday's own admin page (/admin): every sign-in and business, where each
-// is in its free 14 days, and the numbers an investor asks for. Behind one
+// is in its free period, and the numbers an investor asks for. Behind one
 // password, checked by the server (netlify/functions/_lib/admin.mjs).
 const Admin = createContext(null)
 export const useAdmin = () => useContext(Admin)
@@ -48,7 +48,7 @@ function SignIn({ gate, onSignedIn }) {
         <span className="auth-card__icon"><Icon name="shield" size={28} /></span>
         <h1>SayGday admin</h1>
         {gate.off ? <Notice kind="error">{gate.error}</Notice> : <>
-          <p className="lead">Every business on SayGday, where each one is in its free 14 days, and how it’s all going.</p>
+          <p className="lead">Every business on SayGday, where each one is in its free period, and how it’s all going.</p>
           <Notice kind="error">{error}</Notice>
           <div className="field">
             <label htmlFor="admin-password">Admin password</label>

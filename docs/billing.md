@@ -1,42 +1,55 @@
 # Stripe billing
 
-## Current integration (9 October 2026)
+## Current integration (15 October 2026)
 
 The current offer is SayGday Assistant at A$40/month AUD: the website assistant, owner-approved answers, enquiry capture and the SayGday dashboard. Website creation, hosting and content updates are separate oo.studio services and are not included in this subscription. The oo.studio job-request dashboard is not a SayGday feature.
 
 Billing is per website. Every owner action names the selected business; Stripe return URLs restore that same website. Internal/test businesses retain access and stay out of revenue totals. Stripe reconciliation updates the admin plan history, while the live paying count also checks paid-through dates and sync freshness.
 
-Apply versioned migrations, then supabase/billing-upgrade.sql, then
-supabase/billing-card-activation.sql. Production already applied the original
+For a fresh database, apply the versioned migrations through 10 October, then supabase/billing-upgrade.sql, then
+supabase/billing-card-activation.sql, then
+supabase/migrations/20261015075228_seven_day_trials.sql. Production already applied the original
 Stripe migration together with the compatibility script under version
 20261008073543_stripe_billing_with_multibusiness_compatibility. Do not replay
 the original file because its old timestamp is absent from remote history.
-Deploy compatible code before the card-activation SQL. That SQL is idempotent.
+The original card-activation rollout required compatible code before its SQL.
+For the seven-day change, apply the compatibility migration before publishing
+the seven-day server. It accepts existing 14-day Checkout attempts during deployment.
+The seven-day migration changes validation for newly activated trials without
+rewriting any existing trial start or end dates. It must follow the card-activation
+script on a fresh database because that script establishes the replaced function.
 
-## Card before public activation (owner decision, 8 October 2026)
+## Card before public activation (8 October; trial shortened 15 October 2026)
 
 Build, scan, approve answers and preview free without a card. Verify website
 ownership, then complete Stripe Checkout with a payment method to go live.
-The full 14 days start when Stripe confirms the subscription, followed by
+The full 7 days start when Stripe confirms the subscription, followed by
 **A$40/month AUD automatically unless cancelled**. Opening or abandoning
 Checkout starts nothing. Stripe collects the payment method with
-payment_method_collection=always and trial_period_days=14. No raw card data
+payment_method_collection=always and trial_period_days=7. No raw card data
 reaches SayGday. Missing-payment-method trial expiry cancels the subscription.
 
 Only a current provider subscription tied to the persisted Checkout key and
-business, with a payment method, exact price and 14-day interval, can persist
+business, with a payment method, exact price and the authorised trial interval, can persist
 the trial under the existing atomic lease. Website verification alone cannot
 start it. Trial dates remain immutable through resubscription and domain changes.
 All public chat entry points stay blocked until entitlement exists. Owner
 editing and preview remain available. Visitors still receive approved answers
 word for word; billing never changes the chat model.
 
-Already-started trials are grandfathered without changing their dates or
-requiring a card until expiry. Their payments begin only if they subscribe;
-Checkout preserves their original end date. The original website_verified
+Already-started trials, including existing 14-day trials, keep their original
+start and end dates. New activations receive 7 days; changing this offer must
+never shorten or restart an existing trial. Existing no-card trials remain
+grandfathered without requiring a card until expiry. Their payments begin only
+if they subscribe; Checkout preserves their original end date. The original website_verified
 policy remains in the database for this legacy cohort, while
 require_card_for_new_trials=true governs new accounts. The earlier no-card
 policy and sandbox notes are historical, superseded by this owner decision.
+
+An unfinished Checkout created under the earlier 14-day offer keeps that
+duration when it completes. Its persisted attempt data is the authority; a
+new Checkout attempt uses 7 days. Retries must not rewrite old idempotency
+parameters or give an existing business a replacement free period.
 
 Stripe Dashboard > Billing > Subscriptions and emails: the seven-day trial
 reminder is enabled, with a Stripe-hosted payment update page and a link to
@@ -193,7 +206,7 @@ use them. Do not introduce client-side table access for billing.
 
 ## Checkout and the end of the free period
 
-New businesses use the card-backed 14-day activation flow above. The following
+New businesses use the card-backed 7-day activation flow above. The following
 remaining-time rules apply only after a trial has already started.
 
 Owners may voluntarily choose Checkout while more than **48 hours and
@@ -382,10 +395,11 @@ documented declined/authentication-required cards for those paths.
 
 | Check | Expected result |
 |---|---|
-| New owner, no card | Signup, scans, preview and verification do not start the trial or allow public chat. Card-backed Stripe confirmation starts the full 14 days. Abandoned Checkout grants nothing. |
+| New owner, no card | Signup, scans, preview and verification do not start the trial or allow public chat. Card-backed Stripe confirmation starts the full 7 days. Abandoned Checkout grants nothing. |
+| Existing 14-day trial | Stored start/end dates and Stripe billing dates stay unchanged. Owner and admin labels use those stored dates, not the current 7-day offer. |
 | Existing business at card-policy rollout | Already-started trials retain exactly their original dates and access. Unstarted accounts require card-backed activation. No retroactive charge. |
 | Double-click Upgrade / repeat request | One reusable Checkout attempt and no second subscription. |
-| Upgrade before trial expiry | Every remaining free day is preserved; no replacement 14-day period. |
+| Upgrade before trial expiry | Every remaining free day is preserved; no replacement free period. |
 | Upgrade after expiry | Checkout states A$40/month AUD; public access resumes only after server verification. |
 | Abandon Checkout / alter return query | No paid access; the dashboard never treats the return URL as proof of payment. |
 | Successful payment | The server records the correct customer's subscription and paid-through date. |
@@ -414,7 +428,7 @@ smoke checks:
 
 | Test file | Boundary exercised |
 |---|---|
-| `test/card-activation.test.mjs` | New card policy: verified site and confirmed payment method, exact 14 days, abandoned Checkout, metadata mismatch, replay, cancellation, immutable dates and grandfathered legacy trials. |
+| `test/card-activation.test.mjs` | New card policy: verified site and confirmed payment method, exact 7 days, abandoned Checkout, metadata mismatch, replay, cancellation, immutable dates and grandfathered legacy trials. |
 | `test/billing-database.test.mjs` | Explicit legacy fixtures in PGlite: inert rollout, first-verification trial start, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
 | `test/billing-server.test.mjs` | Real Stripe SDK signed fixture generation and verification, with mocked provider API responses and real PGlite state: tampered/stale signatures, ownership, retries, event replay/order, concurrency, exact pricing and bounded outage recovery. |
 | `test/billing-ui.test.mjs` | Dashboard state copy, server capability flags, safe redirects, refresh behaviour and return-query handling. |

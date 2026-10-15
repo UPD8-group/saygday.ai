@@ -134,6 +134,24 @@ test('billing states fail closed when unknown, stale, unpaid or past the paid pe
   assert.equal(publicBilling({ enabled: false }, configuration).state, 'setup_pending')
 })
 
+test('a first card trial must match the persisted seven or fourteen-day Checkout request', async () => {
+  const stripe = fakeStripe(), start = now() - 1, key = 'sg-checkout-policy', businessId = 'business-policy'
+  const base = { stripe_customer_id: 'cus_owner', business_id: businessId, card_required: true,
+    first_website_verified_at: new Date((start - 60) * 1000).toISOString() }
+  for (const requested of [7, 14, 8, 0, null, '7', undefined]) {
+    for (const received of [7, 14, 8]) {
+      const account = { ...base, checkout: { key, params: { subscription_data: { trial_period_days: requested } } } }
+      stripe.subscriptions = [subscription({ status: 'trialing', default_payment_method: 'pm_policy',
+        trial_start: start, trial_end: start + received * 86400,
+        metadata: { saygday_business_id: businessId, saygday_checkout_key: key } })]
+      const snapshot = await subscriptionSnapshot(stripe.client, account, configuration)
+      const accepted = [7, 14].includes(requested) && requested === received
+      assert.equal(snapshot.price_valid, accepted, `requested ${requested}; provider returned ${received}`)
+      assert.equal(Boolean(snapshot.trial_started_at), accepted)
+    }
+  }
+})
+
 test('the public production browser key fallback is confined to SayGday live billing and explicit configuration wins', () => {
   const live = liveSettings
   const read = values => billingConfiguration(name => values[name])

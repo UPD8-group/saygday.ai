@@ -22,6 +22,7 @@ async function jsxModule(url) {
   return `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
 }
 const { default: Billing, BillingNotice } = await import(await jsxModule(new URL('../src/app/Billing.jsx', import.meta.url)))
+const { TrialMeter } = await import(await jsxModule(new URL('../src/admin/parts.jsx', import.meta.url)))
 function render(billing, search = '') {
   return renderToStaticMarkup(React.createElement(StaticRouter, { location: `/app/settings${search}` }, React.createElement(Billing, {
     billing, request: async () => assert.fail('render cannot start checkout'), refreshBilling: async () => billing,
@@ -46,7 +47,7 @@ test('every billing lifecycle has explicit copy and preserves the server access 
     const denied = billingView({ state, accessAllowed: false })
     assert.equal(denied.state, state)
     assert.ok(denied.title.length > 10, state)
-    assert.match(denied.description, ['card_required', 'trial_not_started'].includes(state) ? /14 free days/ : /edit answers and read enquiries/, state)
+    assert.match(denied.description, ['card_required', 'trial_not_started'].includes(state) ? /7 free days/ : /edit answers and read enquiries/, state)
   }
   assert.match(billingView({ state: 'canceling', accessAllowed: true, currentPeriodEnd: '2026-11-01T12:00:00Z' }).description, /will not renew/)
   assert.doesNotMatch(billingView({ state: 'active', accessAllowed: true }).description, /paused/)
@@ -78,6 +79,29 @@ test('checkout returns request confirmation and cannot grant a subscription', ()
   assert.match(html, /customer chat is paused/)
   assert.doesNotMatch(html, /subscription is active|status has been confirmed/)
   assert.match(html, /disabled=""/, 'actions cannot race the initial confirmation')
+})
+
+test('started trial copy and admin meters show each stored offer rather than the current seven-day promise', () => {
+  for (const trialDays of [7, 14]) {
+    const start = Date.parse('2026-10-15T00:00:00Z')
+    const trialEndsAt = new Date(start + trialDays * 86400000).toISOString()
+    const view = billingView({ state: 'trial', accessAllowed: true, trialStartedAt: new Date(start).toISOString(), trialEndsAt })
+    assert.match(view.description, new RegExp(`Your ${trialDays} free days end on`))
+    assert.ok(view.description.includes(billingDate(trialEndsAt)))
+    const html = renderToStaticMarkup(React.createElement(TrialMeter, { stage: {
+      key: 'trial', label: `Day 4 of ${trialDays}`, day: 4, daysLeft: trialDays - 3, trialDays,
+    } }))
+    assert.match(html, new RegExp(`width:${Math.round(4 / trialDays * 100)}%`))
+    assert.match(html, new RegExp(`Day 4 of ${trialDays}`))
+  }
+  for (const trialStartedAt of [undefined, 'invalid']) {
+    const view = billingView({ state: 'trial', accessAllowed: true, trialStartedAt, trialEndsAt: '2026-10-29T00:00:00Z' })
+    assert.match(view.description, /Your free period ends on/)
+    assert.doesNotMatch(view.description, /Your (7|14) free days/, 'unknown dates must not be assigned the latest offer')
+  }
+  const existing = render({ state: 'trial', accessAllowed: true, checkoutAvailable: true, trialStartedAt: '2026-10-15T00:00:00Z', trialEndsAt: '2026-10-29T00:00:00Z' })
+  assert.doesNotMatch(existing, /first 7 live days|start 7 free days/)
+  assert.match(existing, /existing free-period dates stay unchanged/)
 })
 
 test('activation celebration requires a verified website and server-confirmed subscription access after checkout', () => {
@@ -129,7 +153,7 @@ test('rendered billing controls honour server capability flags and explain price
 
 test('billing explains card collection after verification and automatic monthly renewal', () => {
   const activation = render({ state: 'card_required', accessAllowed: false, checkoutAvailable: true })
-  assert.match(activation, /Add card.*14 days free/)
+  assert.match(activation, /Add card.*7 days free/)
   assert.match(activation, /Nothing to pay today/)
   const start = /verify your website first/
   assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)
