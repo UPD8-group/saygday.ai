@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+
+test('an agreed A$60 subscription is shown consistently during trial and paid access', () => {
+  for (const state of ['trial', 'active', 'trial_expired', 'canceled', 'card_required']) {
+    const view = billingView({ state, monthlyAmount: 6000, accessAllowed: true, subscriptionScheduled: true })
+    assert.equal(view.monthlyPrice, 'A$60')
+    assert.match(view.description, /A\$60/)
+    assert.doesNotMatch(view.description, /A\$40/)
+  }
+})
 import { readFile } from 'node:fs/promises'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'

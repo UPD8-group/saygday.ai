@@ -25,8 +25,8 @@ const mutations = [
   },
   {
     file: 'netlify/functions/_lib/billing.mjs',
-    from: 'price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT)',
-    to: '(price.unit_amount === 3000 || price.unit_amount === (legacy ? 3000 : MONTHLY_AMOUNT))',
+    from: 'price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT))',
+    to: '(price.unit_amount === 3000 || price.unit_amount === (legacy ? 3000 : (configuration.monthlyAmount ?? MONTHLY_AMOUNT)))',
     test: 'configuration pins the SDK API, secret mode, origin and exact AUD monthly inclusive price',
   },
   {

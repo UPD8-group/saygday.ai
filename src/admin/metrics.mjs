@@ -132,7 +132,8 @@ export function summarise(data, now = time(data?.generatedAt) ?? Date.now()) {
     businesses: counted.length, businesses7: count(counted, business => within(business.createdAt, 7)),
     businesses30: count(counted, business => within(business.createdAt, 30)),
     inTrial: at('trial').length + at('ending').length, endingSoon: at('ending').length, trialEnded: ended, paying, cancelled,
-    mrr: paying * PRICE, arr: paying * PRICE * 12, waiting: ended * PRICE,
+    mrr: sum(at('paying'), b => (b.billing?.monthlyAmount ?? PRICE * 100) / 100),
+    arr: sum(at('paying'), b => (b.billing?.monthlyAmount ?? PRICE * 100) / 100) * 12, waiting: ended * PRICE,
     // Of the businesses whose free days are over (or that already pay), the share paying.
     trialToPaid: finished ? paying / finished : null, trialFinished: finished,
     proved: count(counted, business => business.websiteVerifiedAt), live7: count(counted, business => within(business.buttonSeenAt, 7)),

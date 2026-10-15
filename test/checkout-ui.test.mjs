@@ -11,6 +11,17 @@ const bootstrap = {
   expiresAt: Math.floor(now / 1000) + 86400,
 }
 const checkout = checkoutBootstrap(bootstrap, 'owned-business', now)
+
+test('an agreed monthly price is shown only when it matches the server bootstrap and Stripe totals', () => {
+  const agreed = { ...checkout, monthlyAmount: 6000 }, s = session()
+  s.recurring.dueNext.total.minorUnitsAmount = 6000
+  s.recurring.dueNext.total.amount = 'A$60.00'
+  assert.equal(checkoutView(s, agreed, now).monthlyPrice, 'A$60')
+  assert.throws(() => checkoutView(s, checkout, now), /checkout amount/)
+  s.recurring.trial = null
+  s.total.total = { amount: 'A$60.00', minorUnitsAmount: 6000 }
+  assert.equal(checkoutView(s, agreed, now).button, 'Subscribe for A$60/month')
+})
 function session() {
   return {
     id: 'cs_live_fixture', livemode: true,
