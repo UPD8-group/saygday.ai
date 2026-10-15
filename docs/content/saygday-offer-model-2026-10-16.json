@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "status": "owner_approved_release_specification",
+  "preparedOn": "2026-10-16",
+  "brand": "SayGday",
+  "maker": "oo.studio",
+  "headline": "Looks like a chatbot. Answers like you.",
+  "supportingLine": "Your answers. Your final say.",
+  "explanation": "AI helps with the first draft. You decide what customers read.",
+  "currency": "aud",
+  "advertisedPricesAreTotalCustomerPrices": true,
+  "taxPresentation": "Advertise the total AUD price; do not assert GST registration from an inclusive Stripe price.",
+  "release": {
+    "mode": "publish_approved_copy_on_merge",
+    "publicationModule": "site/published-copy.mjs",
+    "stripePricesCreated": true,
+    "newAccountPricingScript": "supabase/new-customer-offer.sql",
+    "ownChatAlignmentScript": "supabase/own-chat-approved-offer.sql",
+    "existingSubscriptionsChanged": false,
+    "applyNewDefaultTo": "new_billing_accounts_only",
+    "preserveExistingAccountPrices": true,
+    "preserveSavedTrialDates": true,
+    "preserveExistingAccess": true
+  },
+  "plans": [
+    {
+      "id": "saygday_self_managed",
+      "name": "SayGday",
+      "label": "You manage the answers",
+      "monthlyAmountMinor": 5900,
+      "billingInterval": "month",
+      "businesses": 1,
+      "websites": 1,
+      "stripePriceId": "price_1UQwkRR8qEoKoynxsgmnPqqX",
+      "primaryAction": { "label": "Build my SayGday", "destination": "/login" },
+      "trial": {
+        "heading": "Have a week on us.",
+        "days": 7,
+        "buildAndPreviewRequiresCard": false,
+        "websiteVerificationRequiredForActivation": true,
+        "cardRequiredForActivation": true,
+        "startsOn": "confirmed_subscription",
+        "automaticRenewalAfterTrial": true,
+        "showFirstBillingDateBeforeConfirmation": true
+      },
+      "includes": [
+        "Draft questions and answers from the business website",
+        "Owner review, editing and approval dashboard",
+        "Chat appearance personalisation using existing settings",
+        "Visitor-submitted enquiries, with email notification when an email address is supplied",
+        "Product support"
+      ],
+      "excludes": ["Managed content work", "Hands-on website installation"],
+      "publishedUsageAllowance": null,
+      "usageAllowanceNote": "Do not invent a message cap or advertise unlimited usage."
+    },
+    {
+      "id": "saygday_managed",
+      "name": "SayGday Managed",
+      "label": "A hand getting started and keeping it useful",
+      "monthlyAmountMinor": 7500,
+      "billingInterval": "month",
+      "dailyComparison": { "amountMinor": 250, "daysInComparisonMonth": 30, "wording": "About A$2.50 a day, billed A$75 monthly. Daily comparison based on a 30-day month." },
+      "businesses": 1,
+      "websites": 1,
+      "stripePriceId": "price_1UQwoQR8qEoKoynxsA2ojHYu",
+      "saleMethod": "enquiry_and_agreed_scope_before_subscription",
+      "primaryAction": { "label": "Ask about Managed", "destination": "/contact" },
+      "softwareIncluded": true,
+      "serviceScopeStatus": "owner_approved_enquiry_led",
+      "initialShortQuestionsAndAnswersUpTo": 20,
+      "installation": "Standard installation on one supported website, subject to access and compatibility",
+      "initialChecks": "Approved answers and enquiry flow",
+      "monthlyContentWorkMinutesUpTo": 20,
+      "monthlyContentWorkIncludes": "Review and small answer updates within the total time allowance",
+      "unusedTimeRollsOver": false,
+      "ownerApprovalRequiredBeforePublishingBusinessAnswers": true,
+      "standardSetupFeeProposed": 0,
+      "selfManagedFreeTrialIncludesManagedWork": false,
+      "managedTrialOfferedByDefault": false,
+      "extraWork": "Quote and agree additional writing, sites, integrations or involved website work before starting",
+      "publishedUsageAllowance": null
+    }
+  ],
+  "accountMessageRules": {
+    "price": "Use the verified account-specific amount, not a hardcoded new-customer price",
+    "dates": "Use verified account-specific trial and billing dates",
+    "enquirySuccess": "Display only after confirmed server success"
+  }
+}

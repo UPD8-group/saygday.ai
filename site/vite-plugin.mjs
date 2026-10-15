@@ -1,24 +1,17 @@
-// Builds the public website from site/: fills each page's shared parts in
-// (site/chrome.mjs) and publishes each page at the top of the site
-// (site/pricing.html as /pricing.html), which Netlify serves at /pricing with
-// no redirect. The dashboard is app.html, served
-// at /app; the admin page is admin.html, at /admin; the chat window is chat.html.
+// Publish the approved copy in the existing public website, and retain the
+// separate read-only review journey. Live forms, login and chat stay active.
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NOT_FOUND, PAGES, composePage } from './chrome.mjs'
+import { PREVIEW_SLUGS, makeReviewOnly, previewOutput, reviewScripts } from './content-preview.mjs'
+import { publishSiteCopy } from './published-copy.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ALL = [...PAGES, NOT_FOUND]
-
-// Where each page is published. A folder per page (pricing/index.html) would
-// make Netlify answer /pricing with a redirect to /pricing/ first.
 export const outputFor = page => (page.slug === '' ? 'index.html' : `${page.slug}.html`)
-
 export const siteInputs = Object.fromEntries(ALL.map(page => [`site-${page.slug || 'home'}`, resolve(here, page.file)]))
-
 const pageForFile = file => (dirname(resolve(file)) === here ? ALL.find(page => page.file === basename(file)) : undefined)
 
-// The same addresses Netlify serves, for `vite` and `vite preview`.
 function rewrite({ built }) {
   return (req, _res, next) => {
     const [path, query = ''] = req.url.split('?')
@@ -41,19 +34,24 @@ export function sitePages() {
       order: 'pre',
       handler(html, context) {
         const page = pageForFile(context.filename)
-        return page ? composePage(html, page.slug) : html
+        return page ? publishSiteCopy(composePage(html, page.slug), page.slug) : html
       },
     },
-    // Vite writes the pages out in its own last step, so this runs after it.
     generateBundle: {
       order: 'post',
       handler(_options, bundle) {
+        const home = bundle['site/index.html']
+        if (!home || home.type !== 'asset' || typeof home.source !== 'string') throw new Error('Content preview requires the built homepage')
+        const scripts = reviewScripts(home.source)
         for (const [fileName, asset] of Object.entries(bundle)) {
           if (asset.type !== 'asset' || !fileName.startsWith('site/') || !fileName.endsWith('.html')) continue
           const page = ALL.find(item => `site/${item.file}` === fileName)
           if (!page) continue
           delete bundle[fileName]
           this.emitFile({ type: 'asset', fileName: outputFor(page), source: asset.source })
+          if (PREVIEW_SLUGS.includes(page.slug)) {
+            this.emitFile({ type: 'asset', fileName: previewOutput(page.slug), source: makeReviewOnly(String(asset.source), { slug: page.slug, scripts }) })
+          }
         }
       },
     },
