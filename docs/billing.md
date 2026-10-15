@@ -17,14 +17,14 @@ Deploy compatible code before the card-activation SQL. That SQL is idempotent.
 
 Build, scan, approve answers and preview free without a card. Verify website
 ownership, then complete Stripe Checkout with a payment method to go live.
-The full 14 days start when Stripe confirms the subscription, followed by
+The full 7 days start when Stripe confirms the subscription, followed by
 **A$40/month AUD automatically unless cancelled**. Opening or abandoning
 Checkout starts nothing. Stripe collects the payment method with
-payment_method_collection=always and trial_period_days=14. No raw card data
+payment_method_collection=always and trial_period_days=7. No raw card data
 reaches SayGday. Missing-payment-method trial expiry cancels the subscription.
 
 Only a current provider subscription tied to the persisted Checkout key and
-business, with a payment method, exact price and 14-day interval, can persist
+business, with a payment method, exact price and 7-day interval, can persist
 the trial under the existing atomic lease. Website verification alone cannot
 start it. Trial dates remain immutable through resubscription and domain changes.
 All public chat entry points stay blocked until entitlement exists. Owner
@@ -193,7 +193,7 @@ use them. Do not introduce client-side table access for billing.
 
 ## Checkout and the end of the free period
 
-New businesses use the card-backed 14-day activation flow above. The following
+New businesses use the card-backed 7-day activation flow above. The following
 remaining-time rules apply only after a trial has already started.
 
 Owners may voluntarily choose Checkout while more than **48 hours and
@@ -318,7 +318,7 @@ fresh isolated database, run all migrations in filename order.
 4. Activate the isolated test database with `website_verified` and exercise
    the matrix below. Confirm that signup, website addition and scans leave
    the trial unstarted, first verification starts it once, and already-verified
-   businesses receive a complete 14-day period from activation.
+   businesses receive a complete 7-day period from activation.
 5. Repeat configuration using live-mode resources on the existing `saygdayai`
    Netlify project. Apply migrations before deploying code that needs them.
    Keep live activation separate from the code deployment and disabled until
@@ -382,10 +382,10 @@ documented declined/authentication-required cards for those paths.
 
 | Check | Expected result |
 |---|---|
-| New owner, no card | Signup, scans, preview and verification do not start the trial or allow public chat. Card-backed Stripe confirmation starts the full 14 days. Abandoned Checkout grants nothing. |
+| New owner, no card | Signup, scans, preview and verification do not start the trial or allow public chat. Card-backed Stripe confirmation starts the full 7 days. Abandoned Checkout grants nothing. |
 | Existing business at card-policy rollout | Already-started trials retain exactly their original dates and access. Unstarted accounts require card-backed activation. No retroactive charge. |
 | Double-click Upgrade / repeat request | One reusable Checkout attempt and no second subscription. |
-| Upgrade before trial expiry | Every remaining free day is preserved; no replacement 14-day period. |
+| Upgrade before trial expiry | Every remaining free day is preserved; no replacement 7-day period. |
 | Upgrade after expiry | Checkout states A$40/month AUD; public access resumes only after server verification. |
 | Abandon Checkout / alter return query | No paid access; the dashboard never treats the return URL as proof of payment. |
 | Successful payment | The server records the correct customer's subscription and paid-through date. |
@@ -414,7 +414,7 @@ smoke checks:
 
 | Test file | Boundary exercised |
 |---|---|
-| `test/card-activation.test.mjs` | New card policy: verified site and confirmed payment method, exact 14 days, abandoned Checkout, metadata mismatch, replay, cancellation, immutable dates and grandfathered legacy trials. |
+| `test/card-activation.test.mjs` | New card policy: verified site and confirmed payment method, exact 7 days, abandoned Checkout, metadata mismatch, replay, cancellation, immutable dates and grandfathered legacy trials. |
 | `test/billing-database.test.mjs` | Explicit legacy fixtures in PGlite: inert rollout, first-verification trial start, immutable dates, service-role permissions, visitor gates, leases and atomic event receipts. |
 | `test/billing-server.test.mjs` | Real Stripe SDK signed fixture generation and verification, with mocked provider API responses and real PGlite state: tampered/stale signatures, ownership, retries, event replay/order, concurrency, exact pricing and bounded outage recovery. |
 | `test/billing-ui.test.mjs` | Dashboard state copy, server capability flags, safe redirects, refresh behaviour and return-query handling. |

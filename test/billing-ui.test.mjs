@@ -46,7 +46,7 @@ test('every billing lifecycle has explicit copy and preserves the server access 
     const denied = billingView({ state, accessAllowed: false })
     assert.equal(denied.state, state)
     assert.ok(denied.title.length > 10, state)
-    assert.match(denied.description, ['card_required', 'trial_not_started'].includes(state) ? /14 free days/ : /edit answers and read enquiries/, state)
+    assert.match(denied.description, ['card_required', 'trial_not_started'].includes(state) ? /7 free days/ : /edit answers and read enquiries/, state)
   }
   assert.match(billingView({ state: 'canceling', accessAllowed: true, currentPeriodEnd: '2026-11-01T12:00:00Z' }).description, /will not renew/)
   assert.doesNotMatch(billingView({ state: 'active', accessAllowed: true }).description, /paused/)
@@ -129,7 +129,7 @@ test('rendered billing controls honour server capability flags and explain price
 
 test('billing explains card collection after verification and automatic monthly renewal', () => {
   const activation = render({ state: 'card_required', accessAllowed: false, checkoutAvailable: true })
-  assert.match(activation, /Add card.*14 days free/)
+  assert.match(activation, /Add card.*7 days free/)
   assert.match(activation, /Nothing to pay today/)
   const start = /verify your website first/
   assert.match(billingView({ state: 'trial_not_started', accessAllowed: false }).description, start)

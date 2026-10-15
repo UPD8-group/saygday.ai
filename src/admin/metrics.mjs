@@ -5,7 +5,7 @@
 // checks them directly. SayGday's own and test businesses (plan "internal")
 // are listed, but counted in no total.
 
-export const TRIAL_DAYS = 14 // site/pricing.html: "Your first 14 days are free."
+export const TRIAL_DAYS = 7 // New trials; existing trials use their stored dates below.
 export const PRICE = 40 // A$ a month, site/pricing.html
 export const SCAN_COST = Object.freeze([0.25, 0.45]) // A$ a website scan, README.md
 const DAY = 86400000
@@ -62,7 +62,7 @@ export function dateLabel(value, { short = false } = {}) {
 // ---- One business ------------------------------------------------------------
 
 // Where a business is with SayGday: its plan, set by hand on the admin page,
-// and for one still on trial, which of its 14 days it's on. The free days run
+// and for one still on trial, which of its 7 days it's on. The free days run
 // from when the website was added.
 export function stageOf(business, now = Date.now()) {
   const billing = business.billing
@@ -76,14 +76,15 @@ export function stageOf(business, now = Date.now()) {
   }
   const start = time(billing?.enabled ? billing.trialStartedAt : business.createdAt) ?? now
   const endsAt = billing?.enabled ? time(billing.trialEndsAt) : start + TRIAL_DAYS * DAY
-  const base = { endsAt: new Date(endsAt).toISOString() }
+  const trialDays = Math.max(1, Math.round((endsAt - start) / DAY))
+  const base = { endsAt: new Date(endsAt).toISOString(), trialDays }
   if (!billing?.enabled && business.plan === 'paying') return { ...base, key: 'paying', label: 'Paying' }
   if (!billing?.enabled && business.plan === 'cancelled') return { ...base, key: 'cancelled', label: 'Cancelled' }
   if (business.plan === 'internal') return { ...base, key: 'internal', label: 'Ours / test' }
   if (now < endsAt) {
-    const day = Math.min(TRIAL_DAYS, Math.max(1, Math.floor((now - start) / DAY) + 1))
+    const day = Math.min(trialDays, Math.max(1, Math.floor((now - start) / DAY) + 1))
     const daysLeft = Math.ceil((endsAt - now) / DAY)
-    return { ...base, key: daysLeft <= 3 ? 'ending' : 'trial', label: `Day ${day} of ${TRIAL_DAYS}`, day, daysLeft }
+    return { ...base, key: daysLeft <= 3 ? 'ending' : 'trial', label: `Day ${day} of ${trialDays}`, day, daysLeft }
   }
   const daysAgo = Math.floor((now - endsAt) / DAY)
   return { ...base, key: 'ended', label: daysAgo ? `Trial ended ${plural(daysAgo, 'day')} ago` : 'Trial ended today', daysAgo }

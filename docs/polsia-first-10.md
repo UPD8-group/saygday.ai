@@ -6,7 +6,7 @@ Prepared 8 October 2026. Campaign draft; not launched. Target: 10 distinct exter
 
 We already operate SayGday.ai at https://saygday.ai. Help us acquire our first 10 paying business clients. Keep the existing website, GitHub repository, hosting, authentication and direct Stripe billing. Your initial remit is growth research and campaign drafts.
 
-SayGday is an interactive FAQ for a business website. It shows only answers the owner has approved, word for word. If it cannot answer, visitors can leave an enquiry for the business. Website scanning drafts answers for owner review; do not describe visitor conversations as AI generated. The product costs A$30 per month per website, with 14 free days and no card required to start. The trial begins when website ownership is verified. Do not advertise features that are not live, including voice, WhatsApp or appointment booking.
+SayGday is an interactive FAQ for a business website. It shows only answers the owner has approved, word for word. If it cannot answer, visitors can leave an enquiry for the business. Website scanning drafts answers for owner review; do not describe visitor conversations as AI generated. The product costs A$30 per month per website, with 7 free days and no card required to start. The trial begins when website ownership is verified. Do not advertise features that are not live, including voice, WhatsApp or appointment booking.
 
 Start with independent Canberra pet groomers and pet day-care businesses that have their own website and repeated questions about hours, prices, preparation and booking policies. This is an initial segment to test, not an assertion that it will convert. Research 30 suitable businesses, returning business name, public website, evidence of relevant repeat questions, and a specific demo angle. Use public business information only. Avoid collecting personal contact details.
 
@@ -26,15 +26,15 @@ Send interested businesses to https://saygday.ai/pricing using source tags for c
 | Convert | Explain A$30/month before expiry; direct owners to their billing settings | First successful invoice and active subscription |
 | Retain | Check usage and whether enquiries are useful after the first paid month | Active paid clients, cancellations, reasons |
 
-Planning hypothesis, not forecast: 100 qualified prospects → 25 demos → 20 verified installations → 10 first payments. Replace these ratios with observed results. Review after the first 10 demos; if fewer than three owners install, fix the audience, offer or setup friction before buying traffic. A full 14-day trial means the first cohort will not produce immediate recurring revenue.
+Planning hypothesis, not forecast: 100 qualified prospects → 25 demos → 20 verified installations → 10 first payments. Replace these ratios with observed results. Review after the first 10 demos; if fewer than three owners install, fix the audience, offer or setup friction before buying traffic. A full 7-day trial means the first cohort will not produce immediate recurring revenue.
 
 ## Creative drafts for review
 
-**Short post:** Your customers ask the same questions. Your website can answer them in your words. SayGday puts the answers you approve in a simple chat button, and passes on questions it cannot answer. Try it free for 14 days, then A$30/month. See how it works: https://saygday.ai/pricing
+**Short post:** Your customers ask the same questions. Your website can answer them in your words. SayGday puts the answers you approve in a simple chat button, and passes on questions it cannot answer. Try it free for 7 days, then A$30/month. See how it works: https://saygday.ai/pricing
 
-**Demo invitation:** We built SayGday for small businesses that want website visitors to find the answers they already give every day. Would you like a quick look at how your approved FAQs could work in a chat button? No card is needed for the 14-day trial. A$30/month after that.
+**Demo invitation:** We built SayGday for small businesses that want website visitors to find the answers they already give every day. Would you like a quick look at how your approved FAQs could work in a chat button? No card is needed for the 7-day trial. A$30/month after that.
 
-**Pet-services angle:** Opening hours. Drop-off instructions. What to bring. Put the answers you approve on your website, ready when customers ask. SayGday is A$30/month after 14 free days. It passes on questions it cannot answer.
+**Pet-services angle:** Opening hours. Drop-off instructions. What to bring. Put the answers you approve on your website, ready when customers ask. SayGday is A$30/month after 7 free days. It passes on questions it cannot answer.
 
 Suggested link: https://saygday.ai/pricing?utm_source=polsia&utm_medium=campaign&utm_campaign=first10_pet_services
 Source tags alone do not persist conversion attribution today. Maintain a consented campaign ledger keyed by business ID; never claim the current app automatically attributes payments to campaigns.

@@ -38,14 +38,14 @@ test('an existing trial displays the exact Stripe billing date without a rounded
   assert.equal(view.title, 'Your billing starts on 22 October 2026')
   assert.equal(view.dueToday, 'A$0.00')
   assert.equal(view.trial, true)
-  assert.doesNotMatch(view.title, /13 days|14 days|hours/)
+  assert.doesNotMatch(view.title, /13 days|7 days|hours/)
   const later = checkoutView(session(), checkout, now + 23 * 3600000)
   assert.equal(later.title, view.title, 'elapsed time does not shorten the date label')
 })
 
-test('new 14-day trials use Stripe trialEnd, and never add fourteen days to a browser clock', () => {
+test('new 7-day trials use Stripe trialEnd, and never add seven days to a browser clock', () => {
   const s = session()
-  s.recurring.trial = { trialEnd: Math.floor(Date.parse('2026-10-22T13:15:00Z') / 1000), trialPeriodDays: 14 }
+  s.recurring.trial = { trialEnd: Math.floor(Date.parse('2026-10-22T13:15:00Z') / 1000), trialPeriodDays: 7 }
   assert.equal(checkoutView(s, checkout, now).date, '23 October 2026', 'Sydney date comes from Stripe, not from today or UTC')
   assert.equal(checkoutDate(Math.floor(Date.parse('2026-10-22T12:59:59Z') / 1000)), '22 October 2026')
   assert.equal(checkoutDate(Math.floor(Date.parse('2026-10-22T13:00:00Z') / 1000)), '23 October 2026')

@@ -18,10 +18,10 @@ export function StageChip({ stage }) {
   return <span className={`chip chip--${stage.key}`}><Icon name={STAGE_ICON[stage.key] || 'clock'} size={14} />{stage.label}</span>
 }
 
-// Which of its 14 days a business is on, as a bar and in words.
+// Which of its 7 days a business is on, as a bar and in words.
 export function TrialMeter({ stage }) {
   if (!['trial', 'ending', 'ended'].includes(stage.key)) return <StageChip stage={stage} />
-  const share = stage.key === 'ended' ? 1 : stage.day / TRIAL_DAYS
+  const share = stage.key === 'ended' ? 1 : stage.day / (stage.trialDays || TRIAL_DAYS)
   return <span className={`meter meter--${stage.key}`}>
     <span className="meter__track" aria-hidden="true"><span className="meter__fill" style={{ width: `${Math.round(share * 100)}%` }} /></span>
     <span className="meter__label">{stage.key === 'ended' ? stage.label : `${stage.label} · ${plural(stage.daysLeft, 'day')} left`}</span>
