@@ -205,7 +205,10 @@ settings, which is how sign-in broke on saygday.ai before the move.
   next one should probably be Is this AI?… learn more… opens all the other
   information"). The site reads in one order, the menu's: front page, Is
   this AI?, What's different, When it matters, How it works, Getting started,
-  Meet the mob, Our story, Pricing (`JOURNEY` in site/chrome.mjs). When it
+  Meet the mob, Pricing (`JOURNEY` in site/chrome.mjs). The Story page was
+  retired on 15 October 2026 at the owner's request: his introduction lives
+  at https://oo.studio/about/, and the old `/story` and `/about` addresses
+  redirect there. When it
   matters (the Riverbend Vet example) was a section of What's different until
   the owner made it a page of its own the same day ("so that can be its own
   full page"). What's different no longer sets SayGday beside other chatbots
@@ -242,7 +245,7 @@ settings, which is how sign-in broke on saygday.ai before the move.
   turns: white, then `panel--mint`, then `panel--cream`. A card inside a panel
   takes the opposite fill, so a box never sits on a box of its own colour. The
   photo, the words on it, the phone's Next button and the green Next block are
-  untouched; Our story, Contact and the legal pages are reading pages and keep
+  untouched; Contact and the legal pages are reading pages and keep
   their layout on the new ground.
 
 - **Day or night is the reader's choice, and day is the default** (owner, 4
@@ -266,8 +269,7 @@ settings, which is how sign-in broke on saygday.ai before the move.
   `scripts/site-photos.mjs` (sharp, a dev dependency) writes
   `public/site/<name>-phone.webp` beside each original, 1100 px wide at a
   lower quality, and never rewrites an original. Each photo element names
-  both (`--photo-wide`, `--photo-phone`; the Story page's `<img>` has a
-  `<picture>` source), site.css reads the phone copy up to 600 px wide and the
+  both (`--photo-wide`, `--photo-phone`), site.css reads the phone copy up to 600 px wide and the
   original beyond, `composePage` preloads the right one from the head so it
   starts with the first request instead of after the stylesheet, and Netlify
   caches `/site/*` for a week. A new or changed photo gets a NEW NAME (the

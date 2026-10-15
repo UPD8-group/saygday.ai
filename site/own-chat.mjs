@@ -296,7 +296,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Who are Luna and Stormi?',
-    answer: 'James’s two dogs. They handle quality control and welcomes, and you’ll find them grinning on our story page.',
+    answer: 'James’s two dogs. They handle quality control and welcomes. Meet them with James at https://oo.studio/about/.',
     variants: ['Who is Luna?', 'Who is Stormi?', 'Are Luna and Stormi dogs?'],
   },
   {

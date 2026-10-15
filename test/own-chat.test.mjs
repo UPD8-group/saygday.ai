@@ -74,13 +74,14 @@ test('the chat’s facts are the website’s facts', async () => {
     ['Where are you based?', 'Civic Quarter 1, ', await site('contact'), 'Civic Quarter 1'],
     ['Where are you based?', '68 Northbourne Ave, Canberra ACT 2600', await site('contact'), '68 Northbourne Ave, Canberra ACT 2600'],
     ['Where are you based?', '37 702 004 608', await site('contact'), 'ABN 37 702 004 608'],
-    ['Who’s behind SayGday?', '30 years working in customer service, across education, airlines, hospitality, media and transport', await site('story'), '30 years working in customer service, across education, airlines, hospitality, media and transport'],
-    ['Who are Luna and Stormi?', 'two dogs', await read('site/story.html'), 'his two dogs, Luna and Stormi'],
+    ['Who’s behind SayGday?', 'build it and do the first setups myself', await site('getting-started'), 'James does the first setups himself'],
     ['Can I choose what the button looks like?', 'eight Aussie locals', await site('meet-the-mob'), 'Eight Aussie locals'],
   ]
   assert.equal(CHARACTERS.length, 8, 'eight in the mob')
   assert.equal(PLAIN_BUTTONS.length, 15, 'and fifteen chat and symbol buttons')
   assert.ok(answer('Can I choose what the button looks like?').includes('fifteen chat and symbol buttons'))
+  assert.ok(answer('Who are Luna and Stormi?').includes('two dogs'))
+  assert.ok(answer('Who are Luna and Stormi?').includes('https://oo.studio/about/'), 'the introduction is on the studio website')
   for (const [question, inAnswer, source, inSource] of facts) {
     assert.ok(answer(question).includes(inAnswer), `“${question}” says ${inAnswer}`)
     assert.ok(source.includes(inSource), `and so does its source: ${inSource}`)
