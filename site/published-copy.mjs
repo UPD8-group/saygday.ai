@@ -106,7 +106,15 @@ export function publishSiteCopy(html, slug) {
     .replaceAll('Start your free 7 days', 'Build my SayGday')
 
   if (slug === 'pricing') {
-    out = checked(out, 'SayGday is A$30/month. Managed is A$99/month with setup and defined content support. Have a week on us with self-managed SayGday.', 'Spare change. On purpose. SayGday is A$30/month to help customers find your approved answers and feel more confident choosing your business. Have a week on us.', 'pricing description')
+    // The historical pricing mapping replaced a shared sentence in both the
+    // metadata and the signup disclosures. Restore only those exact note
+    // elements, then change the complete meta tag so marketing copy cannot
+    // overwrite the card/renewal terms beside the mobile and menu buttons.
+    const oldDescription = 'SayGday is A$30/month. Managed is A$99/month with setup and defined content support. Have a week on us with self-managed SayGday.'
+    const description = 'Spare change. On purpose. SayGday is A$30/month to help customers find your approved answers and feel more confident choosing your business. Have a week on us.'
+    const trialNote = 'Have a week on us. Card required to activate 7 free days. Then A$30/month automatically unless you cancel. Checkout shows your first billing date.'
+    out = checked(out, `<p class="trial-note">${oldDescription}</p>`, `<p class="trial-note">${trialNote}</p>`, 'pricing signup disclosures')
+    out = checked(out, `<meta name="description" content="${oldDescription}">`, `<meta name="description" content="${description}">`, 'pricing description')
     out = checked(out, 'Your answers.<br><em>Your choice of support.</em>', PRICING_STORY.headline, 'pricing headline')
     out = checked(out, 'SayGday is A$30/month when you manage the answers yourself. Managed is A$99/month for a hand with setup and keeping them useful. Both put your business in control of the wording.', PRICING_STORY.introduction, 'pricing introduction')
     const body = /<div class="wrap more" id="more">[\s\S]*?<\/main>/
