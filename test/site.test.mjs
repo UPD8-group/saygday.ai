@@ -43,7 +43,7 @@ test('below its photo, every page on the way sits in light panels that take turn
   assert.match(css, /^\.panel--mint \{ background: var\(--mint-deep\); \}/m)
   assert.match(css, /^\.panel--cream \{ background: var\(--cream\); \}/m)
   assert.match(css, /^:root \{ --paper: #ede9df; --card: #ffffff;/m, 'white panels on a darker, warmer ground')
-  for (const slug of JOURNEY.filter(slug => slug && slug !== 'story')) {
+  for (const slug of JOURNEY.filter(Boolean)) {
     const main = mainOf(await built(named(slug)))
     const panels = main.match(/class="[^"]*\bpanel\b[^"]*"/g) || []
     assert.ok(panels.length >= 1, `${slug}: its parts sit in panels`)
@@ -58,7 +58,7 @@ test('a page missing one of its shared parts doesn’t build', () => {
 
 test('the bar, the menu and the footer are on every page, and the menu marks the page you’re on', async () => {
   const menu = PAGES.filter(page => page.name)
-  assert.deepEqual(menu.map(page => page.name), ['Is this AI?', 'What’s different', 'When it matters', 'How it works', 'Getting started', 'Meet the mob', 'Our story', 'Pricing', 'Contact'])
+  assert.deepEqual(menu.map(page => page.name), ['Is this AI?', 'What’s different', 'When it matters', 'How it works', 'Getting started', 'Meet the mob', 'Pricing', 'Contact'])
   for (const page of ALL) {
     const html = await built(page)
     assert.match(html, /<a class="bar__cta" href="\/login">7 days free<\/a>/, `${page.file}: the bar`)
@@ -232,7 +232,7 @@ test('on a phone the front page’s photo sits at the top, like every other page
 })
 
 test('on a phone each page is its short version first: a big button on, and Learn more for the rest (owner, 3 October 2026)', async () => {
-  assert.deepEqual(JOURNEY, ['', 'is-this-ai', 'whats-different', 'when-it-matters', 'how-it-works', 'getting-started', 'meet-the-mob', 'story', 'pricing'], 'the front page, then Is this AI?, then the menu in order')
+  assert.deepEqual(JOURNEY, ['', 'is-this-ai', 'whats-different', 'when-it-matters', 'how-it-works', 'getting-started', 'meet-the-mob', 'pricing'], 'the front page, then Is this AI?, then the menu in order')
   for (const slug of JOURNEY) {
     const html = await built(named(slug))
     const block = html.match(/<div class="phone-next">([\s\S]*?)<\/div>/)
@@ -350,9 +350,7 @@ test('every photo has a phone copy, and a phone is sent it', async () => {
     }
     assert.doesNotMatch(html, /style="[^"]*(?:--photo:|background-image: url\('\/site\/)/, `${page.file}: no photo element bypasses the two copies`)
   }
-  assert.equal(namedPhotos, 13, 'the front page, the eight pages on the way and the rest each open on a named photo')
-  const story = await built(named('story'))
-  assert.match(story, /<picture><source media="\(max-width: 600px\)" srcset="\/site\/story-james-luna-stormi-phone\.webp"><img src="\/site\/story-james-luna-stormi\.webp"/, 'the Story photo, an <img>, has its phone source')
+  assert.equal(namedPhotos, 13, 'the remaining photo-led pages each name their photo')
   const css = await read('src/site/site.css')
   assert.match(css, /^\.hero__photo, \.photo-head__img \{ --photo: var\(--photo-wide\); \}$/m, 'wide screens read the original')
   assert.match(css, /^\.photo-head__img:not\(\.photo-head__img--lift\) \{ background-image: var\(--photo\); \}$/m, 'the plain photo heads draw it')

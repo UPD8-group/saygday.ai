@@ -43,10 +43,21 @@
   to = "/admin.html"
   status = 200
 
-# The earlier platform's addresses, for when saygday.ai moves across.
+# James's introduction now lives on his studio website (15 October 2026).
+[[redirects]]
+  from = "/story"
+  to = "https://oo.studio/about/"
+  status = 301
+
+[[redirects]]
+  from = "/story.html"
+  to = "https://oo.studio/about/"
+  status = 301
+
+# The earlier platform's About address goes straight to the same introduction.
 [[redirects]]
   from = "/about"
-  to = "/story"
+  to = "https://oo.studio/about/"
   status = 301
 
 # The public website: never framed, talk only to itself and Supabase sign-in.
