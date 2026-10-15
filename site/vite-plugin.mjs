@@ -1,11 +1,10 @@
-// Builds the public website from site/: fills each page's shared parts in
-// (site/chrome.mjs) and publishes each page at the top of the site.
-// Also emits an isolated, read-only content preview using the same built
-// styles/assets. Existing public routes and their checkout offers are unchanged.
+// Publish the approved copy in the existing public website, and retain the
+// separate read-only review journey. Live forms, login and chat stay active.
 import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NOT_FOUND, PAGES, composePage } from './chrome.mjs'
-import { PREVIEW_SLUGS, applyApprovedCopy, makeReviewOnly, previewOutput, reviewScripts } from './content-preview.mjs'
+import { PREVIEW_SLUGS, makeReviewOnly, previewOutput, reviewScripts } from './content-preview.mjs'
+import { publishSiteCopy } from './published-copy.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ALL = [...PAGES, NOT_FOUND]
@@ -35,7 +34,7 @@ export function sitePages() {
       order: 'pre',
       handler(html, context) {
         const page = pageForFile(context.filename)
-        return page ? composePage(html, page.slug) : html
+        return page ? publishSiteCopy(composePage(html, page.slug), page.slug) : html
       },
     },
     generateBundle: {
@@ -51,8 +50,7 @@ export function sitePages() {
           delete bundle[fileName]
           this.emitFile({ type: 'asset', fileName: outputFor(page), source: asset.source })
           if (PREVIEW_SLUGS.includes(page.slug)) {
-            const copy = applyApprovedCopy(String(asset.source), page.slug)
-            this.emitFile({ type: 'asset', fileName: previewOutput(page.slug), source: makeReviewOnly(copy, { slug: page.slug, scripts }) })
+            this.emitFile({ type: 'asset', fileName: previewOutput(page.slug), source: makeReviewOnly(String(asset.source), { slug: page.slug, scripts }) })
           }
         }
       },
