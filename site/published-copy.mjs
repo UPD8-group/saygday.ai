@@ -1,39 +1,126 @@
-// The owner's final offer supersedes the archived A$99 writing proposal.
-// Render at build time inside the existing page components, never by swapping
-// text after page load. This module is shared by live and review routes.
+// Current offer: one self-service SayGday plan, with a separate oo.studio
+// website service. Earlier copy proposals are a writing bank, not live offers.
+// Render once at build time in the existing components; never swap prices in
+// the browser or use public offer text to override an existing billing account.
 import { PREVIEW_SLUGS, applyApprovedCopy } from './content-preview.mjs'
 
 export const CURRENT_OFFERS = Object.freeze({
-  currency: 'AUD', selfManagedMonthly: 5900, managedMonthly: 7500,
-  selfManagedPriceId: 'price_1UQwkRR8qEoKoynxsgmnPqqX',
-  managedPriceId: 'price_1UQwoQR8qEoKoynxsA2ojHYu',
-  trialDays: 7, dailyComparisonDays: 30,
+  currency: 'AUD', selfManagedMonthly: 3000,
+  selfManagedPriceId: 'price_1UOA0sR8qEoKoynxWAoOrDeA',
+  trialDays: 7,
+  studioMonthly: 6000,
+  studioUrl: 'https://oo.studio/#plan',
+  studioIncludesSayGday: true,
 })
+
+const TICK = '<svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const ticks = items => items.map(item => `<li>${TICK}<span>${item}</span></li>`).join('\n')
+const STUDIO_LINK = '<a href="https://oo.studio/#plan">Explore the oo.studio plan</a>'
+
+const PRICING_BODY = `<div class="wrap more" id="more">
+    <div class="page__part panel panel--mint">
+      <p class="eyebrow">One plan. Everything you need to get started.</p>
+      <h2 class="title gs-title">Your answers, ready when customers ask.</h2>
+      <p class="intro">Start with your website. Check and approve the suggested answers. Add SayGday to your site and keep the answers up to date from your dashboard.</p>
+      <div class="price-card">
+        <div class="price-card__main">
+          <div class="price__amount">A$30<small>a month</small></div>
+          <p><strong>Have a week on us.</strong> Build and preview without a card. Verify your website and add a card for 7 free live days, then A$30/month automatically unless you cancel. Checkout shows your first billing date.</p>
+          <a class="btn btn--light" href="/login" style="justify-self: start">Build my SayGday</a>
+        </div>
+        <ul class="price-card__list">${ticks([
+          'Suggested questions and answers drafted from your website',
+          'Your dashboard to choose, edit and approve the answers',
+          'Your greeting, colours and choice of character or simple chat button',
+          'Your approved answers on one supported website',
+          'Submitted enquiries in your dashboard, with email notification when a visitor leaves an email address',
+          'Product support while you manage your answers and installation',
+        ])}</ul>
+      </div>
+    </div>
+    <div class="page__part panel panel--cream" id="website-plan">
+      <p class="eyebrow">A website service from oo.studio</p>
+      <h2 class="title gs-title">Need a website to go with it?</h2>
+      <p class="intro">Through oo.studio, I can build or refresh your website, set up an online shop where needed, and include SayGday in the same plan.</p>
+      <p class="intro"><strong>A$60/month total, with SayGday included.</strong> Not A$60 plus a separate A$30 chatbot subscription for that website.</p>
+      <ul class="price-card__list">${ticks([
+        'A custom-designed, mobile-friendly website or refresh within an agreed scope',
+        'Online shop setup where needed, with Square connections where supported',
+        'Hosting, website care and agreed updates',
+        'SayGday setup for the website, with answers you approve',
+      ])}</ul>
+      <p class="trial-note">We agree the pages, shop setup, connections and ongoing work before starting. Larger migrations, complex integrations and work outside that scope are quoted separately. Payment processing fees are separate; any extra third-party costs are agreed first.</p>
+      <p class="trial-note"><a class="btn btn--green" href="https://oo.studio/#plan">Explore the oo.studio plan</a></p>
+      <p class="trial-note">This is a separate website service, not another SayGday chatbot tier. Already paying for SayGday? Contact Jay before moving to the studio plan so the subscription and included access can be coordinated. Following this link does not change your billing.</p>
+    </div>
+    <div class="page__part panel">
+      <p class="eyebrow">A few straight answers</p>
+      <h2 class="title gs-title">Before you get started.</h2>
+      <dl class="qa">
+        <div><dt>When does my free week start?</dt><dd>Build and preview without a card. Verify your website and add a card through Stripe to activate 7 free live days. A$30/month starts automatically afterwards unless you cancel. Checkout shows your first billing date.</dd></div>
+        <div><dt>Do I need a website?</dt><dd>Yes. SayGday uses your website to prepare suggested answers, and your website must allow the supplied chat code. Need a new website or refresh? ${STUDIO_LINK} includes SayGday for A$60/month total, within an agreed scope.</dd></div>
+        <div><dt>Do I need to check the answers?</dt><dd>Yes. Check the facts, edit the wording and approve the answers you want visitors to read. You keep the final say and can update them in the dashboard.</dd></div>
+        <div><dt>Does A$30 include a website or shop?</dt><dd>No. A$30/month is for SayGday on your existing website. oo.studio offers the separate A$60/month website-and-shop plan with SayGday included. The website work is agreed with Jay before starting.</dd></div>
+        <div><dt>Will I pay A$30 as well as A$60?</dt><dd>No separate SayGday subscription is needed for the website covered by the oo.studio plan. The studio price is A$60/month total for the agreed service. Existing subscriptions are not switched or cancelled automatically; contact Jay to coordinate a move before paying for both.</dd></div>
+        <div><dt>Does the free week include a website build?</dt><dd>No. Have a week on us applies to the SayGday software trial. Website work, its scope and any introductory arrangement are agreed separately through oo.studio.</dd></div>
+        <div><dt>What about existing customers?</dt><dd>This is the current offer for new customers. Existing customers keep their agreed prices, subscriptions, access and saved trial dates unless a change is separately agreed.</dd></div>
+        <div><dt>What happens when I cancel?</dt><dd>Cancel through Settings → Billing → Manage billing before your first charge to pay nothing. Cancelling during a paid period stops renewal. Removing the chat code alone does not cancel a subscription.</dd></div>
+      </dl>
+    </div>
+  </div>
+</main>`
+
+function checked(html, from, to, label) {
+  if (!html.includes(from)) throw new Error(`Single-plan copy ${label}: source wording changed`)
+  return html.replaceAll(from, to)
+}
 
 export function publishSiteCopy(html, slug) {
   if (typeof html !== 'string' || typeof slug !== 'string') throw new TypeError('HTML and a page slug are required')
   let out = PREVIEW_SLUGS.includes(slug) ? applyApprovedCopy(html, slug) : html
-  // Apply shared offer wording to legal/utility pages as well as sales pages.
   out = out
-    .replaceAll('A$99', 'A$75')
-    .replaceAll('7 days free. Card required. Then A$30/month.', 'A$59 self-managed. A$75 with hands-on support.')
-    .replaceAll('7 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.', 'Have a week on us. Card required to activate 7 free days. Then A$59/month automatically unless you cancel.')
+    .replaceAll('A$59 self-managed. A$99 with hands-on support.', 'One simple SayGday plan. A$30/month.')
+    .replaceAll('7 days free. Card required. Then A$30/month.', 'One simple SayGday plan. A$30/month.')
+    .replaceAll('7 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.', 'Have a week on us. Card required to activate 7 free days. Then A$30/month automatically unless you cancel.')
+    .replaceAll('A$59', 'A$30')
     .replaceAll('Try 7 days free', 'Build my SayGday')
     .replaceAll('Start your free 7 days', 'Build my SayGday')
-    .replaceAll('A$30', 'A$59')
-    .replaceAll('These are the proposed offers for new customers. Existing agreed prices, subscriptions and saved trial dates are not changed by this proposal.', 'These offers are for new customers. Existing customers keep their agreed prices, subscriptions and saved trial dates.')
+
   if (slug === 'pricing') {
-    const amount = '<div class="price__amount">A$75<small>a month</small></div>'
-    if (!out.includes(amount)) throw new Error('Managed price card is missing')
-    out = out.replace(amount, `${amount}\n          <p>About A$2.50 a day, billed A$75 monthly. Daily comparison based on a 30-day month.</p>`)
+    out = checked(out, 'SayGday is A$30/month. Managed is A$99/month with setup and defined content support. Have a week on us with self-managed SayGday.', 'One simple SayGday plan at A$30/month. Have a week on us. Need a website too? oo.studio is A$60/month total with SayGday included.', 'pricing description')
+    out = checked(out, 'Your answers.<br><em>Your choice of support.</em>', 'One simple plan.<br><em>Your answers. Your way.</em>', 'pricing headline')
+    out = checked(out, 'SayGday is A$30/month when you manage the answers yourself. Managed is A$99/month for a hand with setup and keeping them useful. Both put your business in control of the wording.', 'A$30/month for SayGday on your existing website. Start with your website, approve your answers and make them easy for customers to find. Have a week on us.', 'pricing introduction')
+    const body = /<div class="wrap more" id="more">[\s\S]*?<\/main>/
+    if (!body.test(out)) throw new Error('Single-plan pricing content wrapper is missing')
+    out = out.replace(body, PRICING_BODY)
+    // Keep the existing short mobile journey, with the optional website link
+    // visible before Learn more. It is not a second chatbot purchase button.
+    const more = '<button class="phone-next__more"'
+    out = checked(out, more, `<p class="trial-note">Need a website too? <a href="https://oo.studio/#plan">oo.studio is A$60/month total, with SayGday included.</a></p>${more}`, 'mobile studio link')
+  }
+
+  if (slug === 'getting-started') {
+    out = out
+      .replaceAll('Start with your website, approve your answers, then install and activate SayGday. Prefer help? Ask about Managed.', 'Scan your website, choose and approve your answers, then install and activate SayGday. One simple plan at A$30/month.')
+      .replaceAll('Build and preview before you commit. Prepare the answers yourself, or choose Managed for a hand with setup and keeping them useful.', 'Build and preview before you commit. Start with your website, choose the questions, check the answers and try your SayGday before activating it.')
+      .replaceAll('<strong>Prefer a hand?</strong> SayGday Managed is A$99/month, with setup help and a defined monthly content allowance. <a href="/pricing">See what’s included</a>.', `<strong>Need a website or a refresh?</strong> oo.studio is A$60/month total, with a scoped website, shop setup where needed and SayGday included. ${STUDIO_LINK}.`)
+  }
+  if (slug === 'contact') {
+    out = out
+      .replaceAll('Ask Jay about SayGday, Managed setup or whether your website is a good fit. Made in Canberra by oo.studio.', 'Ask Jay about SayGday, website compatibility or the oo.studio website plan. Made in Canberra by oo.studio.')
+      .replaceAll('Have a question, need help choosing, or prefer someone to handle the setup? Tell me a little about your business and what you need.', 'Have a question about SayGday or your website? Tell me a little about your business and what you need.')
+      .replaceAll('Managed setup<small>I’d like a hand</small>', 'Website help<small>A new site or refresh</small>')
   }
   if (slug === 'terms') {
     const clause = '<li><h3>Price and free days</h3><p>'
-    const closing = 'We’ll give you at least 30 days’ notice by email before any price change.</p></li>'
-    if (!out.includes(clause) || !out.includes(closing)) throw new Error('Pricing terms source changed')
-    out = out.replace(clause, `${clause}The following A$59 self-managed and A$75 Managed offers apply to new customers from 16 October 2026. Existing customers retain their agreed prices, subscriptions and saved trial dates; publishing these offers does not change their existing agreements. </p><p>`)
-      .replace(closing, 'We’ll give you at least 30 days’ notice by email before any price change.</p><p>SayGday Managed is A$75/month AUD for one business and one supported website. It includes the software, initial preparation of up to 20 short questions and answers, standard installation and initial checks, plus up to 20 minutes of content work each month for review and small answer updates. Your business approves the answers. Unused monthly content time does not roll over. Additional work is quoted separately. We agree website compatibility, scope and the start date before payment. The self-managed software free week does not include Managed setup work.</p></li>')
-      .replace('Last updated 9 October 2026.', 'New-customer pricing updated 16 October 2026. Existing agreements remain unchanged.')
+    out = checked(out, clause, `${clause}The A$30/month offer below applies to new customers from 16 October 2026. Existing customers retain their agreed prices, subscriptions, access and saved trial dates unless a change is separately agreed. Publishing this offer does not change their existing agreements.</p><p>`, 'terms scope')
+    const end = 'We’ll give you at least 30 days’ notice by email before any price change.</p></li>'
+    out = checked(out, end, 'We’ll give you at least 30 days’ notice by email before any price change.</p><p>The optional oo.studio website service is separate from this software subscription. Its A$60/month total includes SayGday for the covered website, with website work, shop setup, supported connections and ongoing care agreed before starting. Payment processing fees are separate and additional third-party costs or out-of-scope work are agreed first. The SayGday software trial does not include website-build work. Existing subscribers should contact Jay to coordinate any move; no subscription is automatically switched or cancelled.</p></li>', 'terms studio service')
+      .replace('Last updated 9 October 2026.', 'New-customer offer updated 16 October 2026. Existing agreements remain unchanged.')
+  }
+  // Prevent a half-published offer if the older writing bank changes.
+  if (/A\$(?:59|75|99)\b|\bSayGday Managed\b|\bManaged setup\b|\bAsk about Managed\b/.test(out)) {
+    throw new Error(`Retired offer remains on ${slug || 'home'}`)
   }
   return out
 }
