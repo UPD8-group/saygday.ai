@@ -106,7 +106,7 @@ export function publishSiteCopy(html, slug) {
     .replaceAll('Start your free 7 days', 'Build my SayGday')
 
   if (slug === 'is-this-ai') {
-    out = checked(out, '<h1 class="title">AI helps draft.<br><em>You have the final say.</em></h1>', '<h1 class="title">Is this AI?<br><em>Yes, but not the way you think it is.</em></h1>', 'is-this-ai headline')
+    out = checked(out, '<h1 class="title">AI helps draft.<br><em>You have the final say.</em></h1>', '<h1 class="title">Is this AI?<br><em>Yes, but not the way you think.</em></h1>', 'is-this-ai headline')
   }
 
   if (slug === 'pricing') {
