@@ -43,7 +43,7 @@ export const OWN_ANSWERS = Object.freeze([
   {
     featured: true,
     question: 'How much does it cost?',
-    answer: "SayGday is A$30 a month AUD for your website assistant with owner-approved answers and enquiry capture. Build and preview your assistant without a card. Add your card when you activate your verified website: 7 days free, then A$30/month automatically unless you cancel.",
+    answer: "SayGday is $30 a month for your website assistant with owner-approved answers and enquiry capture. Build and preview your assistant without a card. Add your card when you activate your verified website: 7 days free, then $30/month automatically unless you cancel.",
     variants: ['Price', 'Pricing', 'How much is it?', 'What does it cost?', 'What’s the monthly fee?', 'What do you charge?', 'How much per month?', 'How much is SayGday a month?', 'Is it expensive?', 'How do I pay?', 'Cost'],
   },
   {
@@ -96,7 +96,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Is there a free trial?',
-    answer: 'Yes. Build and preview without a card. Once your website is verified, add your card through Stripe to activate your chat and start 7 free days. Then A$30/month AUD is charged automatically unless you cancel. Cancel in Settings → Billing → Manage billing before the first charge to pay nothing.',
+    answer: 'Yes. Build and preview without a card. Once your website is verified, add your card through Stripe to activate your chat and start 7 free days. Then $30/month is charged automatically unless you cancel. Cancel in Settings → Billing → Manage billing before the first charge to pay nothing.',
     variants: ['Can I try it for free?', 'Is SayGday free?', 'Free trial', 'How long is the free trial?', 'Can I try before I buy?', 'What happens after the free days?', 'Do I need a credit card to start?', 'Do I need a card to sign up?'],
   },
   {
@@ -106,12 +106,12 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'What’s included in the price?',
-    answer: "A$30 a month AUD includes a chat button on your existing website with your approved answers, common questions drafted from your website for you to check, enquiry capture, a choice of animal or plain buttons, and help when you need it. Your SayGday dashboard lets you manage your answers, chat button and enquiries.",
+    answer: "$30 a month includes a chat button on your existing website with your approved answers, common questions drafted from your website for you to check, enquiry capture, a choice of animal or plain buttons, and help when you need it. Your SayGday dashboard lets you manage your answers, chat button and enquiries.",
     variants: ['What do I get?', 'Are there hidden fees?', 'Are there any extra costs?', 'What does the price include?'],
   },
   {
     question: 'Why is it so cheap?',
-    answer: "Because the cost of living keeps going up, and small businesses feel it first. We want a helpful website assistant to be affordable, so SayGday is A$30 a month: about $1 a day.",
+    answer: "Because the cost of living keeps going up, and small businesses feel it first. We want a helpful website assistant to be affordable, so SayGday is $30 a month: about $1 a day.",
     variants: ['Why only $30?', 'Why $1 a day?', 'How is it so affordable?', 'Why is it cheap?'],
   },
   {
@@ -276,7 +276,7 @@ export const OWN_ANSWERS = Object.freeze([
   },
   {
     question: 'Can I use it on more than one website?',
-    answer: "You can manage more than one business under one sign-in. Each A$30/month subscription covers the assistant for one business on its website. Choose the business you want to manage in your dashboard, or contact us for help setting up another.",
+    answer: "You can manage more than one business under one sign-in. Each $30/month subscription covers the assistant for one business on its website. Choose the business you want to manage in your dashboard, or contact us for help setting up another.",
     variants: ['Multiple websites', 'I have two websites', 'I have two businesses', 'More than one business', 'Can I add another website?', 'Multiple locations'],
   },
   {

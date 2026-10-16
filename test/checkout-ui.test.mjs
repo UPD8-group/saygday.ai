@@ -16,11 +16,11 @@ test('an agreed monthly price is shown only when it matches the server bootstrap
   const agreed = { ...checkout, monthlyAmount: 6000 }, s = session()
   s.recurring.dueNext.total.minorUnitsAmount = 6000
   s.recurring.dueNext.total.amount = 'A$60.00'
-  assert.equal(checkoutView(s, agreed, now).monthlyPrice, 'A$60')
+  assert.equal(checkoutView(s, agreed, now).monthlyPrice, '$60')
   assert.throws(() => checkoutView(s, checkout, now), /checkout amount/)
   s.recurring.trial = null
   s.total.total = { amount: 'A$60.00', minorUnitsAmount: 6000 }
-  assert.equal(checkoutView(s, agreed, now).button, 'Subscribe for A$60/month')
+  assert.equal(checkoutView(s, agreed, now).button, 'Subscribe for $60/month')
 })
 function session() {
   return {
@@ -47,7 +47,7 @@ test('checkout bootstrap binds a current opaque Stripe secret to the selected bu
 test('an existing trial displays the exact Stripe billing date without a rounded remaining-day countdown', () => {
   const view = checkoutView(session(), checkout, now)
   assert.equal(view.title, 'Your billing starts on 22 October 2026')
-  assert.equal(view.dueToday, 'A$0.00')
+  assert.equal(view.dueToday, '$0.00')
   assert.equal(view.trial, true)
   assert.doesNotMatch(view.title, /13 days|7 days|hours/)
   const later = checkoutView(session(), checkout, now + 23 * 3600000)
@@ -68,8 +68,8 @@ test('expired trials pay immediately and cannot accidentally promise a free peri
   s.total.total = { amount: 'A$30.00', minorUnitsAmount: 3000 }
   const view = checkoutView(s, checkout, now)
   assert.equal(view.trial, false)
-  assert.equal(view.dueToday, 'A$30.00')
-  assert.equal(view.button, 'Subscribe for A$30/month')
+  assert.equal(view.dueToday, '$30.00')
+  assert.equal(view.button, 'Subscribe for $30/month')
   assert.equal(view.date, '')
   assert.doesNotMatch(view.title, /free|billing starts on/)
 })
@@ -80,7 +80,7 @@ test('Stripe amounts are read for its confirmation requirement and returned for 
   Object.defineProperty(s.total.total, 'amount', { get() { reads++; return 'A$0.00' } })
   const view = checkoutView(s, checkout, now)
   assert.ok(reads > 0)
-  assert.equal(view.dueToday, 'A$0.00')
+  assert.equal(view.dueToday, '$0.00')
 })
 
 test('wrong sessions, wrong prices, currency changes, missing totals and invalid trial dates fail closed', () => {

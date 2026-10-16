@@ -1,4 +1,4 @@
-// Owner-approved direction: the current UX, with new copy and A$59/A$99 offers.
+// Owner-approved direction: the current UX, with new copy and $59/$99 offers.
 // This builds a separate, non-transactional review journey. Production routes,
 // styles, assets, account billing, live chat answers and legal terms are untouched.
 // Exact replacements fail the build when their source changes, rather than
@@ -13,7 +13,7 @@ const COPY = {
     ['SayGday sits in the corner of your website like any chat. Every answer your customers read was written or signed off by the people who run the place. Made in Canberra for Aussie small businesses.', 'Help customers find the answers you’ve approved, in your own words. Made in Canberra for Aussie small businesses.'],
     ['Every answer signed off by a real person', 'Your answers. Your final say.'],
     ['SayGday sits in the corner of your website like any chat. The difference is who’s behind it. Every answer your customers read was written or signed off by the people who run the place, word for word. If there’s no answer yet, it never guesses. It passes the question to you.', 'Help customers find answers while you get on with your business. SayGday uses answers you’ve checked and approved, in your own words. When it can’t find a suitable answer, customers can send you an enquiry instead.'],
-    ['<strong>7 days free. Card required to activate.</strong><br>Then A$30/month AUD automatically unless you cancel.<br>About A$1 a day. Spare change, on purpose.<br>Made in Canberra for Aussie small businesses.', '<strong>Have a week on us.</strong><br>Build and preview free. Verify your website and add a card for 7 free days.<br>Then A$59/month automatically unless you cancel. Checkout shows your first billing date.<br>Made in Canberra for Aussie small businesses.'],
+    ['<strong>7 days free. Card required to activate.</strong><br>Then $30/month automatically unless you cancel.<br>About $1 a day. Spare change, on purpose.<br>Made in Canberra for Aussie small businesses.', '<strong>Have a week on us.</strong><br>Build and preview free. Verify your website and add a card for 7 free days.<br>Then $59/month automatically unless you cancel. Checkout shows your first billing date.<br>Made in Canberra for Aussie small businesses.'],
     ['That’s one for Sam. Leave your email and he’ll get back to you himself.', 'That’s one for Sam. Send your question and email so he can reply.'],
     ['Goes straight to Sam’s inbox', 'Send an enquiry to Sam’s inbox'],
   ],
@@ -83,7 +83,7 @@ const COPY = {
     ['Read through the answers we’ve drafted for your business. Change any wording, add your own, and sign off the ones you’re happy with. Nothing goes live until you say so.', 'Check the facts, change the wording and add anything missing. Approve the answers you want customers to read, then try a few questions in the preview.'],
     ['Copy one line into your website, or email it to whoever looks after it for you. Verify your website and confirm your card through Stripe to activate your chat. Your 7 free days start with your confirmed subscription; checkout shows the first billing date.', 'Add the supplied code to a supported website, or send it to your website person. Verify the website and add a card through Stripe to activate 7 free days. Checkout shows your first billing date.'],
     ['An hour or so to check your answers', 'Time to check your answers, and access to add the website code'],
-    ['<strong>Need a hand?</strong> James does the first setups himself. He can go through it with you, start to finish.', '<strong>Prefer a hand?</strong> SayGday Managed is A$99/month, with setup help and a defined monthly content allowance. <a href="/pricing">See what’s included</a>.'],
+    ['<strong>Need a hand?</strong> James does the first setups himself. He can go through it with you, start to finish.', '<strong>Prefer a hand?</strong> SayGday Managed is $99/month, with setup help and a defined monthly content allowance. <a href="/pricing">See what’s included</a>.'],
     ['Examples from a café’s website. You sign off the ones you’re happy with, and change the rest.', 'Illustrative café answers—not a real customer. Check the details for your own business before approving.'],
   ],
   'meet-the-mob': [
@@ -96,21 +96,21 @@ const COPY = {
     ['Whoever you pick, the words are still yours, exactly as you signed them off. Change the button any time and nothing else changes.', 'The character doesn’t write the answers. Your approved wording stays the same when you change the button.'],
   ],
   'pricing': [
-    ['7 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.', 'SayGday is A$59/month. Managed is A$99/month with setup and defined content support. Have a week on us with self-managed SayGday.'],
+    ['7 days free. Card required to activate. Then $30/month automatically unless you cancel.', 'SayGday is $59/month. Managed is $99/month with setup and defined content support. Have a week on us with self-managed SayGday.'],
     ['Spare change.<br><em>On purpose.</em>', 'Your answers.<br><em>Your choice of support.</em>'],
-    ['A$30 a month AUD. About A$1 a day. Try SayGday free for 7 days with a card to activate, then billed monthly unless you cancel. Cancel before your first charge to pay nothing.', 'SayGday is A$59/month when you manage the answers yourself. Managed is A$99/month for a hand with setup and keeping them useful. Both put your business in control of the wording.'],
+    ['$30 a month. About $1 a day. Try SayGday free for 7 days with a card to activate, then billed monthly unless you cancel. Cancel before your first charge to pay nothing.', 'SayGday is $59/month when you manage the answers yourself. Managed is $99/month for a hand with setup and keeping them useful. Both put your business in control of the wording.'],
     ['Why about $1 a day', 'Choose the support you need'],
     ['It shouldn’t cost an arm and a leg.', 'The same software. A different level of help.'],
     ['The cost of living keeps going up, and small businesses feel it first. Rent, power, wages and stock all cost more than they did last year.', 'SayGday gives you the tools to prepare, approve and manage your business’s answers. Product support is included; you look after the content and installation.'],
-    ['We didn’t want to be one more big bill on the pile. SayGday is our way of giving something back: a tool that helps you look after your customers, for A$30 a month—about A$1 a day. Spare change, on purpose.', 'Managed adds hands-on help with the initial setup and a defined monthly content allowance. We agree what’s involved before you pay. Your business still approves every answer.'],
+    ['We didn’t want to be one more big bill on the pile. SayGday is our way of giving something back: a tool that helps you look after your customers, for $30 a month—about $1 a day. Spare change, on purpose.', 'Managed adds hands-on help with the initial setup and a defined monthly content allowance. We agree what’s involved before you pay. Your business still approves every answer.'],
     ['One simple price.', 'SayGday. Look after it yourself.'],
-    ['No card needed to build and preview your assistant. Verify your website, then add your card through Stripe to activate your chat. Your 7 free days start when your subscription is confirmed, followed by A$30/month AUD automatically unless you cancel.', 'Build and preview without a card. Check your answers, choose your appearance and install the code on one supported website. Activate when you’re ready.'],
+    ['No card needed to build and preview your assistant. Verify your website, then add your card through Stripe to activate your chat. Your 7 free days start when your subscription is confirmed, followed by $30/month automatically unless you cancel.', 'Build and preview without a card. Check your answers, choose your appearance and install the code on one supported website. Activate when you’re ready.'],
     ['A chat button in the corner of your website, with your answers in it', 'Your approved answers, available through your website’s chat'],
     ['Your common questions drafted from your own website, for you to check', 'Suggested questions and answers drafted from your website'],
     ['Questions you haven’t answered yet, sent to your email', 'Submitted enquiries in your dashboard, with email notification when a visitor leaves an email address'],
     ['Any of the mob for your corner, or a plain button', 'Your greeting, colours and choice of character or simple button'],
     ['Help from a real person when you need it', 'Product support while you manage your content and installation'],
-    ['Your first 7 days are free. Card required to activate. Then A$30/month AUD automatically unless you cancel.', 'Have a week on us. Verify your website and add a card to activate 7 free days. Then A$59/month automatically unless you cancel. Checkout shows your first billing date.'],
+    ['Your first 7 days are free. Card required to activate. Then $30/month automatically unless you cancel.', 'Have a week on us. Verify your website and add a card to activate 7 free days. Then $59/month automatically unless you cancel. Checkout shows your first billing date.'],
   ],
   'contact': [
     ['Get in touch with SayGday: ask to join as a business, or send us any question. Made in Canberra.', 'Ask Jay about SayGday, Managed setup or whether your website is a good fit. Made in Canberra by oo.studio.'],
@@ -122,7 +122,7 @@ const COPY = {
     ['<p class="eyebrow">The business behind SayGday</p>', '<p class="eyebrow">The person behind SayGday</p><p>I’m Jay, the person behind oo.studio in Canberra. I made SayGday for business owners who want to help their customers without handing over control of what their business says.</p>'],
   ],
   'login': [
-    ['Sign in to SayGday, or start 7 days free. Card required to activate, then A$30/month AUD unless you cancel.', 'Build and preview SayGday without a card. Sign in with an email code, then activate when you’re ready.'],
+    ['Sign in to SayGday, or start 7 days free. Card required to activate, then $30/month unless you cancel.', 'Build and preview SayGday without a card. Sign in with an email code, then activate when you’re ready.'],
     ['Pop in your email and we’ll send you a code. New here? We’ll set up your account as we go. No password needed.', 'Enter your email and we’ll send you a sign-in code. New here? Build and preview your SayGday before activating it. No password to remember.'],
     ['Questions it can’t answer come straight to you', 'Customers can submit an enquiry when they need your team'],
   ],
@@ -142,7 +142,7 @@ const MANAGED = `
       <p class="intro">The same SayGday software, plus help with setup and keeping your answers useful. You keep the final say on everything your business publishes.</p>
       <div class="price-card">
         <div class="price-card__main">
-          <div class="price__amount">A$99<small>a month</small></div>
+          <div class="price__amount">$99<small>a month</small></div>
           <p>For one business and one supported website. We confirm the setup scope and start date before you pay.</p>
           <a class="btn btn--light" href="/contact" style="justify-self: start">Ask about Managed</a>
         </div>
@@ -160,7 +160,7 @@ const MANAGED = `
       <p class="eyebrow">Before you choose</p>
       <h2 class="title gs-title">A few straight answers.</h2>
       <dl class="qa">
-        <div><dt>When does my free week start?</dt><dd>Build and preview without a card. Verify your website, then add a card through Stripe to activate 7 free days. A$59/month starts automatically afterwards unless you cancel. Checkout shows your first billing date.</dd></div>
+        <div><dt>When does my free week start?</dt><dd>Build and preview without a card. Verify your website, then add a card through Stripe to activate 7 free days. $59/month starts automatically afterwards unless you cancel. Checkout shows your first billing date.</dd></div>
         <div><dt>Is the free week included with Managed?</dt><dd>The free week is for self-managed software. Managed includes hands-on work, so we agree its scope, start date and any introductory arrangement before you pay.</dd></div>
         <div><dt>What about existing customers?</dt><dd>These are the proposed offers for new customers. Existing agreed prices, subscriptions and saved trial dates are not changed by this proposal.</dd></div>
         <div><dt>Will it work on my website?</dt><dd>Your website needs to allow the supplied chat code. Some platforms or plans restrict custom code. Ask us to check compatibility before choosing Managed.</dd></div>
@@ -177,15 +177,15 @@ export function applyApprovedCopy(html, slug) {
   for (const [from, to] of COPY[slug] || []) out = replaceChecked(out, from, to, slug)
   // Shared navigation/trial text is emitted by chrome.mjs, not the page source.
   for (const [from, to] of [
-    ['7 days free. Card required. Then A$30/month.', 'A$59 self-managed. A$99 with hands-on support.'],
-    ['7 days free. Card required to activate. Then A$30/month AUD automatically unless you cancel.', 'Have a week on us. Card required to activate 7 free days. Then A$59/month automatically unless you cancel.'],
+    ['7 days free. Card required. Then $30/month.', '$59 self-managed. $99 with hands-on support.'],
+    ['7 days free. Card required to activate. Then $30/month automatically unless you cancel.', 'Have a week on us. Card required to activate 7 free days. Then $59/month automatically unless you cancel.'],
     ['Try 7 days free', 'Build my SayGday'],
     ['Start your free 7 days', 'Build my SayGday'],
     ['Set up your business in an afternoon.', 'Start with your website. Approve your answers.'],
     ['It looks like a chatbot. Here’s how it isn’t one.', 'Customer answers you control.'],
     ['Nervous customers get a person’s answer.', 'Practical reassurance in your team’s words.'],
     ['Sort of. But not the way you think.', 'AI helps draft. You have the final say.'],
-    ['A$30', 'A$59'],
+    ['$30', '$59'],
   ]) out = out.replaceAll(from, to)
   if (slug === 'pricing') {
     const end = /\n  <\/div>\n<\/main>/

@@ -21,7 +21,7 @@ for (const [name, html] of [['live', live], ['preview', preview]]) {
       assert.ok(note, 'a text disclosure is present beside the signup action')
       assert.match(note, /Have a week on us/)
       assert.match(note, /Card required to activate 7 free days/)
-      assert.match(note, /Then A\$30\/month automatically unless you cancel/)
+      assert.match(note, /Then \$30\/month automatically unless you cancel/)
       assert.match(note, /Checkout shows your first billing date/)
       assert.doesNotMatch(note, /Spare change|Managed|feel more confident/)
     }

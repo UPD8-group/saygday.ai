@@ -28,7 +28,7 @@ export function checkoutView(session, checkout, now = Date.now()) {
   // Reading AND showing this value is required by Stripe before confirm().
   const monthlyAmount = checkout.monthlyAmount ?? 3000
   if (!Number.isSafeInteger(monthlyAmount) || monthlyAmount <= 0 || monthlyAmount > 1000000) throw new Error(moneyError)
-  const monthlyPrice = 'A$' + monthlyAmount / 100
+  const monthlyPrice = '$' + monthlyAmount / 100
   const due = session.total?.total
   const recurring = session.recurring
   const next = recurring?.dueNext?.total
@@ -42,7 +42,7 @@ export function checkoutView(session, checkout, now = Date.now()) {
     complete: false, monthlyAmount, monthlyPrice,
     date,
     trial: trial != null,
-    dueToday: due.amount,
+    dueToday: due.amount.replace(/^(?:A|AU)\$/, '$').replace(/\s+AUD$/, ''),
     dueTodayMinor: due.minorUnitsAmount,
     title: date ? `Your billing starts on ${date}` : 'Start your monthly subscription',
     button: date ? 'Confirm card & activate' : `Subscribe for ${monthlyPrice}/month`,

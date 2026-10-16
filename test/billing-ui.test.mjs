@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-test('an agreed A$60 subscription is shown consistently during trial and paid access', () => {
+test('an agreed $60 subscription is shown consistently during trial and paid access', () => {
   for (const state of ['trial', 'active', 'trial_expired', 'canceled', 'card_required']) {
     const view = billingView({ state, monthlyAmount: 6000, accessAllowed: true, subscriptionScheduled: true })
-    assert.equal(view.monthlyPrice, 'A$60')
-    assert.match(view.description, /A\$60/)
-    assert.doesNotMatch(view.description, /A\$30/)
+    assert.equal(view.monthlyPrice, '$60')
+    assert.match(view.description, /\$60/)
+    assert.doesNotMatch(view.description, /\$30/)
   }
 })
 import { readFile } from 'node:fs/promises'
@@ -69,11 +69,11 @@ test('a trial never implies consent to charge; scheduled subscriptions are shown
     assert.match(billingView(billing).description, /Monthly billing is not set up for this existing trial/)
     assert.equal(billingConfirmed(billing), false)
     assert.equal(billingConfirmed({ ...billing, portalAvailable: true }), false, 'a Stripe customer alone is not a paid commitment')
-    assert.match(billingView({ ...billing, subscriptionScheduled: true }).description, /subscription is scheduled at A\$30 a month \(AUD\) after your free period/)
+    assert.match(billingView({ ...billing, subscriptionScheduled: true }).description, /subscription is scheduled at \$30 a month after your free period/)
     assert.equal(billingConfirmed({ ...billing, subscriptionScheduled: true }), true)
     const canceling = billingView({ ...billing, subscriptionScheduled: true, cancelAtPeriodEnd: true }).description
     assert.match(canceling, /will not renew or start monthly billing/)
-    assert.doesNotMatch(canceling, /scheduled at A\$30/)
+    assert.doesNotMatch(canceling, /scheduled at \$30/)
   }
 })
 
@@ -116,11 +116,11 @@ test('Checkout and portal destinations must be server-returned Stripe HTTPS URLs
 
 test('rendered billing controls honour server capability flags and explain price, cancellation and recovery', () => {
   const expired = render({ state: 'trial_expired', accessAllowed: false, checkoutAvailable: true, portalAvailable: false })
-  assert.match(expired, /Upgrade — A\$30\/month/)
-  assert.match(expired, /month AUD/)
+  assert.match(expired, /Upgrade — \$30\/month/)
+  assert.doesNotMatch(expired, /A\$|AUD/)
   assert.match(expired, /SayGday Assistant/)
   assert.match(expired, /shows the answers you approve and captures customer enquiries/)
-  assert.doesNotMatch(expired, /A\$40/)
+  assert.doesNotMatch(expired, /\$40/)
   assert.match(expired, /Activate with a card or a complimentary code/)
   assert.doesNotMatch(expired, />Manage billing</)
   const active = render({ state: 'active', accessAllowed: true, portalAvailable: true, checkoutAvailable: false })
@@ -202,7 +202,7 @@ test('cancelling during a trial displays a cancellation banner while preserving 
     assert.match(html, /subscription is cancelled/)
     assert.match(html, /remains available until/)
     assert.match(html, /will not renew/)
-    assert.doesNotMatch(html, /scheduled at A\$30/)
+    assert.doesNotMatch(html, /scheduled at \$30/)
     assert.ok(html.includes(billingDate(state.startsWith('trial') ? billing.trialEndsAt : billing.currentPeriodEnd)))
   }
   const ended = billingView({ state: 'canceled', accessAllowed: false })
