@@ -10,7 +10,7 @@ export function billingDate(value) {
 export function billingView(value) {
   const billing = value && STATES.has(value.state) ? value : UNAVAILABLE_BILLING
   const monthlyAmount = Number.isSafeInteger(billing.monthlyAmount) && billing.monthlyAmount > 0 ? billing.monthlyAmount : 3000
-  const monthlyPrice = 'A$' + monthlyAmount / 100
+  const monthlyPrice = '$' + monthlyAmount / 100
   const allowed = billing.accessAllowed === true && billing.state !== 'unavailable'
   const trialEnd = billingDate(billing.trialEndsAt)
   const periodEnd = billingDate(billing.currentPeriodEnd)
@@ -18,24 +18,24 @@ export function billingView(value) {
   const trialPlan = subscribedTrial
     ? billing.cancelAtPeriodEnd === true
       ? ' Your subscription is set to end with your free period. It will not renew or start monthly billing. You can manage this in the billing portal.'
-      : ` Your subscription is scheduled at ${monthlyPrice} a month (AUD) after your free period. Manage or cancel it in the billing portal.`
-    : ` Monthly billing is not set up for this existing trial. Add your card to continue at ${monthlyPrice}/month AUD after your free period.`
+      : ` Your subscription is scheduled at ${monthlyPrice} a month after your free period. Manage or cancel it in the billing portal.`
+    : ` Monthly billing is not set up for this existing trial. Add your card to continue at ${monthlyPrice}/month after your free period.`
   const pause = allowed || ['card_required', 'trial_not_started'].includes(billing.state) ? '' : ' Your customer chat is paused. You can still edit answers and read enquiries.'
   const states = {
     internal: ['Internal business', 'This website is marked as an internal or test business. No subscription is needed.'],
     complimentary: ['Complimentary access', 'You have free access to SayGday for this website. No card or subscription is needed.'],
     setup_pending: ['Billing is being set up', 'Paid upgrades will be available here once billing is ready. No payment is taken automatically.'],
-    card_required: ['Ready to go live', `Your website is verified. Add your card through Stripe to activate your chat and start 7 free days. Then ${monthlyPrice}/month AUD automatically unless you cancel. Nothing to pay today.`],
-    trial_not_started: ['Build and preview for free', `Check your answers and verify your website first. Then add your card to activate your chat and start 7 free days. ${monthlyPrice}/month AUD afterwards unless you cancel.`],
+    card_required: ['Ready to go live', `Your website is verified. Add your card through Stripe to activate your chat and start 7 free days. Then ${monthlyPrice}/month automatically unless you cancel. Nothing to pay today.`],
+    trial_not_started: ['Build and preview for free', `Check your answers and verify your website first. Then add your card to activate your chat and start 7 free days. ${monthlyPrice}/month afterwards unless you cancel.`],
     trial: ['Your free period is running', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is in progress'}.${trialPlan}`],
     trial_ending: ['Your free period is nearly over', `Your free period${trialEnd ? ` ends on ${trialEnd}` : ' is nearly over'}.${subscribedTrial ? trialPlan : ' Monthly billing is not set up for this existing trial. Card setup will be available when it ends, so you keep all of your free time.'}`],
-    trial_expired: ['Your free period has ended', `Upgrade to keep your customer chat running for ${monthlyPrice} a month (AUD).`],
-    active: ['Your subscription is active', `${monthlyPrice} a month (AUD).${periodEnd ? ` Your current paid period ends on ${periodEnd}.` : ''}`],
+    trial_expired: ['Your free period has ended', `Upgrade to keep your customer chat running for ${monthlyPrice} a month.`],
+    active: ['Your subscription is active', `${monthlyPrice} a month.${periodEnd ? ` Your current paid period ends on ${periodEnd}.` : ''}`],
     canceling: ['Your subscription is ending', `${periodEnd ? `Your subscription ends on ${periodEnd}.` : 'Your subscription is set to end.'} It will not renew. You can manage this in the billing portal.`],
     past_due: ['Your payment needs attention', 'We couldn’t confirm your latest payment. Open the billing portal to check your payment method and any unpaid invoice.'],
     unpaid: ['Your payment is overdue', 'Open the billing portal to check your unpaid invoice and payment method.'],
     incomplete: ['Your payment is not complete', 'Your subscription is not active yet. Check your payment in the billing portal, then refresh your billing status.'],
-    canceled: ['Your subscription has ended', `Start a new subscription to run your customer chat again for ${monthlyPrice} a month (AUD).`],
+    canceled: ['Your subscription has ended', `Start a new subscription to run your customer chat again for ${monthlyPrice} a month.`],
     paused: ['Your subscription is paused', 'Open the billing portal to check your subscription, then refresh your billing status.'],
     unavailable: ['We couldn’t check your billing', 'Refresh your billing status to try again.'],
   }

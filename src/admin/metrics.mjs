@@ -6,8 +6,8 @@
 // are listed, but counted in no total.
 
 export const TRIAL_DAYS = 7 // New trials; existing trials use their stored dates below.
-export const PRICE = 30 // A$ a month, site/pricing.html
-export const SCAN_COST = Object.freeze([0.25, 0.45]) // A$ a website scan, README.md
+export const PRICE = 30 // $ a month, site/pricing.html
+export const SCAN_COST = Object.freeze([0.25, 0.45]) // $ a website scan, README.md
 const DAY = 86400000
 
 const time = value => {
@@ -45,10 +45,10 @@ const addDays = (day, days) => {
 const WHOLE = new Intl.NumberFormat('en-AU', { maximumFractionDigits: 0 })
 const CENTS = new Intl.NumberFormat('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const number = value => WHOLE.format(Math.round(Number(value) || 0))
-// "A$30", "A$5.40"; cents: true for both ends of a range to match.
+// "$30", "$5.40"; cents: true for both ends of a range to match.
 export function dollars(value, { cents } = {}) {
   const amount = Number(value) || 0
-  return `A$${(cents ?? !Number.isInteger(amount)) ? CENTS.format(amount) : WHOLE.format(amount)}`
+  return `$${(cents ?? !Number.isInteger(amount)) ? CENTS.format(amount) : WHOLE.format(amount)}`
 }
 export const percent = value => (value === null || value === undefined || !Number.isFinite(value) ? '–' : `${Math.round(value * 100)}%`)
 const DATE = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', day: 'numeric', month: 'short', year: 'numeric' })
